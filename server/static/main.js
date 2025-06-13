@@ -302,42 +302,71 @@ function getGateCoordinates(node, gate, radius) {
  * @param {Coord} startCoords
  */
 function drawEdgeOrthogonal(ctx, startCoords, startGate, endCoords, endGate, offset) {
-    const cornerRadius = 10;
-    const bundleGap = 10;
-    const offsetAmount = offset * bundleGap;
-    const sx = startCoords.x;
-    const sy = startCoords.y;
-    const ex = endCoords.x;
-    const ey = endCoords.y;
+  const cornerRadius = 10;
+  const bundleGap = 10;
+  const offsetAmount = offset * bundleGap;
+  const sx = startCoords.x;
+  const sy = startCoords.y;
+  const ex = endCoords.x;
+  const ey = endCoords.y;
 
-    ctx.beginPath();
-    ctx.moveTo(sx, sy);
+  ctx.beginPath();
+  ctx.moveTo(sx, sy);
 
-    const isHorizontalStart = startGate === GATES.LEFT || startGate === GATES.RIGHT;
-    const isHorizontalEnd = endGate === GATES.LEFT || endGate === GATES.RIGHT;
+  const isHorizontalStart = startGate === GATES.LEFT || startGate === GATES.RIGHT;
+  const isHorizontalEnd = endGate === GATES.LEFT || endGate === GATES.RIGHT;
 
-    if (isHorizontalStart && isHorizontalEnd) {
-        const midX = sx + (ex - sx) / 2 + offsetAmount;
-        ctx.arcTo(midX, sy, midX, ey, cornerRadius);
-        ctx.arcTo(midX, ey, ex, ey, cornerRadius);
-    } else if (!isHorizontalStart && !isHorizontalEnd) {
-        const midY = sy + (ey - sy) / 2 + offsetAmount;
-        ctx.arcTo(sx, midY, ex, midY, cornerRadius);
-        ctx.arcTo(ex, midY, ex, ey, cornerRadius);
+  if (isHorizontalStart && isHorizontalEnd) {
+    const midX = sx + (ex - sx) / 2 + offsetAmount;
+    ctx.arcTo(midX, sy, midX, ey, cornerRadius);
+    ctx.arcTo(midX, ey, ex, ey, cornerRadius);
+  } else if (!isHorizontalStart && !isHorizontalEnd) {
+    const midY = sy + (ey - sy) / 2 + offsetAmount;
+    ctx.arcTo(sx, midY, ex, midY, cornerRadius);
+    ctx.arcTo(ex, midY, ex, ey, cornerRadius);
+  } else {
+    if (isHorizontalStart) {
+      const elbowX = ex;
+      const elbowY = sy;
+      ctx.arcTo(elbowX, elbowY, ex, ey, cornerRadius);
     } else {
-        if (isHorizontalStart) {
-            const elbowX = ex;
-            const elbowY = sy;
-            ctx.arcTo(elbowX, elbowY, ex, ey, cornerRadius);
-        } else {
-            const elbowX = sx;
-            const elbowY = ey;
-            ctx.arcTo(elbowX, elbowY, ex, ey, cornerRadius);
-        }
+      const elbowX = sx;
+      const elbowY = ey;
+      ctx.arcTo(elbowX, elbowY, ex, ey, cornerRadius);
     }
+  }
 
-    ctx.lineTo(ex, ey);
-    ctx.stroke();
+  ctx.lineTo(ex, ey);
+  ctx.stroke();
+
+  ctx.beginPath();
+  if (startGate === GATES.LEFT) {
+    ctx.moveTo(sx - 15, sy - 5);
+    ctx.lineTo(sx - 20, sy);
+    ctx.lineTo(sx - 15, sy + 5);
+  }
+
+  if (startGate === GATES.RIGHT) {
+    ctx.moveTo(sx + 15, sy - 5);
+    ctx.lineTo(sx + 20, sy);
+    ctx.lineTo(sx + 15, sy + 5);
+  }
+
+  if (startGate === GATES.TOP) {
+    ctx.moveTo(sx - 5, sy - 15);
+    ctx.lineTo(sx, sy - 20);
+    ctx.lineTo(sx + 5, sy - 15);
+  }
+
+  if (startGate === GATES.BOTTOM) {
+    ctx.moveTo(sx - 5, sy + 35);
+    ctx.lineTo(sx, sy + 40);
+    ctx.lineTo(sx + 5, sy + 35);
+  }
+
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fill();
+  ctx.stroke();
 }
 
 run();

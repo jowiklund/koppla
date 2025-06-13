@@ -1,0 +1,36 @@
+body {
+	margin: 0;
+	background-color: #f0f0f0;
+	overflow: hidden;
+}
+canvas {
+	border: 1px solid black;
+	background-color: #ffffff;
+	display: block;
+	width: 100vw;
+	height: 100vh;
+}
+
+.control-panel {
+	position: fixed;
+	right: 1rem;
+	bottom: 1rem;
+	top: 1rem;
+	border-radius: 10px;
+	border: 1px solid black;
+	background-color: white;
+	padding: .5rem;
+}
+
+.control-panel button {
+	border-radius: 10px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	margin-bottom: 1rem;
+	border: none;
+	cursor: pointer;
+	padding: 1rem;
+	width: 100%;
+}
+

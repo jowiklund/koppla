@@ -8,6 +8,7 @@ zig build-exe src/main.zig\
     --export=createCoworkerNode \
     --export=createGroupNode \
     --export=createZoneNode \
+    --export=createAccessConnectorNode \
     --export=createEdge \
     --export=deleteNode \
     --export=setNodePosition \
@@ -28,6 +29,11 @@ zig build-exe src/main.zig\
     --export=getGraphObjectType \
     --export=getNodeNamePtr \
     --export=getNodeNameLen \
+    --export=getAccessLevelAccess \
+    --export=getAccessLevelManage \
+    --export=getAccessLevelAdd \
+    --export=getAccessLevelModify \
+    --export=getAccessLevelUpdate \
 	-O ReleaseSmall
 
 rm main.wasm.o

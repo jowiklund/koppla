@@ -18,7 +18,7 @@ pub const CoworkerAuth = enum(u8) {
     guest
 };
 
-pub const EdgeAccessLevel = enum(u8) {
+pub const AccessLevel = enum(u8) {
     access,
     manage,
     modify,
@@ -40,10 +40,16 @@ const Zone = struct {
     zone_type: ZoneType,
 };
 
+const AccessConnector = struct {
+    name: [32]u8,
+    access_level: AccessLevel,
+};
+
 const GraphObject = union(enum) {
     coworker: Coworker,
     group: Group,
     zone: Zone,
+    access_connector: AccessConnector
 };
 
 pub const Node = struct {
@@ -55,7 +61,6 @@ pub const Node = struct {
 pub const Edge = struct {
     start_node_handle: usize,
     end_node_handle: usize,
-    access_level: EdgeAccessLevel,
 };
 
 var node_list: std.ArrayList(*Node) = undefined;
@@ -88,11 +93,11 @@ export fn getCoworkerAuthManager() u8 { return @intFromEnum(CoworkerAuth.manager
 export fn getCoworkerAuthInternal() u8 { return @intFromEnum(CoworkerAuth.internal); }
 export fn getCoworkerAuthGuest() u8 { return @intFromEnum(CoworkerAuth.guest); }
 
-export fn getEdgeAccessLevelAccess() u8 { return @intFromEnum(EdgeAccessLevel.access); }
-export fn getEdgeAccessLevelManage() u8 { return @intFromEnum(EdgeAccessLevel.manage); }
-export fn getEdgeAccessLevelAdd() u8 { return @intFromEnum(EdgeAccessLevel.add); }
-export fn getEdgeAccessLevelModify() u8 { return @intFromEnum(EdgeAccessLevel.modify); }
-export fn getEdgeAccessLevelUpdate() u8 { return @intFromEnum(EdgeAccessLevel.update); }
+export fn getAccessLevelAccess() u8 { return @intFromEnum(AccessLevel.access); }
+export fn getAccessLevelManage() u8 { return @intFromEnum(AccessLevel.manage); }
+export fn getAccessLevelAdd() u8 { return @intFromEnum(AccessLevel.add); }
+export fn getAccessLevelModify() u8 { return @intFromEnum(AccessLevel.modify); }
+export fn getAccessLevelUpdate() u8 { return @intFromEnum(AccessLevel.update); }
 
 fn copyName(name_buffer: *[32]u8, name_len: usize) void {
     const len = @min(name_len, name_buffer.len);
@@ -154,11 +159,28 @@ export fn createZoneNode(
     return @intFromPtr(node);
 }
 
-export fn createEdge(start_handle: usize, end_handle: usize, access_level: u8) void {
+export fn createAccessConnectorNode(
+    x: f32,
+    y: f32,
+    name_len: usize,
+    access_level: u8
+) usize {
+    var name_buffer: [32]u8 = undefined;
+    copyName(&name_buffer, name_len);
+
+    const access_connector = AccessConnector{
+        .name = name_buffer,
+        .access_level = @enumFromInt(access_level),
+    };
+
+    const node = createNodeAndAppend(x, y, .{ .access_connector = access_connector} );
+    return @intFromPtr(node);
+}
+
+export fn createEdge(start_handle: usize, end_handle: usize) void {
     const edge = Edge{
         .start_node_handle = start_handle,
-        .end_node_handle = end_handle,
-        .access_level = @enumFromInt(access_level),
+        .end_node_handle = end_handle
     };
     edge_list.append(edge) catch @panic("OOM: Edge list");
 }
@@ -236,6 +258,7 @@ export fn getNodeNamePtr(handle: usize) usize {
         .coworker => @intFromPtr(&node.data.coworker.name),
         .group => @intFromPtr(&node.data.group.name),
         .zone => @intFromPtr(&node.data.zone.name),
+        .access_connector => @intFromPtr(&node.data.access_connector.name),
     };
 }
 
@@ -245,6 +268,7 @@ export fn getNodeNameLen(handle: usize) usize {
         .coworker => |c| c.name[0..],
         .group => |g| g.name[0..],
         .zone => |z| z.name[0..],
+        .access_connector => |a| a.name[0..],
     };
     return std.mem.indexOf(u8, name_slice, &.{0}) orelse name_slice.len;
 }

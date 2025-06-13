@@ -1,14 +1,56 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>Zig Wasm Test</title>
+		<title>Graph editor</title>
 		<link rel="stylesheet" href="style.css" />
 	</head>
 	<body>
-		<div class="control-panel">
-			<button>Coworker</button>
-			<button>Zone</button>
-			<button>Access level</button>
+		<dialog id="create-zone-dialog">
+			<form id="create-zone-form" method="dialog">
+				<label> Zone name:
+					<input type="text" name="name" />
+				</label>
+				<div class="btn-container">
+					<button id="close">Create</button>
+				</div>
+			</form>
+		</dialog>
+
+		<dialog id="create-group-dialog">
+			<form id="create-group-form" method="dialog">
+				<label> Group name:
+					<input type="text" name="name" />
+				</label>
+				<div class="btn-container">
+					<button id="close">Create</button>
+				</div>
+			</form>
+		</dialog>
+
+		<dialog id="create-access-node-dialog">
+			<form id="create-access-node-form" method="dialog">
+				<label> Access level:
+					<select name="access_level" id="create-access-node-select">
+					</select>
+				</label>
+				<div class="btn-container">
+					<button id="close">Create</button>
+				</div>
+			</form>
+		</dialog>
+
+		<dialog id="create-coworker-dialog">
+			<form id="create-coworker-form" method="dialog">
+				<label> Name:
+					<input type="text" name="name" />
+				</label>
+				<div class="btn-container">
+					<button id="close">Create</button>
+				</div>
+			</form>
+		</dialog>
+
+		<div id="control-panel" class="control-panel">
 		</div>
 		<canvas id="node-canvas"></canvas>
 		<script src="main.js" type="module"></script>

@@ -4,10 +4,12 @@
  * @property {number} y
  */
 
+import { registerToolBox } from "./modules/control-panel.js";
 import { getEngine } from "./modules/graph-editor-api.js";
 
 async function run() {
   const canvas = document.getElementById("node-canvas");
+  const control_panel = document.getElementById("control-panel");
   const NODE_RADIUS = 20;
   const GRID_SIZE = 20;
 
@@ -27,58 +29,9 @@ async function run() {
   ctx.scale(dpr, dpr);
 
   const graph = await getEngine();
-
   if (!graph) return;
 
-  const zones = [
-    "Protokoll", "Software", "Support"
-  ]
-  for (let i = 0; i < zones.length; i++) {
-    graph.createZoneNode(
-      snapToGrid(i * 80 + 50),
-      snapToGrid(50),
-      zones[i],
-      graph.ZoneType.normal,
-    )
-  }
-
-  const access_connectors = [
-    graph.AccessLevel.modify,
-    graph.AccessLevel.update,
-    graph.AccessLevel.access,
-    graph.AccessLevel.add,
-    graph.AccessLevel.manage
-  ]
-  for (let i = 0; i < access_connectors.length; i++) {
-    graph.createAccessNode(
-      snapToGrid(i * 80 + 50),
-      snapToGrid(150),
-      access_connectors[i]
-    );
-  }
-
-  const groups = [
-    "Developers", "Styrelse"
-  ]
-  for (let i = 0; i < groups.length; i++) {
-    graph.createGroupNode(
-      snapToGrid(i * 80 + 50),
-      snapToGrid(250),
-      groups[i],
-    );
-  }
-
-  const users = [
-    "Josef", "Jonas", "Christer", "Pete Hegseth", "Lelle Praktikant"
-  ]
-  for (let i = 0; i < users.length; i++) {
-    graph.createCoworkerNode(
-      snapToGrid(i * 80 + 50),
-      snapToGrid(350),
-      users[i],
-      graph.CoworkerAuth.internal
-    );
-  }
+  registerToolBox(graph, control_panel, canvas, snapToGrid);
 
   let is_dragging = false;
   let dragged_node_handle = 0;

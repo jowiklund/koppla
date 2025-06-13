@@ -34,3 +34,41 @@ canvas {
 	width: 100%;
 }
 
+.node-draggable {
+	font-family: monospace;
+	padding: 1rem;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	border: 2px solid black;
+	margin-bottom: .5rem;
+	border-radius: 10px;
+	cursor: grab;
+}
+
+dialog {
+	border-radius: 10px;
+	font-family: monospace;
+	min-width: 250px;
+}
+
+dialog input, dialog select {
+	padding: .5rem;
+	border-radius: 5px;
+	display: block;
+	margin-bottom: .5rem;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+dialog button {
+	background-color: #b1f1b1;
+	border: none;
+	border-radius: 5px;
+	padding: .5rem 1rem;
+}
+
+dialog .btn-container {
+	display: flex;
+	justify-content: flex-end;
+}

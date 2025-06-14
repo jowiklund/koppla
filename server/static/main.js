@@ -42,7 +42,6 @@ async function run() {
   const drag_offsets = new Map();
 
   let is_connecting = false;
-  let connection_start_handle = 0;
 
   let is_selecting = false;
   let selection_start_x = 0;
@@ -82,7 +81,6 @@ async function run() {
         }
         if (e.shiftKey) {
           is_connecting = true;
-          connection_start_handle = node.handle;
         } else {
           is_dragging = true;
           drag_offsets.clear();
@@ -131,17 +129,20 @@ async function run() {
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
-      for (let node of graph.getNodes()) {
-        const end_handle = node.handle;
-        if (end_handle == connection_start_handle) continue;
+      for (let handle of selected_node_handles) {
+        for (let node of graph.getNodes()) {
+          const end_handle = node.handle;
+          if (end_handle == handle) continue;
 
-        const dx = mouseX - node.x;
-        const dy = mouseY - node.y;
-        if (dx * dx + dy * dy < NODE_RADIUS * NODE_RADIUS) {
-          graph.createEdge(connection_start_handle, end_handle);
-          break;
+          const dx = mouseX - node.x;
+          const dy = mouseY - node.y;
+          if (dx * dx + dy * dy < NODE_RADIUS * NODE_RADIUS) {
+            graph.createEdge(handle, end_handle);
+            break;
+          }
         }
       }
+
     }
 
     is_dragging = false;
@@ -215,23 +216,25 @@ async function run() {
       ctx.strokeStyle = '#888888';
       ctx.lineWidth = 1;
 
-      const start_node = graph.getNode(connection_start_handle)
-      const mouse_coords = { x: current_mouse_x, y: current_mouse_y };
-      const { startGate, endGate } = getBestGates(
-        {
-          x: start_node.x,
-          y: start_node.y
-        }, mouse_coords);
-      const startCoords = getGateCoordinates(start_node, startGate, NODE_RADIUS);
+      for (let handle of selected_node_handles) {
+        const start_node = graph.getNode(handle)
+        const mouse_coords = { x: current_mouse_x, y: current_mouse_y };
+        const { startGate, endGate } = getBestGates(
+          {
+            x: start_node.x,
+            y: start_node.y
+          }, mouse_coords);
+        const startCoords = getGateCoordinates(start_node, startGate, NODE_RADIUS);
 
-      drawEdgeOrthogonal(
-        ctx,
-        startCoords,
-        startGate,
-        mouse_coords,
-        endGate,
-        0
-      );
+        drawEdgeOrthogonal(
+          ctx,
+          startCoords,
+          startGate,
+          mouse_coords,
+          endGate,
+          0
+        );
+      }
 
       ctx.setLineDash([]);
     }

@@ -56,7 +56,6 @@ async function run() {
         selected_node_handles.length > 0
     ) {
       for (let handle of selected_node_handles) {
-        console.log(`Deleting node: ${handle}`);
         graph.deleteNode(handle);
       }
       selected_node_handles = [];
@@ -250,7 +249,11 @@ async function run() {
           ctx.fillStyle = "#66ff99";
           break;
         case graph.GraphNodeType.access_connector:
-          ctx.roundRect(x - NODE_RADIUS, y - NODE_RADIUS, NODE_RADIUS*2, NODE_RADIUS*2, [5]);
+          ctx.moveTo(x, y - NODE_RADIUS)
+          ctx.lineTo(x + NODE_RADIUS, y)
+          ctx.lineTo(x, y + NODE_RADIUS)
+          ctx.lineTo(x - NODE_RADIUS, y)
+          ctx.lineTo(x, y - NODE_RADIUS)
           ctx.fillStyle = "#cecece";
           break;
         case graph.GraphNodeType.group:

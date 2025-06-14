@@ -33,73 +33,95 @@ async function run() {
 
   registerToolBox(graph, control_panel, canvas, snapToGrid);
 
-  let is_dragging = false;
-  let dragged_node_handle = 0;
-  let drag_offset_x = 0;
-  let drag_offset_y = 0;
+  let selection_color = "#089fff";
 
-  let is_connecting = false;
-  let connection_start_handle = 0;
   let current_mouse_x = 0;
   let current_mouse_y = 0;
 
-  let selected_node_handle = 0;
+  let is_dragging = false;
+  const drag_offsets = new Map();
+
+  let is_connecting = false;
+  let connection_start_handle = 0;
+
+  let is_selecting = false;
+  let selection_start_x = 0;
+  let selection_start_y = 0;
+
+  /** @type {Array<NodeHandle>} */
+  let selected_node_handles = [];
 
   window.addEventListener("keydown", (e) => {
     if (
       (e.key == "Delete" || e.key == "Backspace") &&
-        selected_node_handle != 0
+        selected_node_handles.length > 0
     ) {
-      console.log(`Deleting node: ${selected_node_handle}`);
-      graph.deleteNode(selected_node_handle);
-      selected_node_handle = 0;
+      for (let handle of selected_node_handles) {
+        console.log(`Deleting node: ${handle}`);
+        graph.deleteNode(handle);
+      }
+      selected_node_handles = [];
     }
   });
 
   canvas.addEventListener("mousedown", (e) => {
     const rect = canvas.getBoundingClientRect();
 
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    selected_node_handle = 0;
+    const mouse_x = e.clientX - rect.left;
+    const mouse_y = e.clientY - rect.top;
 
     const nodes = graph.getNodes();
     for (let i = nodes.length - 1; i >= 0; i--) {
       const node = nodes[i];
-      const dx = mouseX - node.x;
-      const dy = mouseY - node.y;
+      const dx = mouse_x - node.x;
+      const dy = mouse_y - node.y;
 
       if (dx * dx + dy * dy < NODE_RADIUS * NODE_RADIUS) {
-        selected_node_handle = node.handle;
+        if (!selected_node_handles.includes(node.handle)) {
+          selected_node_handles = [node.handle]
+        }
         if (e.shiftKey) {
           is_connecting = true;
           connection_start_handle = node.handle;
         } else {
           is_dragging = true;
-          dragged_node_handle = node.handle;
-          drag_offset_x = dx;
-          drag_offset_y = dy;
+          drag_offsets.clear();
+          for (let handle of selected_node_handles) {
+            const node = graph.getNode(handle);
+            const dx = mouse_x - node.x;
+            const dy = mouse_y - node.y;
+            drag_offsets.set(handle, {dx, dy})
+          }
           canvas.style.cursor = "grabbing";
         }
         return;
       }
     }
+    selected_node_handles = [];
+    is_selecting = true;
+    selection_start_x = snapToGrid(mouse_x);
+    selection_start_y = snapToGrid(mouse_y);
   });
 
   canvas.addEventListener("mousemove", (e) => {
     const rect = canvas.getBoundingClientRect();
 
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    const mouse_x = e.clientX - rect.left;
+    const mouse_y = e.clientY - rect.top;
 
-    current_mouse_x = mouseX;
-    current_mouse_y = mouseY;
+    current_mouse_x = snapToGrid(mouse_x);
+    current_mouse_y = snapToGrid(mouse_y);
 
     if (is_dragging) {
-      const newX = snapToGrid(mouseX - drag_offset_x);
-      const newY = snapToGrid(mouseY - drag_offset_y);
-      graph.setNodePosition(dragged_node_handle, newX, newY);
+      for (let [handle, offset] of drag_offsets.entries()) {
+        const new_x = snapToGrid(mouse_x - offset.dx);
+        const new_y = snapToGrid(mouse_y - offset.dy);
+        graph.setNodePosition(handle, new_x, new_y);
+      }
+    }
+
+    if (is_selecting) {
+
     }
   });
 
@@ -121,10 +143,27 @@ async function run() {
         }
       }
     }
+
     is_dragging = false;
     is_connecting = false;
-    dragged_node_handle = 0;
     canvas.style.cursor = "default";
+
+    if (is_selecting) {
+      const min_x = Math.min(selection_start_x, current_mouse_x);
+      const max_x = Math.max(selection_start_x, current_mouse_x);
+      const min_y = Math.min(selection_start_y, current_mouse_y);
+      const max_y = Math.max(selection_start_y, current_mouse_y);
+
+      for (let node of graph.getNodes()) {
+        const inside_x = (node.x >= min_x && node.x <= max_x);
+        const inside_y = (node.y >= min_y && node.y <= max_y);
+        if (inside_x && inside_y) {
+          selected_node_handles.push(node.handle);
+        }
+      }
+
+      is_selecting = false;
+    }
   });
 
   function draw() {
@@ -221,8 +260,8 @@ async function run() {
           break;
       }
       ctx.fill();
-      if (node.handle === selected_node_handle) {
-        ctx.strokeStyle = "#089fff";
+      if (selected_node_handles.includes(node.handle)) {
+        ctx.strokeStyle = selection_color;
         ctx.lineWidth = 4;
       } else {
         ctx.strokeStyle = "#000"
@@ -240,6 +279,19 @@ async function run() {
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       ctx.fillText(node.name, x, y + NODE_RADIUS + 10);
+    }
+
+    if (is_selecting) {
+      ctx.beginPath(); //#089fff
+      ctx.strokeStyle = selection_color;
+      ctx.fillStyle = `rgba(8, 190, 255, 0.1)`
+      ctx.moveTo(selection_start_x, selection_start_y);
+      ctx.lineTo(selection_start_x, current_mouse_y);
+      ctx.lineTo(current_mouse_x, current_mouse_y);
+      ctx.lineTo(current_mouse_x, selection_start_y);
+      ctx.lineTo(selection_start_x, selection_start_y);
+      ctx.stroke();
+      ctx.fill();
     }
 
     requestAnimationFrame(draw);

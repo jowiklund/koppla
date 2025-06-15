@@ -4,8 +4,13 @@
  * logic engine written in Zig
  */
 
+import { assert_is_number } from "./assert.js";
+
 /** @typedef {number} NodeHandle */
 /** @typedef {number} EdgeHandle */
+/** @typedef {number} ZoneType */
+/** @typedef {number} GroupType */
+/** @typedef {number} CoworkerAuth */
 
 /**
  * @typedef {Object} Node
@@ -22,7 +27,32 @@
  * @property {NodeHandle} end_handle
  */
 
+/**
+ * @param {unknown} value 
+ * @param {GraphEditor} graph 
+ * @returns {asserts value is ZoneType}
+ */
+export function assert_is_zonetype(value, graph) {
+  assert_is_number(value)
+  if (!Object.values(graph.ZoneType).includes(value)) {
+    throw new Error(`Invalid zone type :: ${value}`)
+  }
+}
+
+/**
+ * @param {unknown} value 
+ * @param {GraphEditor} graph 
+ * @returns {asserts value is ZoneType}
+ */
+export function assert_is_coworker_auth(value, graph) {
+  assert_is_number(value)
+  if (!Object.values(graph.CoworkerAuth).includes(value)) {
+    throw new Error(`Invalid coworker auth :: ${value}`);
+  }
+}
+
 export class GraphEditor {
+  /** @type {number} */
   scale = 1.0;
   /** @type {import("./typedefs").Coords} */
   pan_coords = {
@@ -78,7 +108,10 @@ export class GraphEditor {
     };
   }
 
-  /** @private */
+  /**
+   * @private
+   * @param {string} str 
+   */
   _writeStringToWasm(str) {
     const encoded = this._text_encoder.encode(str);
     const view = new Uint8Array(this._memory.buffer, this._string_buffer_ptr, 256);
@@ -91,7 +124,11 @@ export class GraphEditor {
     return encoded.length;
   }
 
-  /** @private */
+  /**
+   * @private
+   * @param {number} ptr 
+   * @param {number} len 
+   */
   _readStringFromWasm(ptr, len) {
     const buffer = new Uint8Array(this._memory.buffer, ptr, len);
     return this._text_decoder.decode(buffer);
@@ -311,6 +348,13 @@ export class GraphEditor {
 }
 
 /**
+ * @param {string | number | object} data 
+ */
+function print(data) {
+  console.log(data)
+}
+
+/**
  * @returns {Promise<GraphEditor | null>}
  */
 export async function getEngine() {
@@ -319,9 +363,7 @@ export async function getEngine() {
     const wasm_buffer = await wasm_source.arrayBuffer();
     const wasm = await WebAssembly.instantiate(wasm_buffer, {
       env: {
-        print: (data) => {
-          console.log(data)
-        }
+        print
       }
     })
 

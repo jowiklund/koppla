@@ -1,8 +1,15 @@
-import { GraphEditor } from "./graph-editor-api.js";
+import { assert_is_dialog, assert_is_form, assert_is_input, assert_is_string } from "./assert.js";
+import { assert_is_coworker_auth, assert_is_zonetype, GraphEditor } from "./graph-editor-api.js";
 /**
  * @callback CoordinateRounder
  * @param {number} value
  * @returns {number}
+ */
+
+/** 
+ * @typedef {Object} NodeData
+ * @property {unknown} data
+ * @property {number} type
  */
 
 /**
@@ -19,27 +26,50 @@ export function registerToolBox(graph, container, canvas, coordinate_rounder) {
   /** @type {number} */
   let x, y;
 
-  document.getElementById("create-zone-form").addEventListener("submit", (e) => {
-    const data = new FormData(e.target)
-    graph.createZoneNode(x, y, data.get("name"), node_data)
-    e.target.querySelectorAll('input[type="text"]').forEach(el => el.value = "")
+  const modal_ids = new Map()
+  modal_ids.set(graph.GraphNodeType.zone, "create-zone-dialog")
+  modal_ids.set(graph.GraphNodeType.group, "create-group-dialog")
+  modal_ids.set(graph.GraphNodeType.access_connector, "create-access-node-dialog")
+  modal_ids.set(graph.GraphNodeType.coworker, "create-coworker-dialog")
+
+  document.getElementById("create-zone-form").addEventListener("submit", (event) => {
+    assert_is_zonetype(node_data.data, graph);
+    assert_is_form(event.target);
+    const data = new FormData(event.target)
+    graph.createZoneNode(x, y, data.get("name").toString(), node_data.data)
+    event.target.querySelectorAll('input[type="text"]').forEach(el => {
+      assert_is_input(el);
+      el.value = "";
+    })
   })
 
   document.getElementById("create-group-form").addEventListener("submit", (e) => {
+    assert_is_form(e.target);
     const data = new FormData(e.target)
-    graph.createGroupNode(x, y, data.get("name"), node_data)
-    e.target.querySelectorAll('input[type="text"]').forEach(el => el.value = "")
+    graph.createGroupNode(x, y, data.get("name").toString())
+    e.target.querySelectorAll('input[type="text"]').forEach(el => {
+      assert_is_input(el);
+      el.value = "";
+    })
   })
 
   document.getElementById("create-coworker-form").addEventListener("submit", (e) => {
+    assert_is_form(e.target);
+    assert_is_coworker_auth(node_data.data, graph)
     const data = new FormData(e.target)
-    graph.createCoworkerNode(x, y, data.get("name"), node_data)
-    e.target.querySelectorAll('input[type="text"]').forEach(el => el.value = "")
+    graph.createCoworkerNode(x, y, data.get("name").toString(), node_data.data)
+    e.target.querySelectorAll('input[type="text"]').forEach(el => {
+      assert_is_input(el);
+      el.value = "";
+    })
   })
 
   document.getElementById("create-access-node-form").addEventListener("submit", (e) => {
+    assert_is_form(e.target);
     const data = new FormData(e.target)
-    graph.createAccessNode(x, y, parseInt(data.get("access_level")))
+    const access_level = data.get("access_level")
+    assert_is_string(access_level)
+    graph.createAccessNode(x, y, parseInt(access_level))
   })
 
   const access_level_select = document.getElementById("create-access-node-select")
@@ -63,13 +93,9 @@ export function registerToolBox(graph, container, canvas, coordinate_rounder) {
     let drop_data = e.dataTransfer.getData("graph/node");
     node_data = JSON.parse(drop_data);
 
-    const modal_ids = new Map()
-    modal_ids.set(graph.GraphNodeType.zone, "create-zone-dialog")
-    modal_ids.set(graph.GraphNodeType.group, "create-group-dialog")
-    modal_ids.set(graph.GraphNodeType.access_connector, "create-access-node-dialog")
-    modal_ids.set(graph.GraphNodeType.coworker, "create-coworker-dialog")
-
-    document.getElementById(modal_ids.get(node_data.type)).showModal()
+    const dialog = document.getElementById(modal_ids.get(node_data.type))
+    assert_is_dialog(dialog);
+    dialog.showModal()
   })
   
   const zone = createNodeDraggable("Zone", {
@@ -107,12 +133,6 @@ export function registerToolBox(graph, container, canvas, coordinate_rounder) {
  */
 
 /**
- * @typedef {Object} NodeData
- * @property {number} type
- * @property {any} data
- */
-
-/**
  * Creates a button
  * 
  * @param {string} text 
@@ -124,7 +144,7 @@ function createNodeDraggable(text, data) {
 
   node.classList.add("node-draggable")
 
-  node.setAttribute("draggable", true)
+  node.setAttribute("draggable", "true")
 
   node.addEventListener("dragstart", (e) => {
     e.dataTransfer.setData("graph/node", JSON.stringify(data))

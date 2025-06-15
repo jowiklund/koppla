@@ -47,8 +47,6 @@ async function run() {
   let selection_start_x = 0;
   let selection_start_y = 0;
 
-  let scale = 1.0;
-
   let is_panning = false;
   let pan_start_x = 0;
   let pan_start_y = 0;

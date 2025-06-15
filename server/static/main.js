@@ -1,18 +1,18 @@
-/**
- * @typedef {Object} Coord
- * @property {number} x
- * @property {number} y
- */
-
 import { registerToolBox } from "./modules/control-panel.js";
-import { getEngine } from "./modules/graph-editor-api.js";
+import { getEngine, GraphEditor } from "./modules/graph-editor-api.js";
 
 async function run() {
-  const canvas = document.getElementById("node-canvas");
-  const control_panel = document.getElementById("control-panel");
+  /** @type {HTMLCanvasElement} */
+  const canvas = document.querySelector("#node-canvas");
+  /** @type {HTMLDivElement} */
+  const control_panel = document.querySelector("#control-panel");
   const NODE_RADIUS = 20;
   const GRID_SIZE = 20;
 
+  /**
+   * @param {number} value 
+   * @returns {number}
+   */
   function snapToGrid(value) {
     return Math.round(value / GRID_SIZE) * GRID_SIZE;
   }
@@ -47,7 +47,13 @@ async function run() {
   let selection_start_x = 0;
   let selection_start_y = 0;
 
-  /** @type {Array<NodeHandle>} */
+  let scale = 1.0;
+
+  let is_panning = false;
+  let pan_start_x = 0;
+  let pan_start_y = 0;
+
+  /** @type {Array<import("./modules/graph-editor-api.js").NodeHandle>} */
   let selected_node_handles = [];
 
   window.addEventListener("keydown", (e) => {
@@ -65,8 +71,12 @@ async function run() {
   canvas.addEventListener("mousedown", (e) => {
     const rect = canvas.getBoundingClientRect();
 
-    const mouse_x = e.clientX - rect.left;
-    const mouse_y = e.clientY - rect.top;
+    const screen_x = e.clientX - rect.left;
+    const screen_y = e.clientY - rect.top;
+
+    const world_coords = graph.screenToWorld({x: screen_x, y: screen_y});
+    const mouse_x = world_coords.x;
+    const mouse_y = world_coords.y;
 
     const nodes = graph.getNodes();
     for (let i = nodes.length - 1; i >= 0; i--) {
@@ -94,6 +104,15 @@ async function run() {
         return;
       }
     }
+
+    if (e.ctrlKey) {
+      is_panning = true;
+      pan_start_x = screen_x;
+      pan_start_y = screen_y;
+      canvas.style.cursor = "move";
+      return;
+    }
+
     selected_node_handles = [];
     is_selecting = true;
     selection_start_x = snapToGrid(mouse_x);
@@ -103,8 +122,12 @@ async function run() {
   canvas.addEventListener("mousemove", (e) => {
     const rect = canvas.getBoundingClientRect();
 
-    const mouse_x = e.clientX - rect.left;
-    const mouse_y = e.clientY - rect.top;
+    const screen_x = e.clientX - rect.left;
+    const screen_y = e.clientY - rect.top;
+
+    const world_coords = graph.screenToWorld({x: screen_x, y: screen_y})
+    const mouse_x = world_coords.x;
+    const mouse_y = world_coords.y;
 
     current_mouse_x = snapToGrid(mouse_x);
     current_mouse_y = snapToGrid(mouse_y);
@@ -117,24 +140,61 @@ async function run() {
       }
     }
 
-    if (is_selecting) {
+    if (is_panning) {
+      const screen_x = e.clientX - rect.left;
+      const screen_y = e.clientY - rect.top;
 
+      const dx = screen_x - pan_start_x;
+      const dy = screen_y - pan_start_y;
+
+      graph.pan(dx, dy);
+
+      pan_start_x = screen_x;
+      pan_start_y = screen_y;
+      return;
     }
+  });
+
+  canvas.addEventListener("wheel", (e) => {
+    e.preventDefault();
+
+    const zoom_intensity = 0.05;
+    const wheel = e.deltaY < 0 ? 1 : -1;
+    const zoom = Math.exp(wheel * zoom_intensity);
+
+    const rect = canvas.getBoundingClientRect();
+    const mouse_x = e.clientX - rect.left;
+    const mouse_y = e.clientY - rect.top;
+
+    const world_before = graph.screenToWorld({x: mouse_x, y: mouse_y});
+
+    graph.zoom(zoom)
+
+    const world_after = graph.screenToWorld({x: mouse_x, y: mouse_y});
+
+    graph.pan(
+      (world_after.x - world_before.x) * graph.scale,
+      (world_after.y - world_before.y) * graph.scale
+    )
   });
 
   canvas.addEventListener("mouseup", (e) => {
     if (is_connecting) {
       const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
+      const screen_x = e.clientX - rect.left;
+      const screen_y = e.clientY - rect.top;
+
+      const world_coords = graph.screenToWorld({x: screen_x, y: screen_y});
+      const mouse_x = world_coords.x;
+      const mouse_y = world_coords.y;
 
       for (let handle of selected_node_handles) {
         for (let node of graph.getNodes()) {
           const end_handle = node.handle;
           if (end_handle == handle) continue;
 
-          const dx = mouseX - node.x;
-          const dy = mouseY - node.y;
+          const dx = mouse_x - node.x;
+          const dy = mouse_y - node.y;
           if (dx * dx + dy * dy < NODE_RADIUS * NODE_RADIUS) {
             graph.createEdge(handle, end_handle);
             break;
@@ -146,6 +206,7 @@ async function run() {
 
     is_dragging = false;
     is_connecting = false;
+    is_panning = false;
     canvas.style.cursor = "default";
 
     if (is_selecting) {
@@ -171,14 +232,17 @@ async function run() {
     const logicalHeight = canvas.height / dpr;
     ctx.clearRect(0, 0, logicalWidth, logicalHeight);
 
-    ctx.fillStyle = "#ebebeb";
-    for (let x = GRID_SIZE; x < logicalWidth; x += GRID_SIZE) {
-      for (let y = GRID_SIZE; y < logicalHeight; y += GRID_SIZE) {
-        ctx.beginPath();
-        ctx.arc(x, y, 1, 0, 2 * Math.PI);
-        ctx.fill();
-      }
-    }
+    ctx.save();
+    ctx.translate(graph.pan_coords.x, graph.pan_coords.y);
+    ctx.scale(graph.scale, graph.scale);
+
+    drawWorldGrid(
+      ctx,
+      logicalWidth,
+      logicalHeight,
+      GRID_SIZE,
+      graph
+    );
 
     const edge_bundles = graph.getEdgeBundles();
 
@@ -300,12 +364,58 @@ async function run() {
       ctx.fill();
     }
 
+    ctx.restore();
     requestAnimationFrame(draw);
   }
 
   draw();
 }
 
+/**
+ * @param {CanvasRenderingContext2D} ctx The canvas context.
+ * @param {number} canvasWidth The width of the canvas element.
+ * @param {number} canvas_height The height of the canvas element.
+ * @param {GraphEditor} graph 
+ * @param {number} grid_size 
+ */
+function drawWorldGrid(ctx, canvasWidth, canvas_height, grid_size, graph) {
+  // --- 1. Calculate the visible part of the world ---
+  // This is essential to only draw what's currently on screen.
+  const worldViewTopLeft = graph.screenToWorld({x: 0, y: 0});
+  const worldViewBottomRight = graph.screenToWorld({x: canvasWidth, y: canvas_height});
+
+  // --- 2. Align the loop start to the grid ---
+  // This ensures the grid remains stable and doesn't "swim" when you pan.
+  // It finds the first multiple of GRID_SIZE just off-screen to the top-left.
+  const startX = Math.floor(worldViewTopLeft.x / grid_size) * grid_size;
+  const startY = Math.floor(worldViewTopLeft.y / grid_size) * grid_size;
+
+  // --- 3. Keep the dot size visually constant ---
+  // To make the dots always appear to be 1px wide on the screen,
+  // we must scale their radius inversely to the current zoom level.
+  const dotRadius = 1 / graph.scale;
+
+  ctx.fillStyle = "#ebebeb";
+  
+  // Loop from the calculated start of the visible area to the end
+  for (let x = startX; x < worldViewBottomRight.x; x += grid_size) {
+    for (let y = startY; y < worldViewBottomRight.y; y += grid_size) {
+      ctx.beginPath();
+      ctx.arc(x, y, dotRadius, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+  }
+}
+
+/**
+ * @typedef {Object} Gates
+ * @property {number} TOP
+ * @property {number} BOTTOM
+ * @property {number} LEFT
+ * @property {number} RIGHT
+ */
+
+/** @type Gates */
 const GATES = {
   TOP: 0,
   BOTTOM: 1,
@@ -316,9 +426,9 @@ const GATES = {
 /**
  * Determines the best exit and entry gates for a connection
  * based on the relative position of two nodes.
- * @param {{x: number, y: number}} startNode The start node's coordinates.
- * @param {{x: number, y: number}} endNode The end node's coordinates.
- * @returns {{startGate: string, endGate: string}}
+ * @param {import("./modules/typedefs.js").Coords} startNode The start node's coordinates.
+ * @param {import("./modules/typedefs.js").Coords} endNode The end node's coordinates.
+ * @returns {{startGate: number, endGate: number}}
  */
 function getBestGates(startNode, endNode) {
     const dx = endNode.x - startNode.x;
@@ -340,10 +450,10 @@ function getBestGates(startNode, endNode) {
 }
 
 /**
- * @param {{x: number, y: number}} node The node's center coordinates.
- * @param {string} gate The gate (from GATES enum).
+ * @param {import("./modules/typedefs.js").Coords} node The node's center coordinates.
+ * @param {number} gate The gate (from GATES enum).
  * @param {number} radius The node's radius.
- * @returns {{x: number, y: number}}
+ * @returns {import("./modules/typedefs.js").Coords}
  */
 function getGateCoordinates(node, gate, radius) {
     switch (gate) {
@@ -356,8 +466,12 @@ function getGateCoordinates(node, gate, radius) {
 }
 
 /**
- * @param {CanvasRenderingContext2D} ctx The canvas context.
- * @param {Coord} startCoords
+ * @param {CanvasRenderingContext2D} ctx - 
+ * @param {import("./modules/typedefs.js").Coords} startCoords - 
+ * @param {number} startGate - 
+ * @param {import("./modules/typedefs.js").Coords} endCoords - 
+ * @param {number} endGate - 
+ * @param {number} offset - 
  */
 function drawEdgeOrthogonal(ctx, startCoords, startGate, endCoords, endGate, offset) {
   const cornerRadius = 10;

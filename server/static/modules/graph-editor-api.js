@@ -23,6 +23,12 @@
  */
 
 export class GraphEditor {
+  scale = 1.0;
+  /** @type {import("./typedefs").Coords} */
+  pan_coords = {
+    x: 0,
+    y: 0
+  }
   /** @private */
   _wasm;
   /** @private */
@@ -35,7 +41,7 @@ export class GraphEditor {
   _text_decoder = new TextDecoder();
 
   /**
-   * @param {WebAssembly.WebAssemblyInstantiatedSource.instance} wasm_instance 
+   * @param {any} wasm_instance 
    */
   constructor(wasm_instance) {
     this._wasm = wasm_instance.exports;
@@ -92,6 +98,42 @@ export class GraphEditor {
   }
 
   /**
+   * Pan the world
+   *
+   * @param {number} dx - Pan diff X
+   * @param {number} dy - Pan diff Y
+   */
+  pan(dx, dy) {
+    this.pan_coords.x += dx;
+    this.pan_coords.y += dy;
+  }
+
+  /**
+   * Scale the world
+   *
+   * @param {number} amount - the amount to zoom
+   */
+  zoom(amount) {
+    this.scale *= amount;
+    this.scale = Math.max(0.1, Math.min(this.scale, 10));
+  }
+
+  /**
+   * Translate coordinates to world coords
+   *
+   * @param {import("./typedefs").Coords} screen_coords 
+   */
+  screenToWorld(screen_coords) {
+    const world_x = (screen_coords.x - this.pan_coords.x) / this.scale;
+    const world_y = (screen_coords.y - this.pan_coords.y) / this.scale;
+    return {
+      x: world_x,
+      y: world_y
+    }
+  }
+
+
+  /**
    * Creates a new Group node in the graph.
    * @param {number} x The X coordinate.
    * @param {number} y The Y coordinate.
@@ -100,7 +142,8 @@ export class GraphEditor {
    */
   createGroupNode(x, y, name) {
     const len = this._writeStringToWasm(name);
-    return this._wasm.createGroupNode(x, y, len);
+    const {x: w_x, y: w_y} = this.screenToWorld({x, y})
+    return this._wasm.createGroupNode(w_x, w_y, len);
   }
 
   /**
@@ -113,7 +156,8 @@ export class GraphEditor {
    */
   createZoneNode(x, y, name, type) {
     const len = this._writeStringToWasm(name);
-    return this._wasm.createZoneNode(x, y, len, type);
+    const {x: w_x, y: w_y} = this.screenToWorld({x, y})
+    return this._wasm.createZoneNode(w_x, w_y, len, type);
   }
 
   /**
@@ -125,7 +169,8 @@ export class GraphEditor {
    */
   createCoworkerNode(x, y, name, auth) {
     const len = this._writeStringToWasm(name);
-    return this._wasm.createCoworkerNode(x, y, len, auth);
+    const {x: w_x, y: w_y} = this.screenToWorld({x, y})
+    return this._wasm.createCoworkerNode(w_x, w_y, len, auth);
   }
 
   /**
@@ -137,6 +182,7 @@ export class GraphEditor {
    */
   createAccessNode(x, y, level) {
     let name = "";
+    const {x: w_x, y: w_y} = this.screenToWorld({x, y})
     switch (level) {
       case this.AccessLevel.manage:
         name = "Manage";
@@ -157,12 +203,12 @@ export class GraphEditor {
         throw new Error("Invalid access level")
     }
     const len = this._writeStringToWasm(name);
-    return this._wasm.createAccessConnectorNode(x, y, len, level);
+    return this._wasm.createAccessConnectorNode(w_x, w_y, len, level);
   }
 
   /**
    * Get the a node by its handle
-   *
+   * @param {number} handle 
    * @returns {Node}
    */
   getNode(handle) {

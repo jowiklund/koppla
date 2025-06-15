@@ -1,5 +1,4 @@
 import { GraphEditor } from "./graph-editor-api.js";
-
 /**
  * @callback CoordinateRounder
  * @param {number} value

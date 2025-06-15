@@ -16,9 +16,6 @@ zig build-exe src/main.zig\
     --export=getNodeHandleByIndex \
     --export=getNodeX \
     --export=getNodeY \
-    --export=getEdgeCount \
-    --export=getEdgeStartNode \
-    --export=getEdgeEndNode \
     --export=getZoneTypePersonal \
     --export=getZoneTypeReadProtected \
     --export=getZoneTypeNormal \
@@ -37,6 +34,10 @@ zig build-exe src/main.zig\
     --export=getZoneNodeZoneType \
     --export=getCoworkerNodeAuth \
     --export=getAccessNodeAccessLevel \
+    --export=getNodeOutgoingCount \
+    --export=getNodeOutgoingHandleByIndex \
+    --export=getNodeIncomingCount \
+    --export=getNodeIncomingHandleByIndex \
     -O ReleaseSmall
 
 rm main.wasm.o

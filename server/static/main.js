@@ -71,6 +71,8 @@ async function run() {
   canvas.addEventListener("mousedown", (e) => {
     const rect = canvas.getBoundingClientRect();
 
+    const _nodes = graph.getNodes();
+
     const screen_x = e.clientX - rect.left;
     const screen_y = e.clientY - rect.top;
 
@@ -93,7 +95,6 @@ async function run() {
       const dy = Math.abs(mouse_y - node.y);
 
       if (dx <= NODE_RADIUS && dy <= NODE_RADIUS) {
-        console.log(graph.metadata.get(node.handle))
         if (!selected_node_handles.includes(node.handle)) {
           selected_node_handles = [node.handle]
         }

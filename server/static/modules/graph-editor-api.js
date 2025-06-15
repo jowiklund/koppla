@@ -20,6 +20,8 @@ import { assert_is_number } from "./assert.js";
  * @property {number} type
  * @property {NodeHandle} handle
  * @property {string} name
+ * @property {Array<NodeHandle>} edges_outgoing
+ * @property {Array<NodeHandle>} edges_incoming
  */
 
 /**
@@ -313,13 +315,29 @@ export class GraphEditor {
     const name_len = this._wasm.getNodeNameLen(handle);
     const name = this._readStringFromWasm(name_ptr, name_len);
 
-    return {
+    const node = {
       handle,
       x: this._wasm.getNodeX(handle),
       y: this._wasm.getNodeY(handle),
+      edges_outgoing: [],
+      edges_incoming: [],
       type: this._wasm.getGraphObjectType(handle),
       name
     }
+
+    const edges_out_len = this._wasm.getNodeOutgoingCount(handle);
+    for (let i = 0; i < edges_out_len; i++) {
+      const edge_out = this._wasm.getNodeOutgoingHandleByIndex(handle, i);
+      node.edges_outgoing.push(edge_out);
+    }
+
+    const edges_in_len = this._wasm.getNodeIncomingCount(handle);
+    for (let i = 0; i < edges_in_len; i++) {
+      const edge_in = this._wasm.getNodeIncomingHandleByIndex(handle, i);
+      node.edges_incoming.push(edge_in);
+    }
+
+    return node;
   }
 
   /**
@@ -363,38 +381,22 @@ export class GraphEditor {
   }
 
   /**
-   * Get an edge by its' index in memory
-   *
-   * @param {number} index 
-   *
-   * @returns {Edge}
-   */
-  getEdgeByIndex(index) {
-    const start_handle = this._wasm.getEdgeStartNode(index);
-    const end_handle = this._wasm.getEdgeEndNode(index);
-
-    return {
-      start_handle,
-      end_handle
-    }
-  }
-
-  /**
    * @returns {Map<string, Array<Edge>>}
    */
   getEdgeBundles() {
+    const nodes = this.getNodes();
+    /** @type {Map<string, Array<Edge>>} */
     const bundles = new Map();
-    const edge_count = this._wasm.getEdgeCount();
-
-    for (let i = 0; i < edge_count; i++) {
-      const {start_handle, end_handle} = this.getEdgeByIndex(i);
-      const key = Math.min(start_handle, end_handle) + '-' + Math.max(start_handle, end_handle);
-
-      if (!bundles.has(key)) {
-        bundles.set(key, []);
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      for (let k = 0; k < node.edges_outgoing.length; k++) {
+        const out = node.edges_outgoing[k]
+        const key = Math.min(node.handle, out) + '-' + Math.max(node.handle, out);
+        if (!bundles.has(key)) {
+          bundles.set(key, []);
+        }
+        bundles.get(key).push({start_handle: node.handle, end_handle: out});
       }
-
-      bundles.get(key).push({start_handle, end_handle})
     }
     return bundles;
   }

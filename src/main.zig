@@ -5,6 +5,8 @@ var fba: std.heap.FixedBufferAllocator = undefined;
 
 pub export var js_string_buffer: [256]u8 = undefined;
 
+const NodeHandle = usize;
+
 pub const ZoneType = enum(u8) {
     personal,
     read_protected,
@@ -56,20 +58,19 @@ pub const Node = struct {
     x: f32,
     y: f32,
     data: GraphObject,
-};
-
-pub const Edge = struct {
-    start_node_handle: usize,
-    end_node_handle: usize,
+    edges_incoming: std.ArrayList(NodeHandle),
+    edges_outgoing: std.ArrayList(NodeHandle),
+    mass: f32,
+    is_fixed: bool,
+    velocity_x: f32,
+    velocity_y: f32
 };
 
 var node_list: std.ArrayList(*Node) = undefined;
-var edge_list: std.ArrayList(Edge) = undefined;
 
 export fn init() void {
     fba = std.heap.FixedBufferAllocator.init(&memory_buffer);
     node_list = std.ArrayList(*Node).init(fba.allocator());
-    edge_list = std.ArrayList(Edge).init(fba.allocator());
 }
 
 fn createNodeAndAppend(x: f32, y: f32, data: GraphObject) *Node {
@@ -78,6 +79,12 @@ fn createNodeAndAppend(x: f32, y: f32, data: GraphObject) *Node {
         .x = x,
         .y = y,
         .data = data,
+        .edges_incoming = std.ArrayList(NodeHandle).init(fba.allocator()),
+        .edges_outgoing = std.ArrayList(NodeHandle).init(fba.allocator()),
+        .mass = 1.0,
+        .is_fixed = false,
+        .velocity_x = 0.0,
+        .velocity_y = 0.0,
     };
 
     node_list.append(node) catch @panic("OOM: Node list");
@@ -178,34 +185,50 @@ export fn createAccessConnectorNode(
 }
 
 export fn createEdge(start_handle: usize, end_handle: usize) void {
-    const edge = Edge{
-        .start_node_handle = start_handle,
-        .end_node_handle = end_handle
-    };
-    edge_list.append(edge) catch @panic("OOM: Edge list");
+    const start_node: *Node = @ptrFromInt(start_handle);
+    const end_node: *Node = @ptrFromInt(end_handle);
+    start_node.edges_outgoing.append(end_handle) catch @panic("OOM: Node outgoing");
+    end_node.edges_incoming.append(start_handle) catch @panic("OOM: Node incoming");
 }
-
 
 export fn deleteNode(handle: usize) void {
     const node_to_delete: *Node = @ptrFromInt(handle);
 
-    var i = edge_list.items.len;
-    while (i > 0) {
-        i -= 1;
-        const edge = edge_list.items[i];
-        if (edge.start_node_handle == handle or edge.end_node_handle == handle) {
-            _ = edge_list.orderedRemove(i);
+    for (node_to_delete.edges_outgoing.items) |neighbor_handle| {
+        const neighbor_node: *Node = @ptrFromInt(neighbor_handle);
+        var k: usize = 0;
+        while (k < neighbor_node.edges_incoming.items.len) {
+            if (neighbor_node.edges_incoming.items[k] == handle) {
+                _ = neighbor_node.edges_incoming.swapRemove(k);
+                break; 
+            }
+            k += 1;
         }
     }
 
-    i = 0;
-    while (i < node_list.items.len) : (i += 1) {
+    for (node_to_delete.edges_incoming.items) |neighbor_handle| {
+        const neighbor_node: *Node = @ptrFromInt(neighbor_handle);
+        var k: usize = 0;
+        while (k < neighbor_node.edges_outgoing.items.len) {
+            if (neighbor_node.edges_outgoing.items[k] == handle) {
+                _ = neighbor_node.edges_outgoing.swapRemove(k);
+                break;
+            }
+            k += 1;
+        }
+    }
+
+    var i = node_list.items.len;
+    while (i > 0) {
+        i -= 1;
         if (node_list.items[i] == node_to_delete) {
             _ = node_list.orderedRemove(i);
             break;
         }
     }
 
+    node_to_delete.edges_incoming.deinit();
+    node_to_delete.edges_outgoing.deinit();
     fba.allocator().destroy(node_to_delete);
 }
 
@@ -224,7 +247,7 @@ export fn getNodeZoneType(handle: usize) f32 {
     return node_ptr.y;
 }
 
-export fn setNodePosition(handle: usize, new_x: f32, new_y: f32) void {
+export fn setNodePosition(handle: NodeHandle, new_x: f32, new_y: f32) void {
     const node_ptr: *Node = @ptrFromInt(handle);
     node_ptr.x = new_x;
     node_ptr.y = new_y;
@@ -236,20 +259,29 @@ export fn getNodeCount() usize {
 
 export fn getNodeHandleByIndex(index: usize) usize {
     const node_ptr = node_list.items[index];
-
     return @intFromPtr(node_ptr);
 }
 
-export fn getEdgeCount() usize {
-    return edge_list.items.len;
+export fn getNodeOutgoingHandleByIndex(handle: NodeHandle, index: usize) usize {
+    const node: *Node = @ptrFromInt(handle);
+    const node_ptr = node.edges_outgoing.items[index];
+    return node_ptr;
 }
 
-export fn getEdgeStartNode(index: usize) usize {
-    return edge_list.items[index].start_node_handle;
+export fn getNodeIncomingHandleByIndex(handle: NodeHandle, index: usize) usize {
+    const node: *Node = @ptrFromInt(handle);
+    const node_ptr = node.edges_incoming.items[index];
+    return node_ptr;
 }
 
-export fn getEdgeEndNode(index: usize) usize {
-    return edge_list.items[index].end_node_handle;
+export fn getNodeOutgoingCount(handle: NodeHandle) usize {
+    const node: *Node = @ptrFromInt(handle);
+    return node.edges_outgoing.items.len;
+}
+
+export fn getNodeIncomingCount(handle: NodeHandle) usize {
+    const node: *Node = @ptrFromInt(handle);
+    return node.edges_incoming.items.len;
 }
 
 export fn getGraphObjectType(handle: usize) u8 {
@@ -302,4 +334,4 @@ export fn getNodeNameLen(handle: usize) usize {
     return std.mem.indexOf(u8, name_slice, &.{0}) orelse name_slice.len;
 }
 
-extern fn print(i32) void;
+extern fn print(usize) void;

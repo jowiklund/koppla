@@ -1,5 +1,4 @@
-import { assert_is_dialog, assert_is_form, assert_is_input, assert_is_string } from "./assert.js";
-import { assert_is_coworker_auth, assert_is_zonetype, GraphEditor } from "./graph-editor-api.js";
+import { GraphEditor } from "./graph-editor-api.js";
 /**
  * @callback CoordinateRounder
  * @param {number} value
@@ -8,8 +7,8 @@ import { assert_is_coworker_auth, assert_is_zonetype, GraphEditor } from "./grap
 
 /** 
  * @typedef {Object} NodeData
- * @property {unknown} data
- * @property {number} type
+ * @property {{name: string}} data
+ * @property {string} style
  */
 
 /**
@@ -26,68 +25,20 @@ export function registerToolBox(graph, container, canvas, coordinate_rounder) {
   /** @type {number} */
   let x, y;
 
-  const modal_ids = new Map()
-  modal_ids.set(graph.GraphNodeType.zone, "create-zone-dialog")
-  modal_ids.set(graph.GraphNodeType.group, "create-group-dialog")
-  modal_ids.set(graph.GraphNodeType.access_connector, "create-access-node-dialog")
-  modal_ids.set(graph.GraphNodeType.coworker, "create-coworker-dialog")
+  // const modal_ids = new Map()
+  //modal_ids.set(graph.GraphNodeType.zone, "create-zone-dialog")
 
-  document.getElementById("create-zone-form").addEventListener("submit", (event) => {
-    assert_is_form(event.target);
-    const data = new FormData(event.target)
-    const zone_type = parseInt(data.get("type").toString());
-    assert_is_zonetype(zone_type, graph);
-    graph.createZoneNode(x, y, data.get("name").toString(), zone_type);
-    event.target.querySelectorAll('input[type="text"]').forEach(el => {
-      assert_is_input(el);
-      el.value = "";
-    })
-  })
-
-  const zone_type_select = document.getElementById("zone-type-select")
-  for (let value of Object.values(graph.ZoneType)) {
-    const option = document.createElement("option");
-    option.value = value;
-    option.innerHTML = graph.zone_type_names[value];
-    zone_type_select.appendChild(option)
-  }
-
-  document.getElementById("create-group-form").addEventListener("submit", (e) => {
-    assert_is_form(e.target);
-    const data = new FormData(e.target)
-    graph.createGroupNode(x, y, data.get("name").toString())
-    e.target.querySelectorAll('input[type="text"]').forEach(el => {
-      assert_is_input(el);
-      el.value = "";
-    })
-  })
-
-  document.getElementById("create-coworker-form").addEventListener("submit", (e) => {
-    assert_is_form(e.target);
-    assert_is_coworker_auth(node_data.data, graph)
-    const data = new FormData(e.target)
-    graph.createCoworkerNode(x, y, data.get("name").toString(), node_data.data)
-    e.target.querySelectorAll('input[type="text"]').forEach(el => {
-      assert_is_input(el);
-      el.value = "";
-    })
-  })
-
-  document.getElementById("create-access-node-form").addEventListener("submit", (e) => {
-    assert_is_form(e.target);
-    const data = new FormData(e.target)
-    const access_level = data.get("access_level")
-    assert_is_string(access_level)
-    graph.createAccessNode(x, y, parseInt(access_level))
-  })
-
-  const access_level_select = document.getElementById("create-access-node-select")
-  for (let value of Object.values(graph.AccessLevel)) {
-    const option = document.createElement("option");
-    option.value = value;
-    option.innerHTML = graph.coworker_auth_names[value];
-    access_level_select.appendChild(option)
-  }
+  // document.getElementById("create-zone-form").addEventListener("submit", (event) => {
+  //   assert_is_form(event.target);
+  //   const data = new FormData(event.target)
+  //   const zone_type = parseInt(data.get("type").toString());
+  //   assert_is_zonetype(zone_type, graph);
+  //   graph.createZoneNode(x, y, data.get("name").toString(), zone_type);
+  //   event.target.querySelectorAll('input[type="text"]').forEach(el => {
+  //     assert_is_input(el);
+  //     el.value = "";
+  //   })
+  // })
 
   canvas.addEventListener("dragover", (e) => {
     e.preventDefault();
@@ -102,35 +53,24 @@ export function registerToolBox(graph, container, canvas, coordinate_rounder) {
     let drop_data = e.dataTransfer.getData("graph/node");
     node_data = JSON.parse(drop_data);
 
-    const dialog = document.getElementById(modal_ids.get(node_data.type))
-    assert_is_dialog(dialog);
-    dialog.showModal()
-  })
-  
-  const zone = createNodeDraggable("Zone", {
-    data: null,
-    type: graph.GraphNodeType.zone
+    graph.createNode({
+      style: node_data.style,
+      name: node_data.data.name,
+      edges_incoming: [],
+      edges_outgoing: []
+    }, x, y)
   })
 
-  const group = createNodeDraggable("Group", {
-    data: null,
-    type: graph.GraphNodeType.group
-  })
+  for (let [key, style] of graph.styles) {
+    const draggable = createNodeDraggable(style.name, {
+      data: {
+        name: style.name
+      },
+      style: key
+    })
+    container.appendChild(draggable);
+  }
 
-  const access_node = createNodeDraggable("Access node", {
-    data: graph.AccessLevel.modify,
-    type: graph.GraphNodeType.access_connector
-  })
-
-  const coworker = createNodeDraggable("Coworker", {
-    data: graph.CoworkerAuth.internal,
-    type: graph.GraphNodeType.coworker
-  })
-
-  container.appendChild(zone);
-  container.appendChild(group);
-  container.appendChild(access_node);
-  container.appendChild(coworker);
 }
 
 /**

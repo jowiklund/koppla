@@ -1,6 +1,6 @@
 import { assert_is_not_null } from "./modules/assert.js";
 import { registerToolBox } from "./modules/control-panel.js";
-import { getEngine, GraphEditor } from "./modules/graph-editor-api.js";
+import { getEngine, GraphEditor, NodeShape } from "./modules/graph-editor-api.js";
 
 async function run() {
   /** @type {HTMLCanvasElement} */
@@ -30,6 +30,53 @@ async function run() {
 
   const graph = await getEngine();
   assert_is_not_null(graph);
+
+  graph.setStyle("access", {
+    fill_color: "#cdcdcd",
+    name: "Access node",
+    shape: NodeShape.DIAMOND,
+    stroke_color: "#919191",
+    stroke_width: 2
+  })
+
+  graph.setStyle("user", {
+    fill_color: "#6699ff",
+    name: "User",
+    shape: NodeShape.CIRCLE,
+    stroke_color: "#476bb5",
+    stroke_width: 2
+  })
+
+  graph.setStyle("Group", {
+    fill_color: "#80b357",
+    name: "Group",
+    shape: NodeShape.SQUARE_ROUNDED,
+    stroke_color: "#608741",
+    stroke_width: 2
+  })
+
+  graph.setStyle("Zone", {
+    fill_color: "#fc8800",
+    name: "Zone",
+    shape: NodeShape.SQUARE_ROUNDED,
+    stroke_color: "#c46b04",
+    stroke_width: 2
+  })
+
+  graph.loadGraph([
+    {
+      name: "Modify",
+      style: "access",
+      edges_outgoing: [],
+      edges_incoming: []
+    },
+    {
+      name: "Lasse",
+      style: "user",
+      edges_outgoing: [],
+      edges_incoming: []
+    }
+  ])
 
   graph.coordinate_rounder = snapToGrid;
 
@@ -70,8 +117,6 @@ async function run() {
 
   canvas.addEventListener("mousedown", (e) => {
     const rect = canvas.getBoundingClientRect();
-
-    const _nodes = graph.getNodes();
 
     const screen_x = e.clientX - rect.left;
     const screen_y = e.clientY - rect.top;
@@ -310,35 +355,33 @@ async function run() {
     for (let node of nodes) {
       const { x, y } = node;
       ctx.beginPath();
-      switch(node.type) {
-        case graph.GraphNodeType.zone:
-          ctx.roundRect(x - NODE_RADIUS, y - NODE_RADIUS, NODE_RADIUS*2, NODE_RADIUS*2, [5]);
-          ctx.fillStyle = "#66ff99";
+      const style = graph.styles.get(node.style);
+      switch (style.shape) {
+        case NodeShape.CIRCLE:
+          ctx.arc(x, y, NODE_RADIUS, 0, 2 * Math.PI);
           break;
-        case graph.GraphNodeType.access_connector:
+        case NodeShape.DIAMOND:
           ctx.moveTo(x, y - NODE_RADIUS)
           ctx.lineTo(x + NODE_RADIUS, y)
           ctx.lineTo(x, y + NODE_RADIUS)
           ctx.lineTo(x - NODE_RADIUS, y)
           ctx.lineTo(x, y - NODE_RADIUS)
-          ctx.fillStyle = "#cecece";
           break;
-        case graph.GraphNodeType.group:
+        case NodeShape.SQUARE:
+          ctx.rect(x - NODE_RADIUS, y - NODE_RADIUS, NODE_RADIUS*2, NODE_RADIUS*2);
+          break;
+        case NodeShape.SQUARE_ROUNDED:
           ctx.roundRect(x - NODE_RADIUS, y - NODE_RADIUS, NODE_RADIUS*2, NODE_RADIUS*2, [5]);
-          ctx.fillStyle = "#ff9966";
-          break;
-        case graph.GraphNodeType.coworker:
-          ctx.arc(x, y, NODE_RADIUS, 0, 2 * Math.PI);
-          ctx.fillStyle = "#6699ff";
           break;
       }
+      ctx.fillStyle = style.fill_color;
       ctx.fill();
       if (selected_node_handles.includes(node.handle)) {
         ctx.strokeStyle = selection_color;
         ctx.lineWidth = 4;
       } else {
-        ctx.strokeStyle = "#000"
-        ctx.lineWidth = 2;
+        ctx.lineWidth = style.stroke_width;
+        ctx.strokeStyle = style.stroke_color;
       }
       ctx.stroke();
 

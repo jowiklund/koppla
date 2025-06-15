@@ -4,24 +4,29 @@
  * logic engine written in Zig
  */
 
-import { assert_is_number } from "./assert.js";
-
 /** @typedef {number} NodeHandle */
 /** @typedef {number} EdgeHandle */
+/** @typedef {string} NodeStyleName */
 /** @typedef {number} ZoneType */
 /** @typedef {number} GroupType */
 /** @typedef {number} CoworkerAuth */
 /** @typedef {number} AccessLevel */
 
 /**
- * @typedef {Object} Node
- * @property {number} x
- * @property {number} y
- * @property {number} type
- * @property {NodeHandle} handle
- * @property {string} name
+ * @typedef {Object} NodeBase
+ * @property {string} name - A human readable name displayed underneath the node
+ * @property {NodeStyleName} style - The name of a predefined node style
  * @property {Array<NodeHandle>} edges_outgoing
  * @property {Array<NodeHandle>} edges_incoming
+ */
+
+/**
+ * @typedef {Object} NodeType
+ * @property {number} x
+ * @property {number} y
+ * @property {NodeHandle} handle
+ *
+ * @typedef {NodeBase & NodeType} Node
  */
 
 /**
@@ -30,52 +35,45 @@ import { assert_is_number } from "./assert.js";
  * @property {NodeHandle} end_handle
  */
 
+
 /**
- * @param {unknown} value 
- * @param {GraphEditor} graph 
- * @returns {asserts value is ZoneType}
+ * @readonly 
+ * @enum {number}
  */
-export function assert_is_zonetype(value, graph) {
-  assert_is_number(value)
-  if (!Object.values(graph.ZoneType).includes(value)) {
-    throw new Error(`Invalid zone type :: ${value}`)
-  }
+export const NodeShape = {
+  CIRCLE: 0,
+  SQUARE: 1,
+  SQUARE_ROUNDED: 2,
+  DIAMOND: 3
 }
 
 /**
- * @param {unknown} value 
- * @param {GraphEditor} graph 
- * @returns {asserts value is ZoneType}
+ * @typedef {Object} NodeStyle
+ * @property {string} fill_color - The fill color
+ * @property {string} stroke_color - The stroke color
+ * @property {number} stroke_width - The stroke width
+ * @property {NodeShape} shape - A predifined node shape
+ * @property {string} name - Human readable name
  */
-export function assert_is_coworker_auth(value, graph) {
-  assert_is_number(value)
-  if (!Object.values(graph.CoworkerAuth).includes(value)) {
-    throw new Error(`Invalid coworker auth :: ${value}`);
-  }
-}
+
+/**
+ * @typedef {Map<string, NodeStyle>} Styles
+ */
 
 export class GraphEditor {
   /** @type {number} */
   scale = 1.0;
   /** @type {import("./typedefs").Coords} */
-  pan_coords = {
-    x: 0,
-    y: 0
-  }
+  pan_coords = { x: 0, y: 0 }
   /** @type {import("./control-panel.js").CoordinateRounder} */
   coordinate_rounder = null;
-  /** @type {Map<NodeHandle, import("./metadata.js").Metadata>} */
+  /** @type {Map<NodeHandle, NodeBase>} */
   metadata = new Map();
+  /** @type {Styles} */
+  styles = new Map();
+
   /** @private */
   _wasm;
-  /** @private */
-  _memory;
-  /** @private */
-  _string_buffer_ptr;
-  /** @private */
-  _text_encoder = new TextEncoder();
-  /** @private */
-  _text_decoder = new TextDecoder();
 
   /**
    * @param {any} wasm_instance 
@@ -85,81 +83,46 @@ export class GraphEditor {
     this._memory = this._wasm.memory;
     this._string_buffer_ptr = this._wasm.js_string_buffer.value;
     this._wasm.init();
-
-    this.ZoneType = {
-      personal: this._wasm.getZoneTypePersonal(),
-      read_protected: this._wasm.getZoneTypeReadProtected(),
-      normal: this._wasm.getZoneTypeNormal(),
-    };
-
-    this.zone_type_names = {
-      [this.ZoneType.personal]: "Personal",
-      [this.ZoneType.read_protected]: "Read protected",
-      [this.ZoneType.normal]: "Normal",
-    };
-
-    this.CoworkerAuth = {
-      admin: this._wasm.getCoworkerAuthAdmin(),
-      manager: this._wasm.getCoworkerAuthManager(),
-      internal: this._wasm.getCoworkerAuthInternal(),
-      guest: this._wasm.getCoworkerAuthGuest(),
-    };
-
-    this.coworker_auth_names = {
-      [this.CoworkerAuth.admin]: "Administrator",
-      [this.CoworkerAuth.guest]: "Guest",
-      [this.CoworkerAuth.manager]: "Manager",
-      [this.CoworkerAuth.internal]: "Internal",
-    };
-
-    this.AccessLevel = {
-      access: this._wasm.getAccessLevelAccess(),
-      manage: this._wasm.getAccessLevelManage(),
-      add: this._wasm.getAccessLevelAdd(),
-      modify: this._wasm.getAccessLevelModify(),
-      update: this._wasm.getAccessLevelUpdate(),
-    };
-
-    this.coworker_auth_names = {
-      [this.AccessLevel.add]: "Add",
-      [this.AccessLevel.manage]: "Manage",
-      [this.AccessLevel.access]: "Access",
-      [this.AccessLevel.modify]: "Modify",
-      [this.AccessLevel.update]: "Update",
-    };
-
-    this.GraphNodeType = {
-      coworker: 0,
-      group: 1,
-      zone: 2,
-      access_connector: 3
-    };
   }
 
   /**
-   * @private
-   * @param {string} str 
+   * @param {Array<NodeBase>} nodes
    */
-  _writeStringToWasm(str) {
-    const encoded = this._text_encoder.encode(str);
-    const view = new Uint8Array(this._memory.buffer, this._string_buffer_ptr, 256);
-    view.set(encoded);
-
-    if (encoded.length < 256) {
-      view[encoded.length] = 0;
+  loadGraph(nodes) {
+    for (let i = 0; i < nodes.length; i++) {
+      this.createNode(nodes[i], 100, (150 * i) || 50);
     }
-
-    return encoded.length;
   }
 
   /**
-   * @private
-   * @param {number} ptr 
-   * @param {number} len 
+   * @param {number} x 
+   * @param {number} y
+   * @param {NodeBase} data 
+   * @returns {NodeHandle}
    */
-  _readStringFromWasm(ptr, len) {
-    const buffer = new Uint8Array(this._memory.buffer, ptr, len);
-    return this._text_decoder.decode(buffer);
+  createNode(data, x, y) {
+    const node_handle = this._wasm.createNode(x, y);
+    this.metadata.set(node_handle, data);
+    return node_handle;
+  }
+
+  /**
+   * @param {string} name
+   * @param {NodeStyle} style
+   *
+   * @returns void
+   */
+  setStyle(name, style) {
+    this.styles.set(name, style)
+  }
+
+  /**
+   * @param {string} name 
+   *
+   * @returns {NodeStyle}
+   */
+  getStyle(name) {
+    return this.styles.get(name);
   }
 
   /**
@@ -204,125 +167,25 @@ export class GraphEditor {
     }
   }
 
-
-  /**
-   * Creates a new Group node in the graph.
-   * @param {number} x The X coordinate.
-   * @param {number} y The Y coordinate.
-   * @param {string} name The name of the group.
-   * @returns {NodeHandle} The handle to the newly created node.
-   */
-  createGroupNode(x, y, name) {
-    const len = this._writeStringToWasm(name);
-    const {x: w_x, y: w_y} = this.screenToWorld({x, y})
-    const handle = this._wasm.createGroupNode(this.coordinate_rounder(w_x), this.coordinate_rounder(w_y), len);
-    this.metadata.set(handle, {
-      type: "group",
-      name,
-      id: ""
-    })
-    return handle;
-  }
-
-  /**
-   * Creates a new Zone node in the graph.
-   * @param {number} x The X coordinate.
-   * @param {number} y The Y coordinate.
-   * @param {string} name The name of the zone.
-   * @param {number} type The zone type.
-   * @returns {NodeHandle} The handle to the newly created node.
-   */
-  createZoneNode(x, y, name, type) {
-    const len = this._writeStringToWasm(name);
-    const {x: w_x, y: w_y} = this.screenToWorld({x, y})
-    const handle = this._wasm.createZoneNode(w_x, w_y, len, type);
-    this.metadata.set(handle, {
-      type: "zone",
-      id: "",
-      name,
-      zone_type: type
-    })
-    return handle;
-  }
-
-  /**
-   * Creates a new coworker node in the graph.
-   * @param {number} x The X coordinate.
-   * @param {number} y The y coordinate.
-   * @param {string} name The name of the coworker.
-   * @param {number} auth The authorization level.
-   */
-  createCoworkerNode(x, y, name, auth) {
-    const len = this._writeStringToWasm(name);
-    const {x: w_x, y: w_y} = this.screenToWorld({x, y})
-    const handle = this._wasm.createCoworkerNode(w_x, w_y, len, auth);
-    this.metadata.set(handle, {
-      type: "coworker",
-      name,
-      id: "",
-      auth
-    })
-    return handle;
-  }
-
-  /**
-   * Creates a new Access node in the graph.
-   * @param {number} x The X coordinate.
-   * @param {number} y The Y coordinate.
-   * @param {number} level The access level.
-   * @returns {NodeHandle} The handle to the newly created node.
-   */
-  createAccessNode(x, y, level) {
-    let name = "";
-    const {x: w_x, y: w_y} = this.screenToWorld({x, y})
-    switch (level) {
-      case this.AccessLevel.manage:
-        name = "Manage";
-        break;
-      case this.AccessLevel.add:
-        name = "Add";
-        break;
-      case this.AccessLevel.access:
-        name = "Access";
-        break;
-      case this.AccessLevel.modify:
-        name = "Modify";
-        break;
-      case this.AccessLevel.update:
-        name = "Update";
-        break;
-      default:
-        throw new Error("Invalid access level")
-    }
-    const len = this._writeStringToWasm(name);
-    const handle = this._wasm.createAccessConnectorNode(w_x, w_y, len, level);
-    this.metadata.set(handle, {
-      type: "access_node",
-      id: "",
-      name,
-      access_level: level
-    })
-    return handle;
-  }
-
   /**
    * Get the a node by its handle
    * @param {number} handle 
-   * @returns {Node}
+   * @returns {Node | null}
    */
   getNode(handle) {
-    const name_ptr = this._wasm.getNodeNamePtr(handle);
-    const name_len = this._wasm.getNodeNameLen(handle);
-    const name = this._readStringFromWasm(name_ptr, name_len);
-
+    const metadata = this.metadata.get(handle);
+    if (!metadata) {
+      return null;
+    }
+    /** @type {Node} */
     const node = {
       handle,
       x: this._wasm.getNodeX(handle),
       y: this._wasm.getNodeY(handle),
+      name: metadata.name,
+      style: metadata.style,
       edges_outgoing: [],
-      edges_incoming: [],
-      type: this._wasm.getGraphObjectType(handle),
-      name
+      edges_incoming: []
     }
 
     const edges_out_len = this._wasm.getNodeOutgoingCount(handle);

@@ -1,3 +1,4 @@
+import { assert_is_not_null } from "./modules/assert.js";
 import { registerToolBox } from "./modules/control-panel.js";
 import { getEngine, GraphEditor } from "./modules/graph-editor-api.js";
 
@@ -10,8 +11,7 @@ async function run() {
   const GRID_SIZE = 20;
 
   /**
-   * @param {number} value 
-   * @returns {number}
+   * @type {import("./modules/control-panel.js").CoordinateRounder}
    */
   function snapToGrid(value) {
     return Math.round(value / GRID_SIZE) * GRID_SIZE;
@@ -29,7 +29,9 @@ async function run() {
   ctx.scale(dpr, dpr);
 
   const graph = await getEngine();
-  if (!graph) return;
+  assert_is_not_null(graph);
+
+  graph.coordinate_rounder = snapToGrid;
 
   registerToolBox(graph, control_panel, canvas, snapToGrid);
 
@@ -76,13 +78,22 @@ async function run() {
     const mouse_x = world_coords.x;
     const mouse_y = world_coords.y;
 
+    if (e.ctrlKey) {
+      is_panning = true;
+      pan_start_x = screen_x;
+      pan_start_y = screen_y;
+      canvas.style.cursor = "move";
+      return;
+    }
+
     const nodes = graph.getNodes();
     for (let i = nodes.length - 1; i >= 0; i--) {
       const node = nodes[i];
-      const dx = mouse_x - node.x;
-      const dy = mouse_y - node.y;
+      const dx = Math.abs(mouse_x - node.x);
+      const dy = Math.abs(mouse_y - node.y);
 
-      if (dx * dx + dy * dy < NODE_RADIUS * NODE_RADIUS) {
+      if (dx <= NODE_RADIUS && dy <= NODE_RADIUS) {
+        console.log(graph.metadata.get(node.handle))
         if (!selected_node_handles.includes(node.handle)) {
           selected_node_handles = [node.handle]
         }
@@ -101,14 +112,6 @@ async function run() {
         }
         return;
       }
-    }
-
-    if (e.ctrlKey) {
-      is_panning = true;
-      pan_start_x = screen_x;
-      pan_start_y = screen_y;
-      canvas.style.cursor = "move";
-      return;
     }
 
     selected_node_handles = [];
@@ -164,11 +167,11 @@ async function run() {
     const mouse_x = e.clientX - rect.left;
     const mouse_y = e.clientY - rect.top;
 
-    const world_before = graph.screenToWorld({x: mouse_x, y: mouse_y});
+    const world_before = graph.screenToWorld({x: mouse_x, y: mouse_y}, false);
 
     graph.zoom(zoom)
 
-    const world_after = graph.screenToWorld({x: mouse_x, y: mouse_y});
+    const world_after = graph.screenToWorld({x: mouse_x, y: mouse_y}, false);
 
     graph.pan(
       (world_after.x - world_before.x) * graph.scale,
@@ -191,9 +194,10 @@ async function run() {
           const end_handle = node.handle;
           if (end_handle == handle) continue;
 
-          const dx = mouse_x - node.x;
-          const dy = mouse_y - node.y;
-          if (dx * dx + dy * dy < NODE_RADIUS * NODE_RADIUS) {
+          const dx = Math.abs(mouse_x - node.x);
+          const dy = Math.abs(mouse_y - node.y);
+
+          if (dx <= NODE_RADIUS && dy <= NODE_RADIUS) {
             graph.createEdge(handle, end_handle);
             break;
           }

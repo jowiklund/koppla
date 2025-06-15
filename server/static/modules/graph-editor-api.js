@@ -11,6 +11,7 @@ import { assert_is_number } from "./assert.js";
 /** @typedef {number} ZoneType */
 /** @typedef {number} GroupType */
 /** @typedef {number} CoworkerAuth */
+/** @typedef {number} AccessLevel */
 
 /**
  * @typedef {Object} Node
@@ -59,6 +60,10 @@ export class GraphEditor {
     x: 0,
     y: 0
   }
+  /** @type {import("./control-panel.js").CoordinateRounder} */
+  coordinate_rounder = null;
+  /** @type {Map<NodeHandle, import("./metadata.js").Metadata>} */
+  metadata = new Map();
   /** @private */
   _wasm;
   /** @private */
@@ -85,11 +90,24 @@ export class GraphEditor {
       normal: this._wasm.getZoneTypeNormal(),
     };
 
+    this.zone_type_names = {
+      [this.ZoneType.personal]: "Personal",
+      [this.ZoneType.read_protected]: "Read protected",
+      [this.ZoneType.normal]: "Normal",
+    };
+
     this.CoworkerAuth = {
       admin: this._wasm.getCoworkerAuthAdmin(),
       manager: this._wasm.getCoworkerAuthManager(),
       internal: this._wasm.getCoworkerAuthInternal(),
       guest: this._wasm.getCoworkerAuthGuest(),
+    };
+
+    this.coworker_auth_names = {
+      [this.CoworkerAuth.admin]: "Administrator",
+      [this.CoworkerAuth.guest]: "Guest",
+      [this.CoworkerAuth.manager]: "Manager",
+      [this.CoworkerAuth.internal]: "Internal",
     };
 
     this.AccessLevel = {
@@ -98,6 +116,14 @@ export class GraphEditor {
       add: this._wasm.getAccessLevelAdd(),
       modify: this._wasm.getAccessLevelModify(),
       update: this._wasm.getAccessLevelUpdate(),
+    };
+
+    this.coworker_auth_names = {
+      [this.AccessLevel.add]: "Add",
+      [this.AccessLevel.manage]: "Manage",
+      [this.AccessLevel.access]: "Access",
+      [this.AccessLevel.modify]: "Modify",
+      [this.AccessLevel.update]: "Update",
     };
 
     this.GraphNodeType = {
@@ -152,17 +178,24 @@ export class GraphEditor {
    */
   zoom(amount) {
     this.scale *= amount;
-    this.scale = Math.max(0.1, Math.min(this.scale, 10));
+    this.scale = Math.max(0.1, Math.min(this.scale, 6));
   }
 
   /**
    * Translate coordinates to world coords
    *
    * @param {import("./typedefs").Coords} screen_coords 
+   * @param {boolean} round
    */
-  screenToWorld(screen_coords) {
+  screenToWorld(screen_coords, round = true) {
     const world_x = (screen_coords.x - this.pan_coords.x) / this.scale;
     const world_y = (screen_coords.y - this.pan_coords.y) / this.scale;
+    if (round) {
+      return {
+        x: this.coordinate_rounder(world_x),
+        y: this.coordinate_rounder(world_y)
+      }
+    }
     return {
       x: world_x,
       y: world_y
@@ -180,7 +213,13 @@ export class GraphEditor {
   createGroupNode(x, y, name) {
     const len = this._writeStringToWasm(name);
     const {x: w_x, y: w_y} = this.screenToWorld({x, y})
-    return this._wasm.createGroupNode(w_x, w_y, len);
+    const handle = this._wasm.createGroupNode(this.coordinate_rounder(w_x), this.coordinate_rounder(w_y), len);
+    this.metadata.set(handle, {
+      type: "group",
+      name,
+      id: ""
+    })
+    return handle;
   }
 
   /**
@@ -194,7 +233,14 @@ export class GraphEditor {
   createZoneNode(x, y, name, type) {
     const len = this._writeStringToWasm(name);
     const {x: w_x, y: w_y} = this.screenToWorld({x, y})
-    return this._wasm.createZoneNode(w_x, w_y, len, type);
+    const handle = this._wasm.createZoneNode(w_x, w_y, len, type);
+    this.metadata.set(handle, {
+      type: "zone",
+      id: "",
+      name,
+      zone_type: type
+    })
+    return handle;
   }
 
   /**
@@ -207,7 +253,14 @@ export class GraphEditor {
   createCoworkerNode(x, y, name, auth) {
     const len = this._writeStringToWasm(name);
     const {x: w_x, y: w_y} = this.screenToWorld({x, y})
-    return this._wasm.createCoworkerNode(w_x, w_y, len, auth);
+    const handle = this._wasm.createCoworkerNode(w_x, w_y, len, auth);
+    this.metadata.set(handle, {
+      type: "coworker",
+      name,
+      id: "",
+      auth
+    })
+    return handle;
   }
 
   /**
@@ -240,7 +293,14 @@ export class GraphEditor {
         throw new Error("Invalid access level")
     }
     const len = this._writeStringToWasm(name);
-    return this._wasm.createAccessConnectorNode(w_x, w_y, len, level);
+    const handle = this._wasm.createAccessConnectorNode(w_x, w_y, len, level);
+    this.metadata.set(handle, {
+      type: "access_node",
+      id: "",
+      name,
+      access_level: level
+    })
+    return handle;
   }
 
   /**
@@ -299,6 +359,7 @@ export class GraphEditor {
    */
   deleteNode(handle) {
     this._wasm.deleteNode(handle);
+    this.metadata.delete(handle);
   }
 
   /**
@@ -336,6 +397,30 @@ export class GraphEditor {
       bundles.get(key).push({start_handle, end_handle})
     }
     return bundles;
+  }
+
+  /**
+   * @param {NodeHandle} handle 
+   * @returns {ZoneType}
+   */
+  getZoneNodeZoneType(handle) {
+    return this._wasm.getZoneNodeZoneType(handle);
+  }
+
+  /**
+   * @param {NodeHandle} handle 
+   * @returns {CoworkerAuth}
+   */
+  getCoworkerNodeAuth(handle) {
+    return this._wasm.getCoworkerNodeAuth(handle);
+  }
+
+  /**
+   * @param {NodeHandle} handle 
+   * @returns {AccessLevel}
+   */
+  getAccessNodeAccessLevel(handle) {
+    return this._wasm.getAccessNodeAccessLevel(handle);
   }
 
   /**

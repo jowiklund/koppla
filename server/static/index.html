@@ -6,9 +6,14 @@
 	</head>
 	<body>
 		<dialog id="create-zone-dialog">
+			<p>Create zone</p>
 			<form id="create-zone-form" method="dialog">
-				<label> Zone name:
+				<label> Name:
 					<input type="text" name="name" />
+				</label>
+				<label> Type:
+					<select name="type" id="zone-type-select">
+					</select>
 				</label>
 				<div class="btn-container">
 					<button id="close">Create</button>

@@ -16,7 +16,7 @@ export function assert_msg(expression, msg) {
  */
 export function assert_is_input(el) {
   if (!("value" in el)) {
-    throw new Error("Element is not of type input")
+    throw new Error("[ASSERTION FAILED]: Element is not of type input")
   }
 }
 
@@ -57,5 +57,23 @@ export function assert_is_form(el) {
 export function assert_is_dialog(el) {
   if (!("showModal" in el)) {
     throw new Error(`[ASSERTION FAILED]: Element was not a dialog :: ${el}`)
+  }
+}
+
+/**
+ * @param {unknown} value 
+ */
+export function assert_is_not_null(value) {
+  if (value == undefined || value == null) {
+    throw new Error(`[ASSERTION FAILED]: Value was nullish`)
+  }
+}
+
+/**
+ * @param {boolean} expression 
+ */
+export function assert(expression) {
+  if (!expression) {
+    throw new Error(`[ASSERTION FAILED]: Expression was false`)
   }
 }

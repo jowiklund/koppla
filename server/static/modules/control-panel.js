@@ -33,15 +33,24 @@ export function registerToolBox(graph, container, canvas, coordinate_rounder) {
   modal_ids.set(graph.GraphNodeType.coworker, "create-coworker-dialog")
 
   document.getElementById("create-zone-form").addEventListener("submit", (event) => {
-    assert_is_zonetype(node_data.data, graph);
     assert_is_form(event.target);
     const data = new FormData(event.target)
-    graph.createZoneNode(x, y, data.get("name").toString(), node_data.data)
+    const zone_type = parseInt(data.get("type").toString());
+    assert_is_zonetype(zone_type, graph);
+    graph.createZoneNode(x, y, data.get("name").toString(), zone_type);
     event.target.querySelectorAll('input[type="text"]').forEach(el => {
       assert_is_input(el);
       el.value = "";
     })
   })
+
+  const zone_type_select = document.getElementById("zone-type-select")
+  for (let value of Object.values(graph.ZoneType)) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.innerHTML = graph.zone_type_names[value];
+    zone_type_select.appendChild(option)
+  }
 
   document.getElementById("create-group-form").addEventListener("submit", (e) => {
     assert_is_form(e.target);
@@ -73,10 +82,10 @@ export function registerToolBox(graph, container, canvas, coordinate_rounder) {
   })
 
   const access_level_select = document.getElementById("create-access-node-select")
-  for (let key of Object.keys(graph.AccessLevel)) {
+  for (let value of Object.values(graph.AccessLevel)) {
     const option = document.createElement("option");
-    option.value = graph.AccessLevel[key];
-    option.innerHTML = key;
+    option.value = value;
+    option.innerHTML = graph.coworker_auth_names[value];
     access_level_select.appendChild(option)
   }
 
@@ -99,7 +108,7 @@ export function registerToolBox(graph, container, canvas, coordinate_rounder) {
   })
   
   const zone = createNodeDraggable("Zone", {
-    data: graph.ZoneType.normal,
+    data: null,
     type: graph.GraphNodeType.zone
   })
 

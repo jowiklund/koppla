@@ -219,6 +219,11 @@ export fn getNodeY(handle: usize) f32 {
     return node_ptr.y;
 }
 
+export fn getNodeZoneType(handle: usize) f32 {
+    const node_ptr: *const Node = @ptrFromInt(handle);
+    return node_ptr.y;
+}
+
 export fn setNodePosition(handle: usize, new_x: f32, new_y: f32) void {
     const node_ptr: *Node = @ptrFromInt(handle);
     node_ptr.x = new_x;
@@ -250,6 +255,30 @@ export fn getEdgeEndNode(index: usize) usize {
 export fn getGraphObjectType(handle: usize) u8 {
     const node_ptr: *Node = @ptrFromInt(handle);
     return @intFromEnum(node_ptr.data);
+}
+
+export fn getZoneNodeZoneType(handle: usize) u8 {
+    const node: *Node = @ptrFromInt(handle);
+    return switch (node.data) {
+        .zone => @intFromEnum(node.data.zone.zone_type),
+        else => unreachable
+    };
+}
+
+export fn getCoworkerNodeAuth(handle: usize) u8 {
+    const node: *Node = @ptrFromInt(handle);
+    return switch (node.data) {
+        .coworker => @intFromEnum(node.data.coworker.auth),
+        else => unreachable,
+    };
+}
+
+export fn getAccessNodeAccessLevel(handle: usize) u8 {
+    const node: *Node = @ptrFromInt(handle);
+    return switch (node.data) {
+        .access_connector => @intFromEnum(node.data.access_connector.access_level),
+        else => unreachable,
+    };
 }
 
 export fn getNodeNamePtr(handle: usize) usize {

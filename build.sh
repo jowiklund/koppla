@@ -1,9 +1,9 @@
 #!/bin/sh
 
 zig build-exe src/main.zig\
-	-target wasm32-freestanding\
-	-fno-entry\
-	--export=init \
+    -target wasm32-freestanding\
+    -fno-entry\
+    --export=init \
     --export=js_string_buffer \
     --export=createCoworkerNode \
     --export=createGroupNode \
@@ -34,7 +34,10 @@ zig build-exe src/main.zig\
     --export=getAccessLevelAdd \
     --export=getAccessLevelModify \
     --export=getAccessLevelUpdate \
-	-O ReleaseSmall
+    --export=getZoneNodeZoneType \
+    --export=getCoworkerNodeAuth \
+    --export=getAccessNodeAccessLevel \
+    -O ReleaseSmall
 
 rm main.wasm.o
 mv main.wasm ./server/static/main.wasm

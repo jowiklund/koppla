@@ -6,12 +6,20 @@ var fba: std.heap.FixedBufferAllocator = undefined;
 pub export var js_string_buffer: [256]u8 = undefined;
 
 const NodeHandle = usize;
+const EdgeHandle = usize;
+const EdgeType = u8;
+
+pub const Edge = struct {
+    start_node: NodeHandle,
+    end_node: NodeHandle,
+    type: EdgeType
+};
 
 pub const Node = struct {
     x: f32,
     y: f32,
-    edges_incoming: std.ArrayList(NodeHandle),
-    edges_outgoing: std.ArrayList(NodeHandle),
+    edges_incoming: std.ArrayList(EdgeHandle),
+    edges_outgoing: std.ArrayList(EdgeHandle),
     mass: f32,
     is_fixed: bool,
     velocity_x: f32,
@@ -19,10 +27,12 @@ pub const Node = struct {
 };
 
 var node_list: std.ArrayList(*Node) = undefined;
+var edge_list: std.ArrayList(*Edge) = undefined;
 
 export fn init() void {
     fba = std.heap.FixedBufferAllocator.init(&memory_buffer);
     node_list = std.ArrayList(*Node).init(fba.allocator());
+    edge_list = std.ArrayList(*Edge).init(fba.allocator());
 }
 
 export fn createNode(x: f32, y: f32) NodeHandle {
@@ -30,8 +40,8 @@ export fn createNode(x: f32, y: f32) NodeHandle {
     node.* = .{
         .x = x,
         .y = y,
-        .edges_incoming = std.ArrayList(NodeHandle).init(fba.allocator()),
-        .edges_outgoing = std.ArrayList(NodeHandle).init(fba.allocator()),
+        .edges_incoming = std.ArrayList(EdgeHandle).init(fba.allocator()),
+        .edges_outgoing = std.ArrayList(EdgeHandle).init(fba.allocator()),
         .mass = 1.0,
         .is_fixed = false,
         .velocity_x = 0.0,
@@ -42,22 +52,81 @@ export fn createNode(x: f32, y: f32) NodeHandle {
     return @intFromPtr(node);
 }
 
-fn copyName(name_buffer: *[32]u8, name_len: usize) void {
-    const len = @min(name_len, name_buffer.len);
-    @memcpy(name_buffer[0..len], js_string_buffer[0..len]);
-    if (len < name_buffer.len) {
-        @memset(name_buffer[len..], 0);
-    }
-}
+export fn createEdge(start_handle: usize, end_handle: usize, edge_type: EdgeType) void {
+    const edge = fba.allocator().create(Edge) catch @panic("OOM: Edge");
+    edge.* = .{
+        .type = edge_type,
+        .start_node = start_handle,
+        .end_node = end_handle
+    };
 
-export fn createEdge(start_handle: usize, end_handle: usize) void {
+    edge_list.append(edge) catch @panic("OOM: Edge list");
+
     const start_node: *Node = @ptrFromInt(start_handle);
     const end_node: *Node = @ptrFromInt(end_handle);
-    start_node.edges_outgoing.append(end_handle) catch @panic("OOM: Node outgoing");
-    end_node.edges_incoming.append(start_handle) catch @panic("OOM: Node incoming");
+
+    start_node.edges_outgoing.append(@intFromPtr(edge)) catch @panic("OOM: Node outgoing");
+    end_node.edges_incoming.append(@intFromPtr(edge)) catch @panic("OOM: Node incoming");
 }
 
-export fn deleteNode(handle: usize) void {
+export fn getEdgeHandleByIndex(index: usize) EdgeHandle {
+    const edge_ptr = edge_list.items[index];
+    return @intFromPtr(edge_ptr);
+}
+
+export fn getEdgeCount() usize {
+    return edge_list.items.len;
+}
+
+export fn getEdgeStartNodeHandle(handle: EdgeHandle) NodeHandle {
+    const edge_ptr: *Edge = @ptrFromInt(handle);
+    return edge_ptr.start_node;
+}
+
+export fn getEdgeEndNodeHandle(handle: EdgeHandle) EdgeHandle {
+    const edge_ptr: *Edge = @ptrFromInt(handle);
+    return edge_ptr.end_node;
+} 
+
+export fn getEdgeType(handle: EdgeHandle) EdgeType {
+    const edge_ptr: *Edge = @ptrFromInt(handle);
+    return edge_ptr.type;
+}
+
+export fn deleteEdge(handle: EdgeHandle) void {
+    const edge_to_delete: *Edge = @ptrFromInt(handle);
+    var index_in_edge_list: ?usize = null;
+
+    for (edge_list.items, 0..) |ptr, i| {
+        if (@intFromPtr(ptr) == handle) {
+            index_in_edge_list = i;
+            break;
+        }
+    }
+
+    if (index_in_edge_list == null) return;
+
+    const edge_start_node: *Node = @ptrFromInt(edge_to_delete.start_node);
+    const edge_end_node: *Node = @ptrFromInt(edge_to_delete.end_node);
+
+    for (edge_start_node.edges_outgoing.items, 0..) |outgoing_handle, i| {
+        if (outgoing_handle == handle) {
+            _ = edge_start_node.edges_outgoing.swapRemove(i);
+            break;
+        }
+    }
+    for (edge_end_node.edges_incoming.items, 0..) |outgoing_handle, i| {
+        if (outgoing_handle == handle) {
+            _ = edge_start_node.edges_outgoing.swapRemove(i);
+            break;
+        }
+    }
+
+    _ = edge_list.swapRemove(index_in_edge_list.?);
+
+}
+
+export fn deleteNode(handle: NodeHandle) void {
     const node_to_delete: *Node = @ptrFromInt(handle);
     var index_in_main_list: ?usize = null;
 
@@ -70,28 +139,12 @@ export fn deleteNode(handle: usize) void {
 
     if (index_in_main_list == null) return;
 
-    for (node_to_delete.edges_outgoing.items) |neighbor_handle| {
-        const neighbor_node: *Node = @ptrFromInt(neighbor_handle);
-        var k: usize = 0;
-        while (k < neighbor_node.edges_incoming.items.len) {
-            if (neighbor_node.edges_incoming.items[k] == handle) {
-                _ = neighbor_node.edges_incoming.swapRemove(k);
-                break; 
-            }
-            k += 1;
-        }
+    for (node_to_delete.edges_outgoing.items) |edge_handle| {
+        deleteEdge(edge_handle);
     }
 
-    for (node_to_delete.edges_incoming.items) |neighbor_handle| {
-        const neighbor_node: *Node = @ptrFromInt(neighbor_handle);
-        var k: usize = 0;
-        while (k < neighbor_node.edges_outgoing.items.len) {
-            if (neighbor_node.edges_outgoing.items[k] == handle) {
-                _ = neighbor_node.edges_outgoing.swapRemove(k);
-                break;
-            }
-            k += 1;
-        }
+    for (node_to_delete.edges_incoming.items) |edge_handle| {
+        deleteEdge(edge_handle);
     }
 
     node_to_delete.edges_incoming.deinit();
@@ -126,13 +179,13 @@ export fn getNodeHandleByIndex(index: usize) usize {
     return @intFromPtr(node_ptr);
 }
 
-export fn getNodeOutgoingHandleByIndex(handle: NodeHandle, index: usize) usize {
+export fn getNodeOutgoingHandleByIndex(handle: NodeHandle, index: usize) EdgeHandle {
     const node: *Node = @ptrFromInt(handle);
     const node_ptr = node.edges_outgoing.items[index];
     return node_ptr;
 }
 
-export fn getNodeIncomingHandleByIndex(handle: NodeHandle, index: usize) usize {
+export fn getNodeIncomingHandleByIndex(handle: NodeHandle, index: usize) EdgeHandle {
     const node: *Node = @ptrFromInt(handle);
     const node_ptr = node.edges_incoming.items[index];
     return node_ptr;

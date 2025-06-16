@@ -6,6 +6,7 @@
 
 /** @typedef {number} NodeHandle */
 /** @typedef {number} EdgeHandle */
+/** @typedef {number} EdgeTypeId */
 /** @typedef {string} NodeStyleName */
 /** @typedef {number} ZoneType */
 /** @typedef {number} GroupType */
@@ -15,26 +16,36 @@
 /**
  * @typedef {Object} NodeBase
  * @property {string} name - A human readable name displayed underneath the node
- * @property {NodeStyleName} style - The name of a predefined node style
+ * @property {NodeStyleName} type - The name of a predefined node style
  * @property {Array<NodeHandle>} edges_outgoing
  * @property {Array<NodeHandle>} edges_incoming
  */
 
 /**
- * @typedef {Object} NodeType
+ * @typedef {Object} NodeTypeData
  * @property {number} x
  * @property {number} y
  * @property {NodeHandle} handle
  *
- * @typedef {NodeBase & NodeType} Node
+ * @typedef {NodeBase & NodeTypeData} Node
  */
 
 /**
  * @typedef {Object} Edge
  * @property {NodeHandle} start_handle
  * @property {NodeHandle} end_handle
+ * @property {number} type
  */
 
+/**
+ * @typedef {Object} EdgeType
+ * @property {string} name - Human readable name
+ * @property {string} metadata - Any serialized data
+ * @property {EdgeTypeId} id - A numeric ID (u8)
+ * @property {string} stroke_color
+ * @property {number} stroke_width
+ * @property {Array<number>} line_dash
+ */
 
 /**
  * @readonly 
@@ -48,7 +59,7 @@ export const NodeShape = {
 }
 
 /**
- * @typedef {Object} NodeStyle
+ * @typedef {Object} NodeType
  * @property {string} fill_color - The fill color
  * @property {string} stroke_color - The stroke color
  * @property {number} stroke_width - The stroke width
@@ -57,7 +68,7 @@ export const NodeShape = {
  */
 
 /**
- * @typedef {Map<string, NodeStyle>} Styles
+ * @typedef {Map<string, NodeType>} NodeTypes
  */
 
 export class GraphEditor {
@@ -69,8 +80,10 @@ export class GraphEditor {
   coordinate_rounder = null;
   /** @type {Map<NodeHandle, NodeBase>} */
   metadata = new Map();
-  /** @type {Styles} */
-  styles = new Map();
+  /** @type {NodeTypes} */
+  node_types = new Map();
+  /** @type {Map<number, EdgeType>} */
+  edge_types = new Map();
 
   /** @private */
   _wasm;
@@ -83,6 +96,15 @@ export class GraphEditor {
     this._memory = this._wasm.memory;
     this._string_buffer_ptr = this._wasm.js_string_buffer.value;
     this._wasm.init();
+
+    this.edge_types.set(-1, {
+      stroke_width: 2,
+      stroke_color: "#000000",
+      id: -1,
+      name: "default",
+      metadata: "",
+      line_dash: []
+    })
   }
 
   /**
@@ -101,28 +123,46 @@ export class GraphEditor {
    * @returns {NodeHandle}
    */
   createNode(data, x, y) {
-    const node_handle = this._wasm.createNode(x, y);
+    const {x: w_x, y: w_y} = this.screenToWorld({x, y})
+    const node_handle = this._wasm.createNode(w_x, w_y);
     this.metadata.set(node_handle, data);
     return node_handle;
   }
 
   /**
    * @param {string} name
-   * @param {NodeStyle} style
+   * @param {NodeType} style
    *
    * @returns void
    */
-  setStyle(name, style) {
-    this.styles.set(name, style)
+  setNodeType(name, style) {
+    this.node_types.set(name, style)
   }
 
   /**
    * @param {string} name 
    *
-   * @returns {NodeStyle}
+   * @returns {NodeType}
    */
-  getStyle(name) {
-    return this.styles.get(name);
+  getNodeType(name) {
+    return this.node_types.get(name);
+  }
+
+  /**
+   * @param {EdgeType} type
+   */
+  setEdgeType(type) {
+    this.edge_types.set(type.id, type);
+  }
+
+  /**
+   * @param {number} id
+   * @returns {EdgeType}
+   */
+  getEdgeType(id) {
+    const type = this.edge_types.get(id);
+    if (!type) return this.edge_types.get(-1);
+    return type;
   }
 
   /**
@@ -183,7 +223,7 @@ export class GraphEditor {
       x: this._wasm.getNodeX(handle),
       y: this._wasm.getNodeY(handle),
       name: metadata.name,
-      style: metadata.style,
+      type: metadata.type,
       edges_outgoing: [],
       edges_incoming: []
     }
@@ -223,6 +263,31 @@ export class GraphEditor {
   }
 
   /**
+   * @returns {Array<Edge>}
+   */
+  getEdges() {
+    const edge_count = this._wasm.getEdgeCount();
+    const edges = [];
+    for (let i = 0; i < edge_count; i++) {
+      const handle = this._wasm.getEdgeHandleByIndex(i);
+      edges.push(this.getEdge(handle))
+    }
+    return edges;
+  }
+
+  /**
+   * @param {EdgeHandle} handle 
+   * @returns {Edge}
+   */
+  getEdge(handle) {
+    return {
+      start_handle: this._wasm.getEdgeStartNodeHandle(handle),
+      end_handle: this._wasm.getEdgeEndNodeHandle(handle),
+      type: this._wasm.getEdgeType(handle),
+    }
+  }
+
+  /**
    * Update the nodes position with new coordinates
    *
    * @param {number} y 
@@ -244,22 +309,33 @@ export class GraphEditor {
   }
 
   /**
+   * Delete a node
+   *
+   * @param {NodeHandle} handle 
+   */
+  deleteOutgoing(handle) {
+    const node = this.getNode(handle)
+    if (node.edges_outgoing.length == 0) return;
+    for (let i = 0; i < node.edges_outgoing.length; i++) {
+      this._wasm.deleteEdge(node.edges_outgoing[i])
+    }
+  }
+
+  /**
    * @returns {Map<string, Array<Edge>>}
    */
   getEdgeBundles() {
-    const nodes = this.getNodes();
+    const edges = this.getEdges();
+
     /** @type {Map<string, Array<Edge>>} */
     const bundles = new Map();
-    for (let i = 0; i < nodes.length; i++) {
-      const node = nodes[i];
-      for (let k = 0; k < node.edges_outgoing.length; k++) {
-        const out = node.edges_outgoing[k]
-        const key = Math.min(node.handle, out) + '-' + Math.max(node.handle, out);
-        if (!bundles.has(key)) {
-          bundles.set(key, []);
-        }
-        bundles.get(key).push({start_handle: node.handle, end_handle: out});
+    for (let i = 0; i < edges.length; i++) {
+      const edge = edges[i];
+      const key = Math.min(edge.start_handle, edge.end_handle) + '-' + Math.max(edge.start_handle, edge.end_handle);
+      if (!bundles.has(key)) {
+        bundles.set(key, []);
       }
+      bundles.get(key).push(edge);
     }
     return bundles;
   }
@@ -291,9 +367,11 @@ export class GraphEditor {
   /**
    * @param {NodeHandle} start_handle 
    * @param {NodeHandle} end_handle 
+   * @param {NodeHandle} end_handle 
+   * @param {EdgeTypeId} type
    */
-  createEdge(start_handle, end_handle) {
-    this._wasm.createEdge(start_handle, end_handle);
+  createEdge(start_handle, end_handle, type) {
+    this._wasm.createEdge(start_handle, end_handle, type);
   }
 }
 

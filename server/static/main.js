@@ -1,6 +1,49 @@
-import { assert_is_not_null } from "./modules/assert.js";
+import { assert_is_dialog, assert_is_form, assert_is_not_null } from "./modules/assert.js";
 import { registerToolBox } from "./modules/control-panel.js";
 import { getEngine, GraphEditor, NodeShape } from "./modules/graph-editor-api.js";
+
+const edgeTypes = [
+  {
+    "id": 0,
+    "name": "Access",
+    "stroke_color": "#8d99ae",
+    "stroke_width": 2,
+    "line_dash": [],
+    "metadata": ""
+  },
+  {
+    "id": 1,
+    "name": "Add",
+    "stroke_color": "#2a9d8f",
+    "stroke_width": 2,
+    "line_dash": [8, 6],
+    "metadata": ""
+  },
+  {
+    "id": 2,
+    "name": "Update",
+    "stroke_color": "#e9c46a",
+    "stroke_width": 2.5,
+    "line_dash": [15, 5, 2, 5],
+    "metadata": ""
+  },
+  {
+    "id": 3,
+    "name": "Modify",
+    "stroke_color": "#f4a261",
+    "stroke_width": 2.5,
+    "line_dash": [3, 4],
+    "metadata": ""
+  },
+  {
+    "id": 4,
+    "name": "Manage",
+    "stroke_color": "#519ce7",
+    "stroke_width": 3,
+    "line_dash": [],
+    "metadata": ""
+  }
+]
 
 async function run() {
   /** @type {HTMLCanvasElement} */
@@ -30,16 +73,13 @@ async function run() {
 
   const graph = await getEngine();
   assert_is_not_null(graph);
+  graph.coordinate_rounder = snapToGrid;
 
-  graph.setStyle("access", {
-    fill_color: "#cdcdcd",
-    name: "Access node",
-    shape: NodeShape.DIAMOND,
-    stroke_color: "#919191",
-    stroke_width: 2
-  })
+  for (let type of edgeTypes) {
+    graph.setEdgeType(type)
+  }
 
-  graph.setStyle("user", {
+  graph.setNodeType("user", {
     fill_color: "#6699ff",
     name: "User",
     shape: NodeShape.CIRCLE,
@@ -47,7 +87,7 @@ async function run() {
     stroke_width: 2
   })
 
-  graph.setStyle("Group", {
+  graph.setNodeType("group", {
     fill_color: "#80b357",
     name: "Group",
     shape: NodeShape.SQUARE_ROUNDED,
@@ -55,7 +95,7 @@ async function run() {
     stroke_width: 2
   })
 
-  graph.setStyle("Zone", {
+  graph.setNodeType("zone", {
     fill_color: "#fc8800",
     name: "Zone",
     shape: NodeShape.SQUARE_ROUNDED,
@@ -65,20 +105,25 @@ async function run() {
 
   graph.loadGraph([
     {
-      name: "Modify",
-      style: "access",
+      name: "Developers",
+      type: "group",
+      edges_outgoing: [],
+      edges_incoming: []
+    },
+    {
+      name: "Software",
+      type: "zone",
       edges_outgoing: [],
       edges_incoming: []
     },
     {
       name: "Lasse",
-      style: "user",
+      type: "user",
       edges_outgoing: [],
       edges_incoming: []
     }
   ])
 
-  graph.coordinate_rounder = snapToGrid;
 
   registerToolBox(graph, control_panel, canvas, snapToGrid);
 
@@ -105,13 +150,19 @@ async function run() {
 
   window.addEventListener("keydown", (e) => {
     if (
-      (e.key == "Delete" || e.key == "Backspace") &&
+      (e.key == "Delete") &&
         selected_node_handles.length > 0
     ) {
       for (let handle of selected_node_handles) {
         graph.deleteNode(handle);
       }
       selected_node_handles = [];
+    }
+
+    if (e.key == "Backspace" && selected_node_handles.length > 0) {
+      for (let handle of selected_node_handles) {
+        graph.deleteOutgoing(handle)
+      }
     }
   });
 
@@ -225,6 +276,28 @@ async function run() {
     )
   });
 
+  const edge_type_select = document.getElementById("edge-type-select")
+  for (let edge of graph.edge_types.values()) {
+    const option = document.createElement("option")
+    option.value = `${edge.id}`;
+    option.innerHTML = edge.name;
+    edge_type_select.appendChild(option);
+  }
+
+  const edge_type_dialog = document.getElementById("create-edge-dialog");
+  assert_is_dialog(edge_type_dialog)
+
+  let new_edges = [];
+  document.getElementById("create-edge-form").addEventListener("submit", (event) => {
+    assert_is_form(event.target);
+    const data = new FormData(event.target);
+    const event_type = parseInt(data.get("type").toString())
+    for (let i = 0; i < new_edges.length; i++) {
+        graph.createEdge(new_edges[i].start_handle, new_edges[i].end_handle, event_type);
+    }
+    new_edges = [];
+  })
+
   canvas.addEventListener("mouseup", (e) => {
     if (is_connecting) {
       const rect = canvas.getBoundingClientRect();
@@ -244,7 +317,11 @@ async function run() {
           const dy = Math.abs(mouse_y - node.y);
 
           if (dx <= NODE_RADIUS && dy <= NODE_RADIUS) {
-            graph.createEdge(handle, end_handle);
+            new_edges.push({
+              start_handle: handle,
+              end_handle 
+            })
+            edge_type_dialog.showModal();
             break;
           }
         }
@@ -318,15 +395,19 @@ async function run() {
 
         const offset = initialOffset + index;
 
-        drawEdgeOrthogonal(ctx, startCoords, startGate, endCoords, endGate, offset);
+        drawEdgeOrthogonal(
+          ctx,
+          startCoords,
+          startGate,
+          endCoords,
+          endGate,
+          offset,
+          graph.getEdgeType(edge.type)
+        );
       });
     });
 
     if (is_connecting) {
-      ctx.setLineDash([5, 5]);
-      ctx.strokeStyle = '#888888';
-      ctx.lineWidth = 1;
-
       for (let handle of selected_node_handles) {
         const start_node = graph.getNode(handle)
         const mouse_coords = { x: current_mouse_x, y: current_mouse_y };
@@ -343,11 +424,17 @@ async function run() {
           startGate,
           mouse_coords,
           endGate,
-          0
+          0,
+          {
+            line_dash: [5,5],
+            metadata: "",
+            stroke_width: 1,
+            stroke_color: "#888888",
+            name: "",
+            id: 0
+          }
         );
       }
-
-      ctx.setLineDash([]);
     }
 
     const nodes = graph.getNodes();
@@ -355,8 +442,8 @@ async function run() {
     for (let node of nodes) {
       const { x, y } = node;
       ctx.beginPath();
-      const style = graph.styles.get(node.style);
-      switch (style.shape) {
+      const type = graph.node_types.get(node.type);
+      switch (type.shape) {
         case NodeShape.CIRCLE:
           ctx.arc(x, y, NODE_RADIUS, 0, 2 * Math.PI);
           break;
@@ -374,14 +461,14 @@ async function run() {
           ctx.roundRect(x - NODE_RADIUS, y - NODE_RADIUS, NODE_RADIUS*2, NODE_RADIUS*2, [5]);
           break;
       }
-      ctx.fillStyle = style.fill_color;
+      ctx.fillStyle = type.fill_color;
       ctx.fill();
       if (selected_node_handles.includes(node.handle)) {
         ctx.strokeStyle = selection_color;
         ctx.lineWidth = 4;
       } else {
-        ctx.lineWidth = style.stroke_width;
-        ctx.strokeStyle = style.stroke_color;
+        ctx.lineWidth = type.stroke_width;
+        ctx.strokeStyle = type.stroke_color;
       }
       ctx.stroke();
 
@@ -425,25 +512,16 @@ async function run() {
  * @param {number} grid_size 
  */
 function drawWorldGrid(ctx, canvasWidth, canvas_height, grid_size, graph) {
-  // --- 1. Calculate the visible part of the world ---
-  // This is essential to only draw what's currently on screen.
   const worldViewTopLeft = graph.screenToWorld({x: 0, y: 0});
   const worldViewBottomRight = graph.screenToWorld({x: canvasWidth, y: canvas_height});
 
-  // --- 2. Align the loop start to the grid ---
-  // This ensures the grid remains stable and doesn't "swim" when you pan.
-  // It finds the first multiple of GRID_SIZE just off-screen to the top-left.
   const startX = Math.floor(worldViewTopLeft.x / grid_size) * grid_size;
   const startY = Math.floor(worldViewTopLeft.y / grid_size) * grid_size;
 
-  // --- 3. Keep the dot size visually constant ---
-  // To make the dots always appear to be 1px wide on the screen,
-  // we must scale their radius inversely to the current zoom level.
   const dotRadius = 1 / graph.scale;
 
   ctx.fillStyle = "#ebebeb";
   
-  // Loop from the calculated start of the visible area to the end
   for (let x = startX; x < worldViewBottomRight.x; x += grid_size) {
     for (let y = startY; y < worldViewBottomRight.y; y += grid_size) {
       ctx.beginPath();
@@ -518,8 +596,9 @@ function getGateCoordinates(node, gate, radius) {
  * @param {import("./modules/typedefs.js").Coords} endCoords - 
  * @param {number} endGate - 
  * @param {number} offset - 
+ * @param {import("./modules/graph-editor-api.js").EdgeType} edge_type 
  */
-function drawEdgeOrthogonal(ctx, startCoords, startGate, endCoords, endGate, offset) {
+function drawEdgeOrthogonal(ctx, startCoords, startGate, endCoords, endGate, offset, edge_type) {
   const cornerRadius = 10;
   const bundleGap = 10;
   const offsetAmount = offset * bundleGap;
@@ -530,6 +609,13 @@ function drawEdgeOrthogonal(ctx, startCoords, startGate, endCoords, endGate, off
 
   ctx.beginPath();
   ctx.moveTo(sx, sy);
+
+  ctx.strokeStyle = edge_type.stroke_color;
+  ctx.lineWidth = edge_type.stroke_width;
+
+  if (edge_type.line_dash.length > 0) {
+    ctx.setLineDash(edge_type.line_dash)
+  }
 
   const isHorizontalStart = startGate === GATES.LEFT || startGate === GATES.RIGHT;
   const isHorizontalEnd = endGate === GATES.LEFT || endGate === GATES.RIGHT;
@@ -558,6 +644,7 @@ function drawEdgeOrthogonal(ctx, startCoords, startGate, endCoords, endGate, off
   ctx.stroke();
 
   ctx.beginPath();
+  ctx.setLineDash([])
   if (startGate === GATES.LEFT) {
     ctx.moveTo(sx - 15, sy - 5);
     ctx.lineTo(sx - 20, sy);

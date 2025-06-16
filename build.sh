@@ -17,6 +17,12 @@ zig build-exe src/main.zig\
     --export=getNodeOutgoingHandleByIndex \
     --export=getNodeIncomingCount \
     --export=getNodeIncomingHandleByIndex \
+    --export=getEdgeHandleByIndex \
+    --export=getEdgeCount \
+    --export=getEdgeStartNodeHandle \
+    --export=getEdgeEndNodeHandle \
+    --export=getEdgeType \
+    --export=deleteEdge \
     -O ReleaseSmall
 
 rm main.wasm.o

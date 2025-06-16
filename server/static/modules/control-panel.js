@@ -7,7 +7,7 @@ import { GraphEditor } from "./graph-editor-api.js";
 
 /** 
  * @typedef {Object} NodeData
- * @property {{name: string}} data
+ * @property {{name: string, color: string}} data
  * @property {string} style
  */
 
@@ -39,6 +39,7 @@ export function registerToolBox(graph, container, canvas, coordinate_rounder) {
   //     el.value = "";
   //   })
   // })
+  //
 
   canvas.addEventListener("dragover", (e) => {
     e.preventDefault();
@@ -54,17 +55,18 @@ export function registerToolBox(graph, container, canvas, coordinate_rounder) {
     node_data = JSON.parse(drop_data);
 
     graph.createNode({
-      style: node_data.style,
+      type: node_data.style,
       name: node_data.data.name,
       edges_incoming: [],
       edges_outgoing: []
     }, x, y)
   })
 
-  for (let [key, style] of graph.styles) {
+  for (let [key, style] of graph.node_types) {
     const draggable = createNodeDraggable(style.name, {
       data: {
-        name: style.name
+        name: style.name,
+        color: style.fill_color
       },
       style: key
     })
@@ -85,18 +87,20 @@ export function registerToolBox(graph, container, canvas, coordinate_rounder) {
  * Creates a button
  * 
  * @param {string} text 
- * @param {NodeData} data
+ * @param {NodeData} config
  */
-function createNodeDraggable(text, data) {
+function createNodeDraggable(text, config) {
   const node = document.createElement("div");
   node.innerHTML = text;
 
   node.classList.add("node-draggable")
 
   node.setAttribute("draggable", "true")
+  node.style.borderColor = config.data.color;
+  node.style.borderLeftWidth = "8px";
 
   node.addEventListener("dragstart", (e) => {
-    e.dataTransfer.setData("graph/node", JSON.stringify(data))
+    e.dataTransfer.setData("graph/node", JSON.stringify(config))
   })
 
   return node;

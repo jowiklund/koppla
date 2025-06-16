@@ -276,7 +276,7 @@ export class CanvasGUIDriver {
     this.canvas.addEventListener("wheel", (e) => {
       e.preventDefault();
 
-      const zoom_intensity = 0.05;
+      const zoom_intensity = 0.1;
       const wheel = e.deltaY < 0 ? 1 : -1;
       const zoom = Math.exp(wheel * zoom_intensity);
 

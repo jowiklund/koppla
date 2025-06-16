@@ -121,7 +121,7 @@ async function run() {
     const screen_x = e.clientX - rect.left;
     const screen_y = e.clientY - rect.top;
 
-    const world_coords = graph.screenToWorld({x: screen_x, y: screen_y});
+    const world_coords = graph.screenToWorld({x: screen_x, y: screen_y}, false);
     const mouse_x = world_coords.x;
     const mouse_y = world_coords.y;
 
@@ -162,8 +162,8 @@ async function run() {
 
     selected_node_handles = [];
     is_selecting = true;
-    selection_start_x = snapToGrid(mouse_x);
-    selection_start_y = snapToGrid(mouse_y);
+    selection_start_x = mouse_x;
+    selection_start_y = mouse_y;
   });
 
   canvas.addEventListener("mousemove", (e) => {
@@ -172,12 +172,12 @@ async function run() {
     const screen_x = e.clientX - rect.left;
     const screen_y = e.clientY - rect.top;
 
-    const world_coords = graph.screenToWorld({x: screen_x, y: screen_y})
+    const world_coords = graph.screenToWorld({x: screen_x, y: screen_y}, false)
     const mouse_x = world_coords.x;
     const mouse_y = world_coords.y;
 
-    current_mouse_x = snapToGrid(mouse_x);
-    current_mouse_y = snapToGrid(mouse_y);
+    current_mouse_x = mouse_x;
+    current_mouse_y = mouse_y;
 
     if (is_dragging) {
       for (let [handle, offset] of drag_offsets.entries()) {

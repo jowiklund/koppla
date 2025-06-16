@@ -52,11 +52,21 @@ export function assert_is_form(el) {
 
 /**
  * @param {HTMLElement | EventTarget} el 
- * @returns {asserts el is HTMLFormElement}
+ * @returns {asserts el is HTMLDialogElement}
  */
 export function assert_is_dialog(el) {
   if (!("showModal" in el)) {
     throw new Error(`[ASSERTION FAILED]: Element was not a dialog :: ${el}`)
+  }
+}
+
+/**
+ * @param {HTMLElement} el 
+ * @returns {asserts el is HTMLCanvasElement}
+ */
+export function assert_is_canvas(el) {
+  if (!("getContext" in el)) {
+    throw new Error("Element is not a canvas")
   }
 }
 

@@ -4,6 +4,8 @@
  * logic engine written in Zig
  */
 
+import { EventEmitter } from "./event-emitter.js";
+
 /** @typedef {number} NodeHandle */
 /** @typedef {number} EdgeHandle */
 /** @typedef {number} EdgeTypeId */
@@ -74,7 +76,7 @@ export const NodeShape = {
  * @typedef {Map<NodeTypeId, NodeType>} NodeTypes
  */
 
-export class GraphEditor {
+export class GraphEditor extends EventEmitter {
   /** @type {number} */
   scale = 1.0;
   /** @type {import("./typedefs").Coords} */
@@ -95,6 +97,7 @@ export class GraphEditor {
    * @param {any} wasm_instance 
    */
   constructor(wasm_instance) {
+    super();
     this._wasm = wasm_instance.exports;
     this._memory = this._wasm.memory;
     this._string_buffer_ptr = this._wasm.js_string_buffer.value;
@@ -115,7 +118,7 @@ export class GraphEditor {
    */
   loadGraph(nodes) {
     for (let i = 0; i < nodes.length; i++) {
-      this.createNode(nodes[i], 100, (150 * i) || 50);
+      this.createNode(nodes[i], 100, 100 + (80 * i + 1));
     }
   }
 
@@ -129,6 +132,8 @@ export class GraphEditor {
     const {x: w_x, y: w_y} = this.screenToWorld({x, y})
     const node_handle = this._wasm.createNode(w_x, w_y);
     this.metadata.set(node_handle, data);
+    this.emit("node:create", { node_handle })
+    this.emit("world:update")
     return node_handle;
   }
 
@@ -139,6 +144,7 @@ export class GraphEditor {
    */
   setNodeType(type) {
     this.node_types.set(type.id, type)
+    this.emit("meta:new_node_type", {type})
   }
 
   /**
@@ -155,6 +161,7 @@ export class GraphEditor {
    */
   setEdgeType(type) {
     this.edge_types.set(type.id, type);
+    this.emit("meta:new_edge_type", {type})
   }
 
   /**
@@ -176,6 +183,7 @@ export class GraphEditor {
   pan(dx, dy) {
     this.pan_coords.x += dx;
     this.pan_coords.y += dy;
+    this.emit("world:pan")
   }
 
   /**
@@ -186,6 +194,7 @@ export class GraphEditor {
   zoom(amount) {
     this.scale *= amount;
     this.scale = Math.max(0.1, Math.min(this.scale, 6));
+    this.emit("world:zoom")
   }
 
   /**
@@ -298,6 +307,7 @@ export class GraphEditor {
    */
   setNodePosition(handle, x, y) {
     this._wasm.setNodePosition(handle, x, y)
+    this.emit("node:update")
   }
 
   /**
@@ -308,6 +318,7 @@ export class GraphEditor {
   deleteNode(handle) {
     this._wasm.deleteNode(handle);
     this.metadata.delete(handle);
+    this.emit("node:delete", {node_handle: handle})
   }
 
   /**
@@ -321,6 +332,7 @@ export class GraphEditor {
     for (let i = 0; i < node.edges_outgoing.length; i++) {
       this._wasm.deleteEdge(node.edges_outgoing[i])
     }
+    this.emit("edge:delete", {edge_handle: handle})
   }
 
   /**
@@ -343,30 +355,6 @@ export class GraphEditor {
   }
 
   /**
-   * @param {NodeHandle} handle 
-   * @returns {ZoneType}
-   */
-  getZoneNodeZoneType(handle) {
-    return this._wasm.getZoneNodeZoneType(handle);
-  }
-
-  /**
-   * @param {NodeHandle} handle 
-   * @returns {CoworkerAuth}
-   */
-  getCoworkerNodeAuth(handle) {
-    return this._wasm.getCoworkerNodeAuth(handle);
-  }
-
-  /**
-   * @param {NodeHandle} handle 
-   * @returns {AccessLevel}
-   */
-  getAccessNodeAccessLevel(handle) {
-    return this._wasm.getAccessNodeAccessLevel(handle);
-  }
-
-  /**
    * @param {NodeHandle} start_handle 
    * @param {NodeHandle} end_handle 
    * @param {NodeHandle} end_handle 
@@ -374,6 +362,7 @@ export class GraphEditor {
    */
   createEdge(start_handle, end_handle, type) {
     this._wasm.createEdge(start_handle, end_handle, type);
+    this.emit("edge:create", {start_handle, end_handle, type})
   }
 }
 

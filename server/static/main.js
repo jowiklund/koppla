@@ -2,90 +2,6 @@ import { assert_is_dialog, assert_is_form, assert_is_not_null } from "./modules/
 import { registerToolBox } from "./modules/control-panel.js";
 import { getEngine, GraphEditor, NodeShape } from "./modules/graph-editor-api.js";
 
-const edge_types = [
-  {
-    "id": 0,
-    "name": "Access",
-    "stroke_color": "#8d99ae",
-    "stroke_width": 2,
-    "line_dash": [],
-    "metadata": ""
-  },
-  {
-    "id": 1,
-    "name": "Add",
-    "stroke_color": "#2a9d8f",
-    "stroke_width": 2,
-    "line_dash": [8, 6],
-    "metadata": ""
-  },
-  {
-    "id": 2,
-    "name": "Update",
-    "stroke_color": "#e9c46a",
-    "stroke_width": 2.5,
-    "line_dash": [15, 5, 2, 5],
-    "metadata": ""
-  },
-  {
-    "id": 3,
-    "name": "Modify",
-    "stroke_color": "#f4a261",
-    "stroke_width": 2.5,
-    "line_dash": [3, 4],
-    "metadata": ""
-  },
-  {
-    "id": 4,
-    "name": "Manage",
-    "stroke_color": "#519ce7",
-    "stroke_width": 3,
-    "line_dash": [],
-    "metadata": ""
-  }
-]
-
-/**
- * @enum {number}
- */
-const NODE_TYPE = {
-  USER: 0,
-  GROUP: 1,
-  ZONE: 2
-}
-
-
-/** @type {Array<import("./modules/graph-editor-api.js").NodeType>} */
-const node_types = [
-  {
-    fill_color: "#6699ff",
-    name: "User",
-    shape: NodeShape.CIRCLE,
-    stroke_color: "#476bb5",
-    stroke_width: 2,
-    id: NODE_TYPE.USER,
-    metadata: ""
-  },
-  {
-    fill_color: "#80b357",
-    name: "Group",
-    shape: NodeShape.SQUARE_ROUNDED,
-    stroke_color: "#608741",
-    stroke_width: 2,
-    id: NODE_TYPE.GROUP,
-    metadata: ""
-  },
-  {
-    fill_color: "#fc8800",
-    name: "Zone",
-    shape: NodeShape.SQUARE_ROUNDED,
-    stroke_color: "#c46b04",
-    stroke_width: 2,
-    id: NODE_TYPE.ZONE,
-    metadata: ""
-  }
-]
-
 /**
  * @typedef Config
  * @property {Array<import("./modules/graph-editor-api.js").EdgeType>} edge_types
@@ -95,6 +11,7 @@ const node_types = [
 /**
  * @param {Config} config 
  * @param {Array<import("./modules/graph-editor-api.js").NodeBase>} graph_data 
+ * @returns {Promise<GraphEditor>}
  */
 export async function run(config, graph_data) {
   /** @type {HTMLCanvasElement} */
@@ -364,6 +281,8 @@ export async function run(config, graph_data) {
     }
   });
 
+  graph.on("edge:create", e => console.log(e))
+
   function draw() {
     const logicalWidth = canvas.width / dpr;
     const logicalHeight = canvas.height / dpr;
@@ -394,6 +313,8 @@ export async function run(config, graph_data) {
         const start_node = graph.getNode(edge.start_handle);
         const end_node = graph.getNode(edge.end_handle);
 
+        const edge_type = graph.getEdgeType(edge.type)
+
         const { startGate, endGate } = getBestGates({
           y: start_node.y,
           x: start_node.x,
@@ -414,7 +335,8 @@ export async function run(config, graph_data) {
           endCoords,
           endGate,
           offset,
-          graph.getEdgeType(edge.type)
+          edge_type,
+          selected_node_handles.includes(edge.start_handle)
         );
       });
     });
@@ -517,6 +439,8 @@ export async function run(config, graph_data) {
   }
 
   draw();
+
+  return graph;
 }
 
 /**
@@ -612,8 +536,9 @@ function getGateCoordinates(node, gate, radius) {
  * @param {number} endGate - 
  * @param {number} offset - 
  * @param {import("./modules/graph-editor-api.js").EdgeType} edge_type 
+ * @param {boolean} render_name 
  */
-function drawEdgeOrthogonal(ctx, startCoords, startGate, endCoords, endGate, offset, edge_type) {
+function drawEdgeOrthogonal(ctx, startCoords, startGate, endCoords, endGate, offset, edge_type, render_name = false) {
   const cornerRadius = 10;
   const bundleGap = 10;
   const offsetAmount = offset * bundleGap;
@@ -658,6 +583,21 @@ function drawEdgeOrthogonal(ctx, startCoords, startGate, endCoords, endGate, off
   ctx.lineTo(ex, ey);
   ctx.stroke();
 
+  if (render_name) {
+    const midX = sx + (ex - sx) / 2 + offsetAmount;
+    const midY = sy + (ey - sy) / 2 + offsetAmount;
+    ctx.beginPath();
+    ctx.fillStyle = "#fff";
+    ctx.rect(midX - (edge_type.name.length / 2) * 8, midY - 10, edge_type.name.length * 8, 20);
+    ctx.fill();
+
+    ctx.fillStyle = "#6e6e6e";
+    ctx.font = "12px monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText(edge_type.name, midX, midY - 5);
+  }
+
   ctx.beginPath();
   ctx.setLineDash([])
   if (startGate === GATES.LEFT) {
@@ -689,7 +629,91 @@ function drawEdgeOrthogonal(ctx, startCoords, startGate, endCoords, endGate, off
   ctx.stroke();
 }
 
-run(
+const edge_types = [
+  {
+    "id": 0,
+    "name": "Access",
+    "stroke_color": "#8d99ae",
+    "stroke_width": 2,
+    "line_dash": [],
+    "metadata": ""
+  },
+  {
+    "id": 1,
+    "name": "Add",
+    "stroke_color": "#2a9d8f",
+    "stroke_width": 2,
+    "line_dash": [8, 6],
+    "metadata": ""
+  },
+  {
+    "id": 2,
+    "name": "Update",
+    "stroke_color": "#e9c46a",
+    "stroke_width": 2.5,
+    "line_dash": [15, 5, 2, 5],
+    "metadata": ""
+  },
+  {
+    "id": 3,
+    "name": "Modify",
+    "stroke_color": "#f4a261",
+    "stroke_width": 2.5,
+    "line_dash": [3, 4],
+    "metadata": ""
+  },
+  {
+    "id": 4,
+    "name": "Manage",
+    "stroke_color": "#519ce7",
+    "stroke_width": 3,
+    "line_dash": [],
+    "metadata": ""
+  }
+]
+
+/**
+ * @enum {number}
+ */
+const NODE_TYPE = {
+  USER: 0,
+  GROUP: 1,
+  ZONE: 2
+}
+
+
+/** @type {Array<import("./modules/graph-editor-api.js").NodeType>} */
+const node_types = [
+  {
+    fill_color: "#6699ff",
+    name: "User",
+    shape: NodeShape.CIRCLE,
+    stroke_color: "#476bb5",
+    stroke_width: 2,
+    id: NODE_TYPE.USER,
+    metadata: ""
+  },
+  {
+    fill_color: "#80b357",
+    name: "Group",
+    shape: NodeShape.SQUARE_ROUNDED,
+    stroke_color: "#608741",
+    stroke_width: 2,
+    id: NODE_TYPE.GROUP,
+    metadata: ""
+  },
+  {
+    fill_color: "#fc8800",
+    name: "Zone",
+    shape: NodeShape.SQUARE_ROUNDED,
+    stroke_color: "#c46b04",
+    stroke_width: 2,
+    id: NODE_TYPE.ZONE,
+    metadata: ""
+  }
+]
+
+const graph = run(
   {
     edge_types,
     node_types

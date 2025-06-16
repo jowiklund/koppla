@@ -7,7 +7,8 @@
 /** @typedef {number} NodeHandle */
 /** @typedef {number} EdgeHandle */
 /** @typedef {number} EdgeTypeId */
-/** @typedef {string} NodeStyleName */
+/** @typedef {number} NodeTypeId */
+/** @typedef {string} NodeTypeName */
 /** @typedef {number} ZoneType */
 /** @typedef {number} GroupType */
 /** @typedef {number} CoworkerAuth */
@@ -16,7 +17,7 @@
 /**
  * @typedef {Object} NodeBase
  * @property {string} name - A human readable name displayed underneath the node
- * @property {NodeStyleName} type - The name of a predefined node style
+ * @property {NodeTypeId} type - The name of a predefined node style
  * @property {Array<NodeHandle>} edges_outgoing
  * @property {Array<NodeHandle>} edges_incoming
  */
@@ -64,11 +65,13 @@ export const NodeShape = {
  * @property {string} stroke_color - The stroke color
  * @property {number} stroke_width - The stroke width
  * @property {NodeShape} shape - A predifined node shape
+ * @property {NodeTypeId} id - A unique numerical node ID (u8)
  * @property {string} name - Human readable name
+ * @property {string} metadata - Serialized generic data
  */
 
 /**
- * @typedef {Map<string, NodeType>} NodeTypes
+ * @typedef {Map<NodeTypeId, NodeType>} NodeTypes
  */
 
 export class GraphEditor {
@@ -130,22 +133,21 @@ export class GraphEditor {
   }
 
   /**
-   * @param {string} name
-   * @param {NodeType} style
+   * @param {NodeType} type
    *
    * @returns void
    */
-  setNodeType(name, style) {
-    this.node_types.set(name, style)
+  setNodeType(type) {
+    this.node_types.set(type.id, type)
   }
 
   /**
-   * @param {string} name 
+   * @param {NodeTypeId} id 
    *
    * @returns {NodeType}
    */
-  getNodeType(name) {
-    return this.node_types.get(name);
+  getNodeType(id) {
+    return this.node_types.get(id);
   }
 
   /**

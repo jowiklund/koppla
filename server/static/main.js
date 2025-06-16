@@ -2,7 +2,7 @@ import { assert_is_dialog, assert_is_form, assert_is_not_null } from "./modules/
 import { registerToolBox } from "./modules/control-panel.js";
 import { getEngine, GraphEditor, NodeShape } from "./modules/graph-editor-api.js";
 
-const edgeTypes = [
+const edge_types = [
   {
     "id": 0,
     "name": "Access",
@@ -45,7 +45,58 @@ const edgeTypes = [
   }
 ]
 
-async function run() {
+/**
+ * @enum {number}
+ */
+const NODE_TYPE = {
+  USER: 0,
+  GROUP: 1,
+  ZONE: 2
+}
+
+
+/** @type {Array<import("./modules/graph-editor-api.js").NodeType>} */
+const node_types = [
+  {
+    fill_color: "#6699ff",
+    name: "User",
+    shape: NodeShape.CIRCLE,
+    stroke_color: "#476bb5",
+    stroke_width: 2,
+    id: NODE_TYPE.USER,
+    metadata: ""
+  },
+  {
+    fill_color: "#80b357",
+    name: "Group",
+    shape: NodeShape.SQUARE_ROUNDED,
+    stroke_color: "#608741",
+    stroke_width: 2,
+    id: NODE_TYPE.GROUP,
+    metadata: ""
+  },
+  {
+    fill_color: "#fc8800",
+    name: "Zone",
+    shape: NodeShape.SQUARE_ROUNDED,
+    stroke_color: "#c46b04",
+    stroke_width: 2,
+    id: NODE_TYPE.ZONE,
+    metadata: ""
+  }
+]
+
+/**
+ * @typedef Config
+ * @property {Array<import("./modules/graph-editor-api.js").EdgeType>} edge_types
+ * @property {Array<import("./modules/graph-editor-api.js").NodeType>} node_types
+ */
+
+/**
+ * @param {Config} config 
+ * @param {Array<import("./modules/graph-editor-api.js").NodeBase>} graph_data 
+ */
+export async function run(config, graph_data) {
   /** @type {HTMLCanvasElement} */
   const canvas = document.querySelector("#node-canvas");
   /** @type {HTMLDivElement} */
@@ -73,59 +124,20 @@ async function run() {
 
   const graph = await getEngine();
   assert_is_not_null(graph);
+
   graph.coordinate_rounder = snapToGrid;
 
-  for (let type of edgeTypes) {
-    graph.setEdgeType(type)
+  for (let type of config.edge_types) {
+    graph.setEdgeType(type);
   }
 
-  graph.setNodeType("user", {
-    fill_color: "#6699ff",
-    name: "User",
-    shape: NodeShape.CIRCLE,
-    stroke_color: "#476bb5",
-    stroke_width: 2
-  })
-
-  graph.setNodeType("group", {
-    fill_color: "#80b357",
-    name: "Group",
-    shape: NodeShape.SQUARE_ROUNDED,
-    stroke_color: "#608741",
-    stroke_width: 2
-  })
-
-  graph.setNodeType("zone", {
-    fill_color: "#fc8800",
-    name: "Zone",
-    shape: NodeShape.SQUARE_ROUNDED,
-    stroke_color: "#c46b04",
-    stroke_width: 2
-  })
-
-  graph.loadGraph([
-    {
-      name: "Developers",
-      type: "group",
-      edges_outgoing: [],
-      edges_incoming: []
-    },
-    {
-      name: "Software",
-      type: "zone",
-      edges_outgoing: [],
-      edges_incoming: []
-    },
-    {
-      name: "Lasse",
-      type: "user",
-      edges_outgoing: [],
-      edges_incoming: []
-    }
-  ])
-
+  for (let type of config.node_types) {
+    graph.setNodeType(type);
+  }
 
   registerToolBox(graph, control_panel, canvas, snapToGrid);
+
+  graph.loadGraph(graph_data)
 
   let selection_color = "#089fff";
 
@@ -410,7 +422,10 @@ async function run() {
     if (is_connecting) {
       for (let handle of selected_node_handles) {
         const start_node = graph.getNode(handle)
-        const mouse_coords = { x: current_mouse_x, y: current_mouse_y };
+        const mouse_coords = {
+          x: snapToGrid(current_mouse_x),
+          y: snapToGrid(current_mouse_y)
+        };
         const { startGate, endGate } = getBestGates(
           {
             x: start_node.x,
@@ -442,7 +457,7 @@ async function run() {
     for (let node of nodes) {
       const { x, y } = node;
       ctx.beginPath();
-      const type = graph.node_types.get(node.type);
+      const type = graph.getNodeType(node.type);
       switch (type.shape) {
         case NodeShape.CIRCLE:
           ctx.arc(x, y, NODE_RADIUS, 0, 2 * Math.PI);
@@ -674,4 +689,29 @@ function drawEdgeOrthogonal(ctx, startCoords, startGate, endCoords, endGate, off
   ctx.stroke();
 }
 
-run();
+run(
+  {
+    edge_types,
+    node_types
+  },
+  [
+    {
+      name: "Developers",
+      type: NODE_TYPE.GROUP,
+      edges_outgoing: [],
+      edges_incoming: []
+    },
+    {
+      name: "Software",
+      type: NODE_TYPE.ZONE,
+      edges_outgoing: [],
+      edges_incoming: []
+    },
+    {
+      name: "Lasse",
+      type: NODE_TYPE.USER,
+      edges_outgoing: [],
+      edges_incoming: []
+    }
+  ],
+);

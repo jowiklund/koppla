@@ -298,6 +298,7 @@ export class CanvasGUIDriver {
 
     const edge_type_select = document.getElementById("edge-type-select")
     for (let edge of this.graph.edge_types.values()) {
+      if (edge.id < 0) continue;
       const option = document.createElement("option")
       option.value = `${edge.id}`;
       option.innerHTML = edge.name;

@@ -35,12 +35,18 @@ export class CanvasGUIDriver {
   graph = null;
   /** @type {Promise<GraphEditor>} */
   startup_promise = null;
+  /** @type {HTMLDialogElement} */
+  edge_type_dialog = null;
   dpr = 1;
+  drop_x = 0;
+  drop_y = 0;
+  /** @type {NodeData} */
+  drop_data = null;
 
   config = {
     grid_size: 20,
     node_radius: 20
-  }
+  };
 
   selection_color = "#089fff";
 
@@ -90,6 +96,10 @@ export class CanvasGUIDriver {
 
     const control_panel = document.getElementById(opts.control_panel_id);
     this.control_panel = control_panel;
+
+    const edge_type_dialog = document.getElementById("create-edge-dialog");
+    assert_is_dialog(edge_type_dialog)
+    this.edge_type_dialog = edge_type_dialog;
   }
 
   /**
@@ -100,12 +110,12 @@ export class CanvasGUIDriver {
     return Math.round(value / this.config.grid_size) * this.config.grid_size;
   }
 
-/**
+  /**
  * @param {RunConfig} config 
  * @param {Array<import("./graph-editor-api.js").NodeBase>} graph_data 
  * @returns {Promise<GraphEditor>}
  */
- async run(config, graph_data) {
+  async run(config, graph_data) {
     this.startup_promise = getEngine();
     this.graph = await this.startup_promise;
     assert_is_not_null(this.graph);
@@ -129,33 +139,14 @@ export class CanvasGUIDriver {
 
   /** @private */
   _registerControls() {
-    const canvas_rect = this.canvas.getBoundingClientRect();
-
-    /** @type {NodeData} */
-    let node_data;
-    /** @type {number} */
-    let x, y;
-
-    this.canvas.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "move";
-    })
-
-    this.canvas.addEventListener("drop", (e) => {
-      e.preventDefault();
-      x = this._snapToGrid(e.clientX - canvas_rect.left);
-      y = this._snapToGrid(e.clientY - canvas_rect.top);
-
-      let drop_data = e.dataTransfer.getData("graph/node");
-      node_data = JSON.parse(drop_data);
-
-      this.graph.createNode({
-        type: node_data.type,
-        name: node_data.data.name,
-        edges_incoming: [],
-        edges_outgoing: []
-      }, x, y)
-    })
+    const edge_type_select = document.getElementById("edge-type-select")
+    for (let edge of this.graph.edge_types.values()) {
+      if (edge.id < 0) continue;
+      const option = document.createElement("option")
+      option.value = `${edge.id}`;
+      option.innerHTML = edge.name;
+      edge_type_select.appendChild(option);
+    }
 
     for (let [key, style] of this.graph.node_types) {
       const draggable = createNodeDraggable(style.name, {
@@ -168,158 +159,54 @@ export class CanvasGUIDriver {
       this.control_panel.appendChild(draggable);
     }
 
-    window.addEventListener("keydown", (e) => {
-      if (
-        (e.key == "Delete") &&
-          this.selected_node_handles.length > 0
-      ) {
-        for (let handle of this.selected_node_handles) {
-          this.graph.deleteNode(handle);
-        }
-        this.selected_node_handles = [];
-      }
-
-      if (e.key == "Backspace" && this.selected_node_handles.length > 0) {
-        for (let handle of this.selected_node_handles) {
-          this.graph.deleteOutgoing(handle)
-        }
-      }
-    });
-
-    this.canvas.addEventListener("mousedown", (e) => {
-      const rect = this.canvas.getBoundingClientRect();
-
-      const screen_x = e.clientX - rect.left;
-      const screen_y = e.clientY - rect.top;
-
-      const world_coords = this.graph.screenToWorld({x: screen_x, y: screen_y}, false);
-      const mouse_x = world_coords.x;
-      const mouse_y = world_coords.y;
-
-      if (e.ctrlKey) {
-        this.is_panning = true;
-        this.pan_start_x = screen_x;
-        this.pan_start_y = screen_y;
-        this.canvas.style.cursor = "move";
-        return;
-      }
-
-      const nodes = this.graph.getNodes();
-      for (let i = nodes.length - 1; i >= 0; i--) {
-        const node = nodes[i];
-        const dx = Math.abs(mouse_x - node.x);
-        const dy = Math.abs(mouse_y - node.y);
-
-        if (dx <= this.config.node_radius && dy <= this.config.node_radius) {
-          if (!this.selected_node_handles.includes(node.handle)) {
-            this.selected_node_handles = [node.handle]
-          }
-          if (e.shiftKey) {
-            this.is_connecting = true;
-          } else {
-            this.is_dragging = true;
-            this.drag_offsets.clear();
-            for (let handle of this.selected_node_handles) {
-              const node = this.graph.getNode(handle);
-              const dx = mouse_x - node.x;
-              const dy = mouse_y - node.y;
-              this.drag_offsets.set(handle, {dx, dy})
-            }
-            this.canvas.style.cursor = "grabbing";
-          }
-          return;
-        }
-      }
-
-      this.selected_node_handles = [];
-      this.is_selecting = true;
-      this.selection_start_x = mouse_x;
-      this.selection_start_y = mouse_y;
-    });
-
-    this.canvas.addEventListener("mousemove", (e) => {
-      const rect = this.canvas.getBoundingClientRect();
-
-      const screen_x = e.clientX - rect.left;
-      const screen_y = e.clientY - rect.top;
-
-      const world_coords = this.graph.screenToWorld({x: screen_x, y: screen_y}, false)
-      const mouse_x = world_coords.x;
-      const mouse_y = world_coords.y;
-
-      this.current_mouse_x = mouse_x;
-      this.current_mouse_y = mouse_y;
-
-      if (this.is_dragging) {
-        for (let [handle, offset] of this.drag_offsets.entries()) {
-          const new_x = this._snapToGrid(mouse_x - offset.dx);
-          const new_y = this._snapToGrid(mouse_y - offset.dy);
-          this.graph.setNodePosition(handle, new_x, new_y);
-        }
-      }
-
-      if (this.is_panning) {
-        const screen_x = e.clientX - rect.left;
-        const screen_y = e.clientY - rect.top;
-
-        const dx = screen_x - this.pan_start_x;
-        const dy = screen_y - this.pan_start_y;
-
-        this.graph.pan(dx, dy);
-
-        this.pan_start_x = screen_x;
-        this.pan_start_y = screen_y;
-        return;
-      }
-    });
-
-    this.canvas.addEventListener("wheel", (e) => {
+    window.addEventListener("keydown", this._keydown.bind(this));
+    this.canvas.addEventListener("drop", this._drop.bind(this))
+    this.canvas.addEventListener("mousedown", this._mouseDown.bind(this));
+    this.canvas.addEventListener("mousemove", this._mouseMove.bind(this));
+    this.canvas.addEventListener("wheel", this._wheel.bind(this));
+    this.canvas.addEventListener("mouseup", this._mouseUp.bind(this));
+    this.canvas.addEventListener("dragover", (e) => {
       e.preventDefault();
-
-      const zoom_intensity = 0.1;
-      const wheel = e.deltaY < 0 ? 1 : -1;
-      const zoom = Math.exp(wheel * zoom_intensity);
-
-      const rect = this.canvas.getBoundingClientRect();
-      const mouse_x = e.clientX - rect.left;
-      const mouse_y = e.clientY - rect.top;
-
-      const world_before = this.graph.screenToWorld({x: mouse_x, y: mouse_y}, false);
-
-      this.graph.zoom(zoom)
-
-      const world_after = this.graph.screenToWorld({x: mouse_x, y: mouse_y}, false);
-
-      this.graph.pan(
-        (world_after.x - world_before.x) * this.graph.scale,
-        (world_after.y - world_before.y) * this.graph.scale
-      )
-    });
-
-    const edge_type_select = document.getElementById("edge-type-select")
-    for (let edge of this.graph.edge_types.values()) {
-      if (edge.id < 0) continue;
-      const option = document.createElement("option")
-      option.value = `${edge.id}`;
-      option.innerHTML = edge.name;
-      edge_type_select.appendChild(option);
-    }
-
-    const edge_type_dialog = document.getElementById("create-edge-dialog");
-    assert_is_dialog(edge_type_dialog)
-
-    let new_edges = [];
-    document.getElementById("create-edge-form").addEventListener("submit", (event) => {
-      assert_is_form(event.target);
-      const data = new FormData(event.target);
-      const event_type = parseInt(data.get("type").toString())
-      for (let i = 0; i < new_edges.length; i++) {
-        this.graph.createEdge(new_edges[i].start_handle, new_edges[i].end_handle, event_type);
-      }
-      new_edges = [];
+      e.dataTransfer.dropEffect = "move";
     })
+  }
 
-    this.canvas.addEventListener("mouseup", (e) => {
+  /**
+   * @param {DragEvent} e
+   */
+  _drop(e) {
+    e.preventDefault();
+      const rect = this.canvas.getBoundingClientRect();
+      this.drop_x = this._snapToGrid(e.clientX - rect.left);
+      this.drop_y = this._snapToGrid(e.clientY - rect.top);
+
+      let drop_data = e.dataTransfer.getData("graph/node");
+      this.node_data = JSON.parse(drop_data);
+
+      this.graph.createNode({
+        type: this.node_data.type,
+        name: this.node_data.data.name,
+        edges_incoming: [],
+        edges_outgoing: [],
+        metadata: ""
+      }, this.drop_x, this.drop_y)
+  }
+
+  /**
+   * @param {MouseEvent} e 
+   */
+  _mouseUp(e) {
+    let new_edges = [];
+      document.getElementById("create-edge-form").addEventListener("submit", (event) => {
+        assert_is_form(event.target);
+        const data = new FormData(event.target);
+        const event_type = parseInt(data.get("type").toString())
+        for (let i = 0; i < new_edges.length; i++) {
+          this.graph.createEdge(new_edges[i].start_handle, new_edges[i].end_handle, event_type);
+        }
+        new_edges = [];
+      })
+
       if (this.is_connecting) {
         const rect = this.canvas.getBoundingClientRect();
         const screen_x = e.clientX - rect.left;
@@ -342,7 +229,7 @@ export class CanvasGUIDriver {
                 start_handle: handle,
                 end_handle 
               })
-              edge_type_dialog.showModal();
+              this.edge_type_dialog.showModal();
               break;
             }
           }
@@ -371,7 +258,145 @@ export class CanvasGUIDriver {
 
         this.is_selecting = false;
       }
-    });
+  }
+
+  /**
+   * @param {KeyboardEvent} e
+   */
+  _keydown(e) {
+    if (
+      (e.key == "Delete") &&
+        this.selected_node_handles.length > 0
+    ) {
+      for (let handle of this.selected_node_handles) {
+        this.graph.deleteNode(handle);
+      }
+      this.selected_node_handles = [];
+    }
+
+    if (e.key == "Backspace" && this.selected_node_handles.length > 0) {
+      for (let handle of this.selected_node_handles) {
+        this.graph.deleteOutgoing(handle)
+      }
+    }
+  }
+
+  /**
+   * @param {WheelEvent} e 
+   */
+  _wheel(e) {
+    e.preventDefault();
+
+    const zoom_intensity = 0.1;
+    const wheel = e.deltaY < 0 ? 1 : -1;
+    const zoom = Math.exp(wheel * zoom_intensity);
+
+    const rect = this.canvas.getBoundingClientRect();
+    const mouse_x = e.clientX - rect.left;
+    const mouse_y = e.clientY - rect.top;
+
+    const world_before = this.graph.screenToWorld({x: mouse_x, y: mouse_y}, false);
+
+    this.graph.zoom(zoom)
+
+    const world_after = this.graph.screenToWorld({x: mouse_x, y: mouse_y}, false);
+
+    this.graph.pan(
+      (world_after.x - world_before.x) * this.graph.scale,
+      (world_after.y - world_before.y) * this.graph.scale
+    )
+  }
+
+  /**
+   * @param {MouseEvent} e 
+   */
+  _mouseDown(e) {
+    const rect = this.canvas.getBoundingClientRect();
+
+    const screen_x = e.clientX - rect.left;
+    const screen_y = e.clientY - rect.top;
+
+    const world_coords = this.graph.screenToWorld({x: screen_x, y: screen_y}, false);
+    const mouse_x = world_coords.x;
+    const mouse_y = world_coords.y;
+
+    if (e.ctrlKey) {
+      this.is_panning = true;
+      this.pan_start_x = screen_x;
+      this.pan_start_y = screen_y;
+      this.canvas.style.cursor = "move";
+      return;
+    }
+
+    const nodes = this.graph.getNodes();
+    for (let i = nodes.length - 1; i >= 0; i--) {
+      const node = nodes[i];
+      const dx = Math.abs(mouse_x - node.x);
+      const dy = Math.abs(mouse_y - node.y);
+
+      if (dx <= this.config.node_radius && dy <= this.config.node_radius) {
+        if (!this.selected_node_handles.includes(node.handle)) {
+          this.selected_node_handles = [node.handle]
+        }
+        if (e.shiftKey) {
+          this.is_connecting = true;
+        } else {
+          this.is_dragging = true;
+          this.drag_offsets.clear();
+          for (let handle of this.selected_node_handles) {
+            const node = this.graph.getNode(handle);
+            const dx = mouse_x - node.x;
+            const dy = mouse_y - node.y;
+            this.drag_offsets.set(handle, {dx, dy})
+          }
+          this.canvas.style.cursor = "grabbing";
+        }
+        return;
+      }
+    }
+
+    this.selected_node_handles = [];
+    this.is_selecting = true;
+    this.selection_start_x = mouse_x;
+    this.selection_start_y = mouse_y;
+  }
+  /**
+   * @param {MouseEvent} e 
+   */
+  _mouseMove(e) {
+    const rect = this.canvas.getBoundingClientRect();
+
+    const screen_x = e.clientX - rect.left;
+    const screen_y = e.clientY - rect.top;
+
+    const world_coords = this.graph.screenToWorld({x: screen_x, y: screen_y}, false)
+    const mouse_x = world_coords.x;
+    const mouse_y = world_coords.y;
+
+    this.current_mouse_x = mouse_x;
+    this.current_mouse_y = mouse_y;
+
+    if (this.is_dragging) {
+      for (let [handle, offset] of this.drag_offsets.entries()) {
+        const new_x = this._snapToGrid(mouse_x - offset.dx);
+        const new_y = this._snapToGrid(mouse_y - offset.dy);
+        this.graph.setNodePosition(handle, new_x, new_y);
+      }
+    }
+
+    if (this.is_panning) {
+      const screen_x = e.clientX - rect.left;
+      const screen_y = e.clientY - rect.top;
+
+      const dx = screen_x - this.pan_start_x;
+      const dy = screen_y - this.pan_start_y;
+
+      this.graph.pan(dx, dy);
+
+      this.pan_start_x = screen_x;
+      this.pan_start_y = screen_y;
+      return;
+    }
   }
 
   /** @private */
@@ -573,7 +598,7 @@ function drawWorldGrid(ctx, canvasWidth, canvas_height, grid_size, graph) {
   const dotRadius = 1;
 
   ctx.fillStyle = "#ebebeb";
-  
+
   for (let x = startX; x < worldViewBottomRight.x; x += grid_size) {
     for (let y = startY; y < worldViewBottomRight.y; y += grid_size) {
       ctx.beginPath();
@@ -607,22 +632,22 @@ const GATES = {
  * @returns {{startGate: number, endGate: number}}
  */
 function getBestGates(startNode, endNode) {
-    const dx = endNode.x - startNode.x;
-    const dy = endNode.y - startNode.y;
+  const dx = endNode.x - startNode.x;
+  const dy = endNode.y - startNode.y;
 
-    if (Math.abs(dx) > Math.abs(dy)) {
-        if (dx > 0) {
-            return { startGate: GATES.RIGHT, endGate: GATES.LEFT };
-        } else {
-            return { startGate: GATES.LEFT, endGate: GATES.RIGHT };
-        }
+  if (Math.abs(dx) > Math.abs(dy)) {
+    if (dx > 0) {
+      return { startGate: GATES.RIGHT, endGate: GATES.LEFT };
     } else {
-        if (dy > 0) {
-            return { startGate: GATES.BOTTOM, endGate: GATES.TOP };
-        } else {
-            return { startGate: GATES.TOP, endGate: GATES.BOTTOM };
-        }
+      return { startGate: GATES.LEFT, endGate: GATES.RIGHT };
     }
+  } else {
+    if (dy > 0) {
+      return { startGate: GATES.BOTTOM, endGate: GATES.TOP };
+    } else {
+      return { startGate: GATES.TOP, endGate: GATES.BOTTOM };
+    }
+  }
 }
 
 /**
@@ -632,13 +657,13 @@ function getBestGates(startNode, endNode) {
  * @returns {import("./typedefs.js").Coords}
  */
 function getGateCoordinates(node, gate, radius) {
-    switch (gate) {
-        case GATES.TOP:    return { x: node.x, y: node.y - radius };
-        case GATES.BOTTOM: return { x: node.x, y: node.y + radius };
-        case GATES.LEFT:   return { x: node.x - radius, y: node.y };
-        case GATES.RIGHT:  return { x: node.x + radius, y: node.y };
-        default:           return node;
-    }
+  switch (gate) {
+    case GATES.TOP:    return { x: node.x, y: node.y - radius };
+    case GATES.BOTTOM: return { x: node.x, y: node.y + radius };
+    case GATES.LEFT:   return { x: node.x - radius, y: node.y };
+    case GATES.RIGHT:  return { x: node.x + radius, y: node.y };
+    default:           return node;
+  }
 }
 
 /**

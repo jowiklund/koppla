@@ -8,7 +8,7 @@ const edge_types = [
     "stroke_color": "#8d99ae",
     "stroke_width": 2,
     "line_dash": [],
-    "metadata": ""
+    "metadata": '{"access_level": "Access"}'
   },
   {
     "id": 1,
@@ -16,7 +16,7 @@ const edge_types = [
     "stroke_color": "#2a9d8f",
     "stroke_width": 2,
     "line_dash": [8, 6],
-    "metadata": ""
+    "metadata": '{"access_level": "Add"}'
   },
   {
     "id": 2,
@@ -24,7 +24,7 @@ const edge_types = [
     "stroke_color": "#e9c46a",
     "stroke_width": 2.5,
     "line_dash": [15, 5, 2, 5],
-    "metadata": ""
+    "metadata": '{"access_level": "Update"}'
   },
   {
     "id": 3,
@@ -32,7 +32,7 @@ const edge_types = [
     "stroke_color": "#f4a261",
     "stroke_width": 2.5,
     "line_dash": [3, 4],
-    "metadata": ""
+    "metadata": '{"access_level": "Modify"}'
   },
   {
     "id": 4,
@@ -40,7 +40,7 @@ const edge_types = [
     "stroke_color": "#519ce7",
     "stroke_width": 3,
     "line_dash": [],
-    "metadata": ""
+    "metadata": '{"access_level": "Manage"}'
   }
 ]
 
@@ -100,24 +100,27 @@ canvas_gui.run({
       name: "Developers",
       type: NODE_TYPE.GROUP,
       edges_outgoing: [],
-      edges_incoming: []
+      edges_incoming: [],
+      metadata: '{"id": "devs"}'
     },
     {
       name: "Software",
       type: NODE_TYPE.ZONE,
       edges_outgoing: [],
-      edges_incoming: []
+      edges_incoming: [],
+      metadata: '{"id": "soft"}'
     },
     {
       name: "Lasse",
       type: NODE_TYPE.USER,
       edges_outgoing: [],
-      edges_incoming: []
+      edges_incoming: [],
+      metadata: '{"id": "usr_lasse"}'
     }
   ]
 ).then(graph => {
     graph.on("edge:create", () => {
-      console.log(graph.getNodes());
+      console.log(graph.getRelations());
     });
 
   })

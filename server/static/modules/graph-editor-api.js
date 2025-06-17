@@ -4,6 +4,7 @@
  * logic engine written in Zig
  */
 
+import { assert_is_not_null } from "./assert.js";
 import { EventEmitter } from "./event-emitter.js";
 
 /** @typedef {number} NodeHandle */
@@ -20,6 +21,7 @@ import { EventEmitter } from "./event-emitter.js";
  * @typedef {Object} NodeBase
  * @property {string} name - A human readable name displayed underneath the node
  * @property {NodeTypeId} type - The name of a predefined node style
+ * @property {string} metadata
  * @property {Array<NodeHandle>} edges_outgoing
  * @property {Array<NodeHandle>} edges_incoming
  */
@@ -76,6 +78,13 @@ export const NodeShape = {
  * @typedef {Map<NodeTypeId, NodeType>} NodeTypes
  */
 
+/**
+ * @typedef {Object} Relation
+ * @property {string} edge_type_metadata
+ * @property {string} from_metadata
+ * @property {string} to_metadata
+ */
+
 export class GraphEditor extends EventEmitter {
   /** @type {number} */
   scale = 1.0;
@@ -84,7 +93,7 @@ export class GraphEditor extends EventEmitter {
   /** @type {import("./control-panel.js").CoordinateRounder} */
   coordinate_rounder = null;
   /** @type {Map<NodeHandle, NodeBase>} */
-  metadata = new Map();
+  node_data = new Map();
   /** @type {NodeTypes} */
   node_types = new Map();
   /** @type {Map<number, EdgeType>} */
@@ -131,7 +140,7 @@ export class GraphEditor extends EventEmitter {
   createNode(data, x, y) {
     const {x: w_x, y: w_y} = this.screenToWorld({x, y})
     const node_handle = this._wasm.createNode(w_x, w_y);
-    this.metadata.set(node_handle, data);
+    this.node_data.set(node_handle, data);
     this.emit("node:create", { node_handle })
     this.emit("world:update")
     return node_handle;
@@ -139,12 +148,35 @@ export class GraphEditor extends EventEmitter {
 
   /**
    * @param {NodeType} type
-   *
    * @returns void
    */
   setNodeType(type) {
     this.node_types.set(type.id, type)
     this.emit("meta:new_node_type", {type})
+  }
+
+  /**
+   * @returns {Array<Relation>}
+   */
+  getRelations() {
+    const edges = this.getEdges()
+    /** @type {Array<Relation>} */
+    const relations = [];
+    for (let edge of edges) {
+      const edge_type = this.getEdgeType(edge.type);
+      const from_metadata = this.node_data.get(edge.start_handle).metadata;
+      const to_metadata = this.node_data.get(edge.end_handle).metadata;
+      assert_is_not_null(edge_type.metadata);
+      assert_is_not_null(from_metadata);
+      assert_is_not_null(to_metadata);
+
+      relations.push({
+        edge_type_metadata: edge_type.metadata,
+        from_metadata,
+        to_metadata,
+      })
+    }
+    return relations;
   }
 
   /**
@@ -192,8 +224,8 @@ export class GraphEditor extends EventEmitter {
    * @param {number} amount - the amount to zoom
    */
   zoom(amount) {
-    this.scale *= amount;
-    this.scale = Math.max(0.1, Math.min(this.scale, 6));
+    const new_scale = amount *= this.scale;
+    this.scale = (Math.max(0.1, Math.min(new_scale, 6)));
     this.emit("world:zoom")
   }
 
@@ -220,12 +252,13 @@ export class GraphEditor extends EventEmitter {
 
   /**
    * Get the a node by its handle
+   *
    * @param {number} handle 
    * @returns {Node | null}
    */
   getNode(handle) {
-    const metadata = this.metadata.get(handle);
-    if (!metadata) {
+    const data = this.node_data.get(handle);
+    if (!data) {
       return null;
     }
     /** @type {Node} */
@@ -233,10 +266,11 @@ export class GraphEditor extends EventEmitter {
       handle,
       x: this._wasm.getNodeX(handle),
       y: this._wasm.getNodeY(handle),
-      name: metadata.name,
-      type: metadata.type,
+      name: data.name,
+      type: data.type,
       edges_outgoing: [],
-      edges_incoming: []
+      edges_incoming: [],
+      metadata: data.metadata
     }
 
     const edges_out_len = this._wasm.getNodeOutgoingCount(handle);
@@ -317,7 +351,7 @@ export class GraphEditor extends EventEmitter {
    */
   deleteNode(handle) {
     this._wasm.deleteNode(handle);
-    this.metadata.delete(handle);
+    this.node_data.delete(handle);
     this.emit("node:delete", {node_handle: handle})
   }
 

@@ -1,5 +1,6 @@
 import { CanvasGUIDriver } from "./modules/canvas-gui.js";
 import { NodeShape } from "./modules/graph-editor-api.js";
+import { DocumentParser } from "./modules/signals.js";
 
 const edge_types = [
   {
@@ -91,37 +92,37 @@ const canvas_gui = new CanvasGUIDriver({
   control_panel_id: "control-panel",
 })
 
-canvas_gui.run({
+document.addEventListener("DOMContentLoaded", async () => {
+  await canvas_gui.run({
     edge_types,
     node_types
   },
-  [
-    {
-      name: "Developers",
-      type: NODE_TYPE.GROUP,
-      edges_outgoing: [],
-      edges_incoming: [],
-      metadata: '{"id": "devs"}'
-    },
-    {
-      name: "Software",
-      type: NODE_TYPE.ZONE,
-      edges_outgoing: [],
-      edges_incoming: [],
-      metadata: '{"id": "soft"}'
-    },
-    {
-      name: "Lasse",
-      type: NODE_TYPE.USER,
-      edges_outgoing: [],
-      edges_incoming: [],
-      metadata: '{"id": "usr_lasse"}'
-    }
-  ]
-).then(graph => {
-    graph.on("edge:create", () => {
-      console.log(graph.getRelations());
+    [
+      {
+        name: "Developers",
+        type: NODE_TYPE.GROUP,
+        edges_outgoing: [],
+        edges_incoming: [],
+        metadata: '{"id": "devs"}'
+      },
+      {
+        name: "Software",
+        type: NODE_TYPE.ZONE,
+        edges_outgoing: [],
+        edges_incoming: [],
+        metadata: '{"id": "soft"}'
+      },
+      {
+        name: "Lasse",
+        type: NODE_TYPE.USER,
+        edges_outgoing: [],
+        edges_incoming: [],
+        metadata: '{"id": "usr_lasse"}'
+      }
+    ]
+  ).then(graph => {
+      graph.on("edge:create", () => {
+        console.log(graph.getRelations());
+      });
     });
-
-  })
-
+})

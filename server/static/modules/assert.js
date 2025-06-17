@@ -11,7 +11,7 @@ export function assert_msg(expression, msg) {
 }
 
 /**
- * @param {Element} el 
+ * @param {Element | EventTarget} el 
  * @returns {asserts el is HTMLInputElement}
  */
 export function assert_is_input(el) {
@@ -87,3 +87,4 @@ export function assert(expression) {
     throw new Error(`[ASSERTION FAILED]: Expression was false`)
   }
 }
+

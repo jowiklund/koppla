@@ -6,10 +6,13 @@
 	</head>
 	<body>
 		<dialog id="create-edge-dialog">
-			<p>Choose connection type;</p>
+			<p>Choose connection type</p>
 			<form id="create-edge-form" method="dialog">
 				<label> Type:
-					<select name="type" id="edge-type-select">
+					<select name="type" koppla-value="edge_type" id="edge-type-select">
+						<template koppla-for="$edge in edge_types">
+							<option value={{$edge.id}}>{{$edge.name}}</option>
+						</template>
 					</select>
 				</label>
 				<div class="btn-container">

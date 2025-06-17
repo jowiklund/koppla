@@ -19,8 +19,9 @@
  * @property {number} [grid_size]
  */
 
-import { assert_is_canvas, assert_is_dialog, assert_is_form, assert_is_not_null } from "./assert.js";
+import { assert_is_canvas, assert_is_dialog, assert_is_form, assert_is_input, assert_is_not_null } from "./assert.js";
 import { getEngine, GraphEditor, NodeShape } from "./graph-editor-api.js";
+import { createEffect, createSignal, DocumentParser } from "./signals.js";
 
 export class CanvasGUIDriver {
   /** @type {HTMLCanvasElement} */
@@ -42,6 +43,9 @@ export class CanvasGUIDriver {
   drop_y = 0;
   /** @type {NodeData} */
   drop_data = null;
+
+  /** @type {DocumentParser} */
+  dom = null
 
   config = {
     grid_size: 20,
@@ -100,6 +104,8 @@ export class CanvasGUIDriver {
     const edge_type_dialog = document.getElementById("create-edge-dialog");
     assert_is_dialog(edge_type_dialog)
     this.edge_type_dialog = edge_type_dialog;
+
+    this.dom = new DocumentParser()
   }
 
   /**
@@ -130,8 +136,11 @@ export class CanvasGUIDriver {
     }
 
     this._registerControls();
+    this._registerSignals();
 
     this.graph.loadGraph(graph_data);
+
+    this.dom.parse();
 
     this._draw()
     return this.graph;
@@ -139,15 +148,6 @@ export class CanvasGUIDriver {
 
   /** @private */
   _registerControls() {
-    const edge_type_select = document.getElementById("edge-type-select")
-    for (let edge of this.graph.edge_types.values()) {
-      if (edge.id < 0) continue;
-      const option = document.createElement("option")
-      option.value = `${edge.id}`;
-      option.innerHTML = edge.name;
-      edge_type_select.appendChild(option);
-    }
-
     for (let [key, style] of this.graph.node_types) {
       const draggable = createNodeDraggable(style.name, {
         data: {
@@ -169,6 +169,22 @@ export class CanvasGUIDriver {
       e.preventDefault();
       e.dataTransfer.dropEffect = "move";
     })
+
+    this.dom.signals.set("nodes", createSignal(this.graph.getNodes()))
+    this.graph.on("node:create", () => {
+      const [_, setNodes] = this.dom.signals.get("nodes");
+      setNodes(this.graph.getNodes());
+    })
+  }
+
+  _registerSignals() {
+    this.dom.signals.set(
+      "edge_types",
+      createSignal(Array
+        .from(this.graph.edge_types.values())
+        .filter(item => item.id >= 0)
+      )
+    )
   }
 
   /**
@@ -176,20 +192,20 @@ export class CanvasGUIDriver {
    */
   _drop(e) {
     e.preventDefault();
-      const rect = this.canvas.getBoundingClientRect();
-      this.drop_x = this._snapToGrid(e.clientX - rect.left);
-      this.drop_y = this._snapToGrid(e.clientY - rect.top);
+    const rect = this.canvas.getBoundingClientRect();
+    this.drop_x = this._snapToGrid(e.clientX - rect.left);
+    this.drop_y = this._snapToGrid(e.clientY - rect.top);
 
-      let drop_data = e.dataTransfer.getData("graph/node");
-      this.node_data = JSON.parse(drop_data);
+    let drop_data = e.dataTransfer.getData("graph/node");
+    this.node_data = JSON.parse(drop_data);
 
-      this.graph.createNode({
-        type: this.node_data.type,
-        name: this.node_data.data.name,
-        edges_incoming: [],
-        edges_outgoing: [],
-        metadata: ""
-      }, this.drop_x, this.drop_y)
+    this.graph.createNode({
+      type: this.node_data.type,
+      name: this.node_data.data.name,
+      edges_incoming: [],
+      edges_outgoing: [],
+      metadata: ""
+    }, this.drop_x, this.drop_y)
   }
 
   /**
@@ -197,67 +213,70 @@ export class CanvasGUIDriver {
    */
   _mouseUp(e) {
     let new_edges = [];
-      document.getElementById("create-edge-form").addEventListener("submit", (event) => {
-        assert_is_form(event.target);
-        const data = new FormData(event.target);
-        const event_type = parseInt(data.get("type").toString())
-        for (let i = 0; i < new_edges.length; i++) {
-          this.graph.createEdge(new_edges[i].start_handle, new_edges[i].end_handle, event_type);
-        }
-        new_edges = [];
-      })
+    document.getElementById("create-edge-form").addEventListener("submit", (event) => {
+      assert_is_form(event.target);
+      const data = new FormData(event.target);
+      const event_type = parseInt(data.get("type").toString())
+      console.log(data.get("type"))
+      for (let i = 0; i < new_edges.length; i++) {
+        this.graph.createEdge(new_edges[i].start_handle, new_edges[i].end_handle, event_type);
+      }
+      new_edges = [];
+    })
 
-      if (this.is_connecting) {
-        const rect = this.canvas.getBoundingClientRect();
-        const screen_x = e.clientX - rect.left;
-        const screen_y = e.clientY - rect.top;
+    if (this.is_connecting) {
+      const rect = this.canvas.getBoundingClientRect();
+      const screen_x = e.clientX - rect.left;
+      const screen_y = e.clientY - rect.top;
 
-        const world_coords = this.graph.screenToWorld({x: screen_x, y: screen_y});
-        const mouse_x = world_coords.x;
-        const mouse_y = world_coords.y;
+      const world_coords = this.graph.screenToWorld({x: screen_x, y: screen_y});
+      const mouse_x = world_coords.x;
+      const mouse_y = world_coords.y;
 
-        for (let handle of this.selected_node_handles) {
-          for (let node of this.graph.getNodes()) {
-            const end_handle = node.handle;
-            if (end_handle == handle) continue;
+      const nodes = this.graph.getNodes();
 
-            const dx = Math.abs(mouse_x - node.x);
-            const dy = Math.abs(mouse_y - node.y);
+      for (let handle of this.selected_node_handles) {
+        for (let node of nodes) {
+          const end_handle = node.handle;
+          if (end_handle == handle) continue;
 
-            if (dx <= this.config.node_radius && dy <= this.config.node_radius) {
-              new_edges.push({
-                start_handle: handle,
-                end_handle 
-              })
-              this.edge_type_dialog.showModal();
-              break;
-            }
+          const dx = Math.abs(mouse_x - node.x);
+          const dy = Math.abs(mouse_y - node.y);
+
+          if (dx <= this.config.node_radius && dy <= this.config.node_radius) {
+            new_edges.push({
+              start_handle: handle,
+              end_handle 
+            })
+            this.edge_type_dialog.showModal();
+            break;
           }
         }
-
       }
 
-      this.is_dragging = false;
-      this.is_connecting = false;
-      this.is_panning = false;
-      this.canvas.style.cursor = "default";
+    }
 
-      if (this.is_selecting) {
-        const min_x = Math.min(this.selection_start_x, this.current_mouse_x);
-        const max_x = Math.max(this.selection_start_x, this.current_mouse_x);
-        const min_y = Math.min(this.selection_start_y, this.current_mouse_y);
-        const max_y = Math.max(this.selection_start_y, this.current_mouse_y);
+    this.is_dragging = false;
+    this.is_connecting = false;
+    this.is_panning = false;
+    this.canvas.style.cursor = "default";
 
-        for (let node of this.graph.getNodes()) {
-          const inside_x = (node.x >= min_x && node.x <= max_x);
-          const inside_y = (node.y >= min_y && node.y <= max_y);
-          if (inside_x && inside_y) {
-            this.selected_node_handles.push(node.handle);
-          }
+    if (this.is_selecting) {
+      const min_x = Math.min(this.selection_start_x, this.current_mouse_x);
+      const max_x = Math.max(this.selection_start_x, this.current_mouse_x);
+      const min_y = Math.min(this.selection_start_y, this.current_mouse_y);
+      const max_y = Math.max(this.selection_start_y, this.current_mouse_y);
+
+      for (let node of this.graph.getNodes()) {
+        const inside_x = (node.x >= min_x && node.x <= max_x);
+        const inside_y = (node.y >= min_y && node.y <= max_y);
+        if (inside_x && inside_y) {
+          this.selected_node_handles.push(node.handle);
         }
-
-        this.is_selecting = false;
       }
+
+      this.is_selecting = false;
+    }
   }
 
   /**

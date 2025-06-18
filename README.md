@@ -10,7 +10,7 @@
 <p align="center">k'ɔpːla</p>
 <h4 align="center">Connect everything</h4>
 
-# \* WORK IN PROGRESS - NOTHING IS FINALIZED \* #
+<h2 align="center">WORK IN PROGRESS - NOTHING IS FINALIZED</h2>
 
 Koppla is a set of powerful, independent JavaScript modules designed to work together or separately. At its core is a high-performance graph engine powered by WebAssembly, but its components can be used to create everything from a full-featured graph editor to a simple, reactive web page.
 
@@ -18,7 +18,7 @@ Koppla is a set of powerful, independent JavaScript modules designed to work tog
 Koppla is not a monolithic framework. It's a collection of packages that you can pick and choose from based on your needs.
 - `@kpla/engine`: The core graph logic. A high-performance WebAssembly engine wrapped in a clean GraphEditor API. Use this for backend graph processing or building a completely custom frontend (e.g., with React, Svelte, or Three.js).
 - `@kpla/canvas-driver`: A pre-built, high-performance canvas renderer. It provides the interactive graph editor experience out of the box and depends on `@kpla/engine` and `@kpla/signals`.
-- `@kpla/signals`: A standalone, zero-dependency library for creating reactive UIs. It includes createSignal and createEffect primitives and a lightweight HTML template parser. Use this in any project where you need simple reactivity without a large framework.
+- `@kpla/signals`: A standalone (depends on `@kpla/assert` because I'm lazy) library for creating reactive UIs. It includes createSignal and createEffect primitives and a lightweight HTML template parser. Use this in any project where you need simple reactivity without a large framework.
 
 ### Getting Started: 
 #### The Full Graph Editor

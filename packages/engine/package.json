@@ -1,0 +1,17 @@
+{
+	"name": "@koppla/engine",
+	"version": "0.0.1",
+	"type": "module",
+	"main": "dist/engine.es.js",
+	"exports": {
+		".": "./dist/engine.es.js",
+		"./public/main.wasm": "./public/main.wasm"
+	},
+	"dependencies": {
+		"@koppla/assert": "workspace:^"
+	},
+	"scripts": {
+		"dev": "cross-env PACKAGE_NAME=engine vite build --watch --config ../../vite.config.js",
+		"build": "cross-env PACKAGE_NAME=engine vite build --config ../../vite.config.js"
+	}
+}

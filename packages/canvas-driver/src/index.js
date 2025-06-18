@@ -15,13 +15,14 @@
  * @property {string} container_id
  * @property {string} edge_dialog_id
  * @property {string} control_panel_id
+ * @property {string} wasm_url
  * @property {number} [node_radius]
  * @property {number} [grid_size]
  */
 
-import { assert_is_dialog, assert_is_not_null } from "./assert.js";
-import { getEngine, GraphEditor, NodeShape } from "./graph-editor-api.js";
-import { createSignal, DocumentParser } from "./signals.js";
+import { assert_is_dialog, assert_is_not_null } from "@koppla/assert";
+import { getEngine, GraphEditor, NodeShape } from "@koppla/engine";
+import { createSignal, DocumentParser } from "@koppla/signals";
 
 export class CanvasGUIDriver {
   /** @type {HTMLElement} */
@@ -48,7 +49,8 @@ export class CanvasGUIDriver {
 
   config = {
     grid_size: 20,
-    node_radius: 20
+    node_radius: 20,
+    wasm_url: ""
   };
 
   /** @type {Set<import("./graph-editor-api.js").NodeHandle>} */
@@ -153,7 +155,7 @@ export class CanvasGUIDriver {
  * @returns {Promise<GraphEditor>}
  */
   async run(config, graph_data) {
-    this.startup_promise = getEngine();
+    this.startup_promise = getEngine(this.config.wasm_url);
     this.graph = await this.startup_promise;
     assert_is_not_null(this.graph);
     this.graph.coordinate_rounder = this._snapToGrid.bind(this);

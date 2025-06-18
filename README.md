@@ -1,8 +1,8 @@
 <div align="center">
     <h2>
       <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="koppla-logo.png">
-          <img alt="Koppla logo" src="koppla-logo-light.png" width="250">
+          <source media="(prefers-color-scheme: dark)" srcset="assets/koppla-logo.png">
+          <img alt="Koppla logo" src="assets/koppla-logo-light.png" width="250">
         </picture>
     </h2>
 </div>
@@ -25,7 +25,7 @@ Koppla is not a monolithic framework. It's a collection of packages that you can
 This is the fastest way to get a complete, interactive graph editor running. This approach uses all the modules together.
 
 <picture>
-    <img alt="Pangolin Logo" src="graph.png">
+    <img alt="Graph" src="assets/graph.png">
 </picture>
 
 1. Installation
@@ -186,9 +186,6 @@ setTimeout(() => {
     - `DocumentParser`: Binds signals to your HTML.
         - `.getOrCreateSignal(name, initialValue)`
         - `.parse()`: Scans the DOM and activates reactive bindings.
-
-### Contributing
-Contributions are welcome! Please read the `CONTRIBUTING.md` file for guidelines on how to set up the development environment, run tests, and submit pull requests.
 
 ### License
 This project is licensed under the MIT License. See the LICENSE file for details.

@@ -26,4 +26,6 @@ zig build-exe src/main.zig\
     -O ReleaseSmall
 
 rm main.wasm.o
-mv main.wasm ./server/static/main.wasm
+mv main.wasm ./packages/engine/public/main.wasm
+
+echo "Built ./packages/engine/public/main.wasm"

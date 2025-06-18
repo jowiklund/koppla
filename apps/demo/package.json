@@ -1,0 +1,14 @@
+{
+  "name": "demo-app",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@koppla/canvas-driver": "workspace:^",
+    "@koppla/engine": "workspace:^"
+  }
+}

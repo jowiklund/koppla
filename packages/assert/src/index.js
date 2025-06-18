@@ -1,4 +1,4 @@
-/**
+  /**
  * @param {boolean} expression Expression to assert
  * @param {string} msg Written out with error if assertion fails
  *
@@ -97,4 +97,5 @@ export function assert(expression) {
     throw new Error(`[ASSERTION FAILED]: Expression was false`)
   }
 }
+
 

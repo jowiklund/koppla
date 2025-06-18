@@ -3,7 +3,7 @@
  * Exposes a small api for reactive states
  */
 
-import { assert_is_input, assert_msg } from "./assert.js";
+import { assert_is_input, assert_msg } from "@koppla/assert";
 
 /**
  * @callback SignalGetter - Get the signal value
@@ -303,4 +303,5 @@ export function isFragmentNode(el) {
   }
   return false;
 }
+
 

@@ -1,5 +1,6 @@
-import { CanvasGUIDriver } from "./modules/canvas-gui.js";
-import { NodeShape } from "./modules/graph-editor-api.js";
+import { CanvasGUIDriver } from "@koppla/canvas-driver";
+import { NodeShape } from "@koppla/engine";
+import wasm_url from '@koppla/engine/public/main.wasm?url';
 
 const edge_types = [
   {
@@ -50,7 +51,7 @@ const edge_types = [
 const NODE_TYPE = {
   USER: 0,
   GROUP: 1,
-  ZONE: 2
+  RESOURCE: 2
 }
 
 
@@ -76,11 +77,11 @@ const node_types = [
   },
   {
     fill_color: "#fc8800",
-    name: "Zone",
+    name: "Resource",
     shape: NodeShape.SQUARE_ROUNDED,
     stroke_color: "#c46b04",
     stroke_width: 2,
-    id: NODE_TYPE.ZONE,
+    id: NODE_TYPE.RESOURCE,
     metadata: ""
   }
 ]
@@ -89,6 +90,7 @@ const canvas_gui = new CanvasGUIDriver({
   edge_dialog_id: "create-edge-dialog",
   container_id: "canvas-container",
   control_panel_id: "control-panel",
+  wasm_url
 })
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -113,14 +115,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       },
       {
         name: "Software",
-        type: NODE_TYPE.ZONE,
+        type: NODE_TYPE.RESOURCE,
         edges_outgoing: [],
         edges_incoming: [],
         metadata: '{"id": "soft"}'
       },
       {
         name: "Projects",
-        type: NODE_TYPE.ZONE,
+        type: NODE_TYPE.RESOURCE,
         edges_outgoing: [],
         edges_incoming: [],
         metadata: '{"id": "project"}'
@@ -167,3 +169,4 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
     });
 })
+

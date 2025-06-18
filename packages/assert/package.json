@@ -1,0 +1,13 @@
+{
+  "name": "@koppla/assert",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "dist/assert.es.js",
+  "exports": {
+    ".": "./dist/assert.es.js"
+  },
+  "scripts": {
+    "dev": "cross-env PACKAGE_NAME=assert vite build --watch --config ../../vite.config.js",
+    "build": "cross-env PACKAGE_NAME=assert vite build --config ../../vite.config.js"
+  }
+}

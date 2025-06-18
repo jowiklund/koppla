@@ -1,0 +1,16 @@
+{
+  "name": "@koppla/signals",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "dist/signals.es.js",
+  "exports": {
+    ".": "./dist/signals.es.js"
+  },
+  "dependencies": {
+    "@koppla/assert": "workspace:^"
+  },
+  "scripts": {
+    "dev": "cross-env PACKAGE_NAME=signals vite build --watch --config ../../vite.config.js",
+    "build": "cross-env PACKAGE_NAME=signals vite build --config ../../vite.config.js"
+  }
+}

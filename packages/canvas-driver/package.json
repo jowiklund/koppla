@@ -1,0 +1,18 @@
+{
+  "name": "@koppla/canvas-driver",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "dist/canvas-driver.es.js",
+  "exports": {
+    ".": "./dist/canvas-driver.es.js"
+  },
+  "dependencies": {
+    "@koppla/assert": "workspace:^",
+    "@koppla/engine": "workspace:^",
+    "@koppla/signals": "workspace:^"
+  },
+  "scripts": {
+    "dev": "cross-env PACKAGE_NAME=canvas-driver vite build --watch --config ../../vite.config.js",
+    "build": "cross-env PACKAGE_NAME=canvas-driver vite build --config ../../vite.config.js"
+  }
+}

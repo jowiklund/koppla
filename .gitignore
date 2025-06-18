@@ -1,4 +1,9 @@
+node_modules
+dist/
 *.wasm
 *.o
 .zig-cache/
 zig-out/
+
+.vscode/
+.DS_Store

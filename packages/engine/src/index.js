@@ -4,7 +4,7 @@
  * logic engine written in Zig
  */
 
-import { assert_is_not_null } from "./assert.js";
+import { assert_is_not_null } from "@koppla/assert";
 import { EventEmitter } from "./event-emitter.js";
 
 /** @typedef {number} NodeHandle */
@@ -427,11 +427,12 @@ function print(data) {
 }
 
 /**
+ * @param {string} wasm_url
  * @returns {Promise<GraphEditor | null>}
  */
-export async function getEngine() {
+export async function getEngine(wasm_url) {
   try {
-    const wasm_source = await fetch("main.wasm");
+    const wasm_source = await fetch(wasm_url);
     const wasm_buffer = await wasm_source.arrayBuffer();
     const wasm = await WebAssembly.instantiate(wasm_buffer, {
       env: {
@@ -441,6 +442,8 @@ export async function getEngine() {
 
     return new GraphEditor(wasm.instance);
   } catch (err) {
+    console.error(err)
     return null
   }
 }
+

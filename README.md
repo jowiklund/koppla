@@ -13,10 +13,9 @@
 Koppla is a set of powerful, independent JavaScript modules designed to work together or separately. At its core is a high-performance graph engine powered by WebAssembly, but its components can be used to create everything from a full-featured graph editor to a simple, reactive web page.
 
 ### Core Philosophy: A Modular Toolkit
-
 Koppla is not a monolithic framework. It's a collection of packages that you can pick and choose from based on your needs.
 - `@koppla/engine`: The core graph logic. A high-performance WebAssembly engine wrapped in a clean GraphEditor API. Use this for backend graph processing or building a completely custom frontend (e.g., with React, Svelte, or Three.js).
-- `@koppla/canvas-driver`: A pre-built, high-performance canvas renderer. It provides the interactive graph editor experience out of the box and depends on `@koppla/engine` and `@koppla/signals`
+- `@koppla/canvas-driver`: A pre-built, high-performance canvas renderer. It provides the interactive graph editor experience out of the box and depends on `@koppla/engine` and `@koppla/signals`.
 - `@koppla/signals`: A standalone, zero-dependency library for creating reactive UIs. It includes createSignal and createEffect primitives and a lightweight HTML template parser. Use this in any project where you need simple reactivity without a large framework.
 
 ### Getting Started: 
@@ -50,7 +49,9 @@ This is the fastest way to get a complete, interactive graph editor running. Thi
 </body>
 </html>
 ```
-3. JavaScript InitializationIn your main.js, import and initialize the CanvasGUIDriver.
+3. JavaScript Initialization
+In your main.js, import and initialize the CanvasGUIDriver.
+
 ``` javascript
 import { CanvasGUIDriver } from '@koppla/canvas-driver';
 
@@ -73,9 +74,10 @@ driver.run(
   initialGraphData
 );
 ```
+
 ### Usage Guides
 1. Using Only the Graph Engine (`@koppla/engine`)
-- Use Case: When you need a powerful in-memory graph data structure but want to build your own UI or use it on a server with Node.js.
+Use Case: When you need a powerful in-memory graph data structure but want to build your own UI or use it on a server with Node.js.
 
 Installation: `npm install @koppla/engine`
 
@@ -171,8 +173,8 @@ setTimeout(() => {
     - `createSignal(initialValue)`: Creates a reactive state primitive. Returns a [getter, setter] tuple.
     - `createEffect(fn)`: Creates a function that re-runs whenever a signal it uses is updated.
     - `DocumentParser`: Binds signals to your HTML.
-        `.getOrCreateSignal(name, initialValue)`
-        `.parse()`: Scans the DOM and activates reactive bindings.
+        - `.getOrCreateSignal(name, initialValue)`
+        - `.parse()`: Scans the DOM and activates reactive bindings.
 
 ### Contributing
 Contributions are welcome! Please read the `CONTRIBUTING.md` file for guidelines on how to set up the development environment, run tests, and submit pull requests.

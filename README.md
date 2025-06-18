@@ -2,7 +2,7 @@
     <h2>
       <picture>
           <source media="(prefers-color-scheme: dark)" srcset="koppla-logo.png">
-          <img alt="Pangolin Logo" src="koppla-logo-light.png" width="250">
+          <img alt="Koppla logo" src="koppla-logo-light.png" width="250">
         </picture>
     </h2>
 </div>
@@ -21,9 +21,15 @@ Koppla is not a monolithic framework. It's a collection of packages that you can
 ### Getting Started: 
 #### The Full Graph Editor
 This is the fastest way to get a complete, interactive graph editor running. This approach uses all the modules together.
+
+<picture>
+    <img alt="Pangolin Logo" src="graph.png">
+</picture>
+
 1. Installation
 `npm install @koppla/engine @koppla/canvas-driver`
-2. HTML SetupCreate the necessary DOM elements for the editor to attach to.
+2. HTML Setup
+    - Create the necessary DOM elements for the editor to attach to.
 ``` html
 <!DOCTYPE html>
 <html>
@@ -50,7 +56,7 @@ This is the fastest way to get a complete, interactive graph editor running. Thi
 </html>
 ```
 3. JavaScript Initialization
-In your main.js, import and initialize the CanvasGUIDriver.
+    - In your main.js, import and initialize the CanvasGUIDriver.
 
 ``` javascript
 import { CanvasGUIDriver } from '@koppla/canvas-driver';
@@ -79,10 +85,10 @@ driver.run(
 1. Using Only the Graph Engine (`@koppla/engine`)
 Use Case: When you need a powerful in-memory graph data structure but want to build your own UI or use it on a server with Node.js.
 
-Installation: `npm install @koppla/engine`
+- Installation: `npm install @koppla/engine`
 
-Example:
-This example shows how to use the engine programmatically without any UI.
+#### Example:
+- This example shows how to use the engine programmatically without any UI.
 ```javascript
 import { getEngine } from '@koppla/engine';
 
@@ -114,8 +120,10 @@ async function main() {
 main();
 ```
 2. Using the Signals & Document Parser (`@koppla/signals`)
-Use Case: When you need an extremely lightweight, zero-dependency alternative to larger frameworks for adding simple reactivity to your HTML.Installation:npm install @koppla/signals
-Example:
+- Use Case: When you need an extremely lightweight, zero-dependency alternative to larger frameworks for adding simple reactivity to your HTML.
+- Installation: `npm install @koppla/signals`
+
+#### Example:
 ``` html
 <div id="app">
   <input id="name-input" type="text">
@@ -164,6 +172,7 @@ setTimeout(() => {
         - `.createEdge(startHandle, endHandle, type)`
         - `.deleteNode(handle)
         - `.getNodes() / .getEdges()`
+        - `.getRelations()`: Returns a list of relationships represented with you metadata. Use this to persist whatever data you want to derive from the connections made.
         - `.on(eventName, callback)`: Listen for events like node:create, world:update, etc.
 - `@koppla/canvas-driver`
     - `CanvasGUIDriver`: The main class for the UI.

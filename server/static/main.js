@@ -68,7 +68,7 @@ const node_types = [
   {
     fill_color: "#80b357",
     name: "Group",
-    shape: NodeShape.SQUARE_ROUNDED,
+    shape: NodeShape.DIAMOND,
     stroke_color: "#608741",
     stroke_width: 2,
     id: NODE_TYPE.GROUP,
@@ -98,6 +98,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   },
     [
       {
+        name: "Product owners",
+        type: NODE_TYPE.GROUP,
+        edges_outgoing: [],
+        edges_incoming: [],
+        metadata: '{"id": "po"}'
+      },
+      {
         name: "Developers",
         type: NODE_TYPE.GROUP,
         edges_outgoing: [],
@@ -112,12 +119,47 @@ document.addEventListener("DOMContentLoaded", async () => {
         metadata: '{"id": "soft"}'
       },
       {
+        name: "Projects",
+        type: NODE_TYPE.ZONE,
+        edges_outgoing: [],
+        edges_incoming: [],
+        metadata: '{"id": "project"}'
+      },
+      {
         name: "Lasse",
         type: NODE_TYPE.USER,
         edges_outgoing: [],
         edges_incoming: [],
         metadata: '{"id": "usr_lasse"}'
-      }
+      },
+      {
+        name: "Lisa",
+        type: NODE_TYPE.USER,
+        edges_outgoing: [],
+        edges_incoming: [],
+        metadata: '{"id": "usr_lisa"}'
+      },
+      {
+        name: "Roland",
+        type: NODE_TYPE.USER,
+        edges_outgoing: [],
+        edges_incoming: [],
+        metadata: '{"id": "usr_roland"}'
+      },
+      {
+        name: "Berit",
+        type: NODE_TYPE.USER,
+        edges_outgoing: [],
+        edges_incoming: [],
+        metadata: '{"id": "usr_berit"}'
+      },
+      {
+        name: "Kajsa",
+        type: NODE_TYPE.USER,
+        edges_outgoing: [],
+        edges_incoming: [],
+        metadata: '{"id": "usr_kajsa"}'
+      },
     ]
   ).then(graph => {
       graph.on("edge:create", () => {

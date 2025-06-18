@@ -114,6 +114,7 @@ export class CanvasGUIDriver {
   }
 
   /**
+   * @private
    * @param {string} name 
    */
   _createLayer(name) {
@@ -139,8 +140,8 @@ export class CanvasGUIDriver {
   }
 
   /**
-   * @param {number} value 
    * @private
+   * @param {number} value 
    */
   _snapToGrid(value) {
     return Math.round(value / this.config.grid_size) * this.config.grid_size;
@@ -216,6 +217,7 @@ export class CanvasGUIDriver {
     })
   }
 
+  /** @private */
   _createEdges() {
       const [event_type] = this.dom.signals.get("edge_type");
       for (let i = 0; i < this.new_edges.length; i++) {
@@ -228,6 +230,7 @@ export class CanvasGUIDriver {
       this.new_edges = [];
   }
 
+  /** @private */
   _registerSignals() {
     this.dom.signals.set(
       "edge_types",
@@ -239,6 +242,7 @@ export class CanvasGUIDriver {
   }
 
   /**
+   * @private
    * @param {DragEvent} e
    */
   _drop(e) {
@@ -260,6 +264,7 @@ export class CanvasGUIDriver {
   }
 
   /**
+   * @private
    * @param {MouseEvent} e 
    */
   _mouseUp(e) {
@@ -321,6 +326,7 @@ export class CanvasGUIDriver {
   }
 
   /**
+   * @private
    * @param {KeyboardEvent} e
    */
   _keydown(e) {
@@ -342,6 +348,7 @@ export class CanvasGUIDriver {
   }
 
   /**
+   * @private
    * @param {WheelEvent} e 
    */
   _wheel(e) {
@@ -368,6 +375,7 @@ export class CanvasGUIDriver {
   }
 
   /**
+   * @private
    * @param {MouseEvent} e 
    */
   _mouseDown(e) {
@@ -436,6 +444,7 @@ export class CanvasGUIDriver {
     this.selection_start_y = mouse_y;
   }
   /**
+   * @private
    * @param {MouseEvent} e 
    */
   _mouseMove(e) {
@@ -474,6 +483,7 @@ export class CanvasGUIDriver {
     }
   }
 
+  /** @private */
   _drawInteractions() {
     const layer = this.layers.get("interactions")
     const logicalWidth = layer.canvas.width / this.dpr;
@@ -549,6 +559,7 @@ export class CanvasGUIDriver {
     requestAnimationFrame(this._drawInteractions.bind(this));
   }
 
+  /** @private */
   _drawStatic() {
     const layer = this.layers.get("static")
     const logicalWidth = layer.canvas.width / this.dpr;
@@ -569,6 +580,7 @@ export class CanvasGUIDriver {
     layer.ctx.restore();
   }
 
+  /** @private */
   _drawObjects() {
     const layer = this.layers.get("objects")
     const logicalWidth = layer.canvas.width / this.dpr;
@@ -596,6 +608,7 @@ export class CanvasGUIDriver {
   }
 
   /**
+   * @private
    * @param {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} layer 
    * @param {Array<import("./graph-editor-api.js").Edge>} bundle 
    */
@@ -639,6 +652,7 @@ export class CanvasGUIDriver {
   }
 
   /**
+   * @private
    * @param {import("./graph-editor-api.js").Node} node 
    * @param {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} layer 
    */
@@ -807,7 +821,16 @@ function getGateCoordinates(node, gate, radius) {
  * @param {import("./graph-editor-api.js").EdgeType} edge_type 
  * @param {boolean} render_name 
  */
-function drawEdgeOrthogonal(ctx, startCoords, startGate, endCoords, endGate, offset, edge_type, render_name = false) {
+function drawEdgeOrthogonal(
+  ctx,
+  startCoords,
+  startGate,
+  endCoords,
+  endGate,
+  offset,
+  edge_type,
+  render_name = false
+) {
   const cornerRadius = 10;
   const bundleGap = 10;
   const offsetAmount = offset * bundleGap;

@@ -22,8 +22,8 @@ import { EventEmitter } from "./event-emitter.js";
  * @property {string} name - A human readable name displayed underneath the node
  * @property {NodeTypeId} type - The name of a predefined node style
  * @property {string} metadata
- * @property {Array<NodeHandle>} edges_outgoing
- * @property {Array<NodeHandle>} edges_incoming
+ * @property {Array<EdgeHandle>} edges_outgoing
+ * @property {Array<EdgeHandle>} edges_incoming
  */
 
 /**
@@ -37,6 +37,7 @@ import { EventEmitter } from "./event-emitter.js";
 
 /**
  * @typedef {Object} Edge
+ * @property {EdgeHandle} handle
  * @property {NodeHandle} start_handle
  * @property {NodeHandle} end_handle
  * @property {number} type
@@ -328,6 +329,7 @@ export class GraphEditor extends EventEmitter {
    */
   getEdge(handle) {
     return {
+      handle,
       start_handle: this._wasm.getEdgeStartNodeHandle(handle),
       end_handle: this._wasm.getEdgeEndNodeHandle(handle),
       type: this._wasm.getEdgeType(handle),
@@ -374,11 +376,22 @@ export class GraphEditor extends EventEmitter {
     this.emit("world:update");
   }
 
+
   /**
+   * @callback FilterCallback
+   * @param {Edge} edge
+   * @returns {boolean}
+   */
+
+  /**
+   * @param {FilterCallback} [filter_callback] 
    * @returns {Map<string, Array<Edge>>}
    */
-  getEdgeBundles() {
-    const edges = this.getEdges();
+  getEdgeBundles(filter_callback) {
+    let edges = this.getEdges();
+    if (filter_callback != undefined) {
+      edges = edges.filter(filter_callback)
+    }
 
     /** @type {Map<string, Array<Edge>>} */
     const bundles = new Map();

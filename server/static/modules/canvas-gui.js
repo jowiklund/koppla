@@ -51,6 +51,11 @@ export class CanvasGUIDriver {
     node_radius: 20
   };
 
+  /** @type {Set<import("./graph-editor-api.js").NodeHandle>} */
+  moving_nodes = new Set();
+  /** @type {Set<import("./graph-editor-api.js").EdgeHandle>} */
+  moving_edges = new Set();
+
   selection_color = "#089fff";
 
   current_mouse_x = 0;
@@ -293,6 +298,8 @@ export class CanvasGUIDriver {
     this.is_connecting = false;
     this.is_panning = false;
     this.container.style.cursor = "default";
+    this.moving_nodes.clear();
+    this.moving_edges.clear();
 
     if (this.is_selecting) {
       const min_x = Math.min(this.selection_start_x, this.current_mouse_x);
@@ -404,9 +411,23 @@ export class CanvasGUIDriver {
           }
           this.container.style.cursor = "grabbing";
         }
-        this.graph.emit("world:update");
         return;
       }
+    }
+
+    if (this.is_dragging) {
+      this.moving_nodes.clear();
+      this.moving_edges.clear();
+
+      for (const handle of this.selected_node_handles) {
+        this.moving_nodes.add(handle);
+        const node = this.graph.getNode(handle);
+        if (node) {
+          node.edges_incoming.forEach(edgeHandle => this.moving_edges.add(edgeHandle));
+          node.edges_outgoing.forEach(edgeHandle => this.moving_edges.add(edgeHandle));
+        }
+      }
+      this._drawObjects();
     }
 
     this.selected_node_handles = [];
@@ -509,6 +530,21 @@ export class CanvasGUIDriver {
       layer.ctx.fill();
     }
 
+    const edge_bundles = this.graph.getEdgeBundles((edge) => {
+      return this.moving_edges.has(edge.handle)
+    });
+
+    edge_bundles.forEach(bundle => {
+      this._drawEdgeBundle(bundle, layer);
+    });
+
+    const nodes = this.graph.getNodes()
+    .filter(node => this.moving_nodes.has(node.handle));
+
+    for (const node of nodes) {
+      this._drawNode(node, layer);
+    }
+
     layer.ctx.restore();
     requestAnimationFrame(this._drawInteractions.bind(this));
   }
@@ -538,99 +574,117 @@ export class CanvasGUIDriver {
     const logicalWidth = layer.canvas.width / this.dpr;
     const logicalHeight = layer.canvas.height / this.dpr;
     layer.ctx.clearRect(0, 0, logicalWidth, logicalHeight);
-
     layer.ctx.save();
     layer.ctx.translate(this.graph.pan_coords.x, this.graph.pan_coords.y);
     layer.ctx.scale(this.graph.scale, this.graph.scale);
 
-    const edge_bundles = this.graph.getEdgeBundles();
+    const edge_bundles = this.graph.getEdgeBundles((edge) => {
+      return !this.moving_edges.has(edge.handle)
+    });
 
+    edge_bundles.forEach(bundle => {
+      this._drawEdgeBundle(bundle, layer);
+    });
+
+    const nodes = this.graph.getNodes()
+    .filter(node => !this.moving_nodes.has(node.handle));
+
+    for (let node of nodes) {
+      this._drawNode(node, layer);
+    }
+    layer.ctx.restore();
+  }
+
+  /**
+   * @param {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} layer 
+   * @param {Array<import("./graph-editor-api.js").Edge>} bundle 
+   */
+  _drawEdgeBundle(bundle, layer) {
     layer.ctx.strokeStyle = "#333333";
     layer.ctx.lineWidth = 2;
 
-    edge_bundles.forEach(bundle => {
-      const bundleSize = bundle.length;
-      const initialOffset = -(bundleSize - 1) / 2.0;
+    const bundleSize = bundle.length;
+    const initialOffset = -(bundleSize - 1) / 2.0;
 
-      bundle.forEach((edge, index) => {
-        const start_node = this.graph.getNode(edge.start_handle);
-        const end_node = this.graph.getNode(edge.end_handle);
+    bundle.forEach((edge, index) => {
+      const start_node = this.graph.getNode(edge.start_handle);
+      const end_node = this.graph.getNode(edge.end_handle);
 
-        const edge_type = this.graph.getEdgeType(edge.type)
+      const edge_type = this.graph.getEdgeType(edge.type);
 
-        const { startGate, endGate } = getBestGates({
-          y: start_node.y,
-          x: start_node.x,
-        }, {
-            y: end_node.y,
-            x: end_node.x
-          });
+      const { startGate, endGate } = getBestGates({
+        y: start_node.y,
+        x: start_node.x,
+      }, {
+          y: end_node.y,
+          x: end_node.x
+        });
 
-        const startCoords = getGateCoordinates(start_node, startGate, this.config.node_radius);
-        const endCoords = getGateCoordinates(end_node, endGate, this.config.node_radius);
+      const startCoords = getGateCoordinates(start_node, startGate, this.config.node_radius);
+      const endCoords = getGateCoordinates(end_node, endGate, this.config.node_radius);
 
-        const offset = initialOffset + index;
+      const offset = initialOffset + index;
 
-        drawEdgeOrthogonal(
-          layer.ctx,
-          startCoords,
-          startGate,
-          endCoords,
-          endGate,
-          offset,
-          edge_type,
-          this.selected_node_handles.includes(edge.start_handle)
-        );
-      });
+      drawEdgeOrthogonal(
+        layer.ctx,
+        startCoords,
+        startGate,
+        endCoords,
+        endGate,
+        offset,
+        edge_type,
+        this.selected_node_handles.includes(edge.start_handle)
+      );
     });
+  }
 
-    const nodes = this.graph.getNodes();
-
-    for (let node of nodes) {
-      const { x, y } = node;
-      layer.ctx.beginPath();
-      const type = this.graph.getNodeType(node.type);
-      switch (type.shape) {
-        case NodeShape.CIRCLE:
-          layer.ctx.arc(x, y, this.config.node_radius, 0, 2 * Math.PI);
-          break;
-        case NodeShape.DIAMOND:
-          layer.ctx.moveTo(x, y - this.config.node_radius)
-          layer.ctx.lineTo(x + this.config.node_radius, y)
-          layer.ctx.lineTo(x, y + this.config.node_radius)
-          layer.ctx.lineTo(x - this.config.node_radius, y)
-          layer.ctx.lineTo(x, y - this.config.node_radius)
-          break;
-        case NodeShape.SQUARE:
-          layer.ctx.rect(x - this.config.node_radius, y - this.config.node_radius, this.config.node_radius*2, this.config.node_radius*2);
-          break;
-        case NodeShape.SQUARE_ROUNDED:
-          layer.ctx.roundRect(x - this.config.node_radius, y - this.config.node_radius, this.config.node_radius*2, this.config.node_radius*2, [5]);
-          break;
-      }
-      layer.ctx.fillStyle = type.fill_color;
-      layer.ctx.fill();
-      if (this.selected_node_handles.includes(node.handle)) {
-        layer.ctx.strokeStyle = this.selection_color;
-        layer.ctx.lineWidth = 4;
-      } else {
-        layer.ctx.lineWidth = type.stroke_width;
-        layer.ctx.strokeStyle = type.stroke_color;
-      }
-      layer.ctx.stroke();
-
-      layer.ctx.beginPath();
-      layer.ctx.fillStyle = "#fff";
-      layer.ctx.rect(x - (node.name.length / 2) * 8, y + this.config.node_radius + 5, node.name.length * 8, 20);
-      layer.ctx.fill();
-
-      layer.ctx.fillStyle = "#000";
-      layer.ctx.font = "12px monospace";
-      layer.ctx.textAlign = "center";
-      layer.ctx.textBaseline = "top";
-      layer.ctx.fillText(node.name, x, y + this.config.node_radius + 10);
+  /**
+   * @param {import("./graph-editor-api.js").Node} node 
+   * @param {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} layer 
+   */
+  _drawNode(node, layer) {
+    const { x, y } = node;
+    layer.ctx.beginPath();
+    const type = this.graph.getNodeType(node.type);
+    switch (type.shape) {
+      case NodeShape.CIRCLE:
+        layer.ctx.arc(x, y, this.config.node_radius, 0, 2 * Math.PI);
+        break;
+      case NodeShape.DIAMOND:
+        layer.ctx.moveTo(x, y - this.config.node_radius);
+        layer.ctx.lineTo(x + this.config.node_radius, y);
+        layer.ctx.lineTo(x, y + this.config.node_radius);
+        layer.ctx.lineTo(x - this.config.node_radius, y);
+        layer.ctx.lineTo(x, y - this.config.node_radius);
+        break;
+      case NodeShape.SQUARE:
+        layer.ctx.rect(x - this.config.node_radius, y - this.config.node_radius, this.config.node_radius * 2, this.config.node_radius * 2);
+        break;
+      case NodeShape.SQUARE_ROUNDED:
+        layer.ctx.roundRect(x - this.config.node_radius, y - this.config.node_radius, this.config.node_radius * 2, this.config.node_radius * 2, [5]);
+        break;
     }
-    layer.ctx.restore();
+    layer.ctx.fillStyle = type.fill_color;
+    layer.ctx.fill();
+    if (this.selected_node_handles.includes(node.handle)) {
+      layer.ctx.strokeStyle = this.selection_color;
+      layer.ctx.lineWidth = 4;
+    } else {
+      layer.ctx.lineWidth = type.stroke_width;
+      layer.ctx.strokeStyle = type.stroke_color;
+    }
+    layer.ctx.stroke();
+
+    layer.ctx.beginPath();
+    layer.ctx.fillStyle = "#fff";
+    layer.ctx.rect(x - (node.name.length / 2) * 8, y + this.config.node_radius + 5, node.name.length * 8, 20);
+    layer.ctx.fill();
+
+    layer.ctx.fillStyle = "#000";
+    layer.ctx.font = "12px monospace";
+    layer.ctx.textAlign = "center";
+    layer.ctx.textBaseline = "top";
+    layer.ctx.fillText(node.name, x, y + this.config.node_radius + 10);
   }
 }
 

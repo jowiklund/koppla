@@ -3,7 +3,7 @@
  * Exposes a small api for reactive states
  */
 
-import { assert_is_input, assert_msg } from "@koppla/assert";
+import { assert_is_input, assert_msg } from "@kpla/assert";
 
 /**
  * @callback SignalGetter - Get the signal value

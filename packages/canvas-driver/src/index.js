@@ -20,9 +20,9 @@
  * @property {number} [grid_size]
  */
 
-import { assert_is_dialog, assert_is_not_null } from "@koppla/assert";
-import { getEngine, GraphEditor, NodeShape } from "@koppla/engine";
-import { createSignal, DocumentParser } from "@koppla/signals";
+import { assert_is_dialog, assert_is_not_null } from "@kpla/assert";
+import { getEngine, GraphEditor, NodeShape } from "@kpla/engine";
+import { createSignal, DocumentParser } from "@kpla/signals";
 
 export class CanvasGUIDriver {
   /** @type {HTMLElement} */

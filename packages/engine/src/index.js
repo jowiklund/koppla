@@ -4,7 +4,7 @@
  * logic engine written in Zig
  */
 
-import { assert_is_not_null } from "@koppla/assert";
+import { assert_is_not_null } from "@kpla/assert";
 import { EventEmitter } from "./event-emitter.js";
 
 /** @typedef {number} NodeHandle */

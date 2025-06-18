@@ -25,7 +25,7 @@ export default defineConfig(() => {
       } : null,
       outDir: resolve(__dirname, `packages/${packageName}/dist`),
       rollupOptions: {
-        external: (id) => id.startsWith('@koppla/'),
+        external: (id) => id.startsWith('@kpla/'),
       },
     },
   };

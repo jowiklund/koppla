@@ -20,10 +20,10 @@ importers:
 
   apps/demo:
     dependencies:
-      '@koppla/canvas-driver':
+      '@kpla/canvas-driver':
         specifier: workspace:^
         version: link:../../packages/canvas-driver
-      '@koppla/engine':
+      '@kpla/engine':
         specifier: workspace:^
         version: link:../../packages/engine
 
@@ -31,25 +31,25 @@ importers:
 
   packages/canvas-driver:
     dependencies:
-      '@koppla/assert':
+      '@kpla/assert':
         specifier: workspace:^
         version: link:../assert
-      '@koppla/engine':
+      '@kpla/engine':
         specifier: workspace:^
         version: link:../engine
-      '@koppla/signals':
+      '@kpla/signals':
         specifier: workspace:^
         version: link:../signals
 
   packages/engine:
     dependencies:
-      '@koppla/assert':
+      '@kpla/assert':
         specifier: workspace:^
         version: link:../assert
 
   packages/signals:
     dependencies:
-      '@koppla/assert':
+      '@kpla/assert':
         specifier: workspace:^
         version: link:../assert
 

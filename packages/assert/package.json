@@ -1,6 +1,6 @@
 {
-  "name": "@koppla/assert",
-  "version": "0.0.1",
+  "name": "@kpla/assert",
+  "version": "0.0.2",
   "type": "module",
   "main": "dist/assert.es.js",
   "exports": {

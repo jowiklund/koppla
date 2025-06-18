@@ -16,9 +16,9 @@ Koppla is a set of powerful, independent JavaScript modules designed to work tog
 
 ### Core Philosophy: A Modular Toolkit
 Koppla is not a monolithic framework. It's a collection of packages that you can pick and choose from based on your needs.
-- `@koppla/engine`: The core graph logic. A high-performance WebAssembly engine wrapped in a clean GraphEditor API. Use this for backend graph processing or building a completely custom frontend (e.g., with React, Svelte, or Three.js).
-- `@koppla/canvas-driver`: A pre-built, high-performance canvas renderer. It provides the interactive graph editor experience out of the box and depends on `@koppla/engine` and `@koppla/signals`.
-- `@koppla/signals`: A standalone, zero-dependency library for creating reactive UIs. It includes createSignal and createEffect primitives and a lightweight HTML template parser. Use this in any project where you need simple reactivity without a large framework.
+- `@kpla/engine`: The core graph logic. A high-performance WebAssembly engine wrapped in a clean GraphEditor API. Use this for backend graph processing or building a completely custom frontend (e.g., with React, Svelte, or Three.js).
+- `@kpla/canvas-driver`: A pre-built, high-performance canvas renderer. It provides the interactive graph editor experience out of the box and depends on `@kpla/engine` and `@kpla/signals`.
+- `@kpla/signals`: A standalone, zero-dependency library for creating reactive UIs. It includes createSignal and createEffect primitives and a lightweight HTML template parser. Use this in any project where you need simple reactivity without a large framework.
 
 ### Getting Started: 
 #### The Full Graph Editor
@@ -29,7 +29,7 @@ This is the fastest way to get a complete, interactive graph editor running. Thi
 </picture>
 
 1. Installation
-`npm install @koppla/engine @koppla/canvas-driver`
+`npm install @kpla/engine @kpla/canvas-driver`
 2. HTML Setup
     - Create the necessary DOM elements for the editor to attach to.
 ``` html
@@ -61,7 +61,7 @@ This is the fastest way to get a complete, interactive graph editor running. Thi
     - In your main.js, import and initialize the CanvasGUIDriver.
 
 ``` javascript
-import { CanvasGUIDriver } from '@koppla/canvas-driver';
+import { CanvasGUIDriver } from '@kpla/canvas-driver';
 
 // 1. Define your node and edge types
 const nodeTypes = [/* ... your node type definitions ... */];
@@ -84,15 +84,15 @@ driver.run(
 ```
 
 ### Usage Guides
-1. Using Only the Graph Engine (`@koppla/engine`)
+1. Using Only the Graph Engine (`@kpla/engine`)
 Use Case: When you need a powerful in-memory graph data structure but want to build your own UI or use it on a server with Node.js.
 
-- Installation: `npm install @koppla/engine`
+- Installation: `npm install @kpla/engine`
 
 #### Example:
 - This example shows how to use the engine programmatically without any UI.
 ```javascript
-import { getEngine } from '@koppla/engine';
+import { getEngine } from '@kpla/engine';
 
 async function main() {
   // Get the WASM engine instance
@@ -121,9 +121,9 @@ async function main() {
 
 main();
 ```
-2. Using the Signals & Document Parser (`@koppla/signals`)
+2. Using the Signals & Document Parser (`@kpla/signals`)
 - Use Case: When you need an extremely lightweight, zero-dependency alternative to larger frameworks for adding simple reactivity to your HTML.
-- Installation: `npm install @koppla/signals`
+- Installation: `npm install @kpla/signals`
 
 #### Example:
 ``` html
@@ -140,7 +140,7 @@ main();
 ```
 JavaScript:
 ``` javascript
-import { createSignal, createEffect, DocumentParser } from '@koppla/signals';
+import { createSignal, createEffect, DocumentParser } from '@kpla/signals';
 
 // 1. Initialize the parser on your root element
 const parser = new DocumentParser(document.getElementById('app'));
@@ -167,7 +167,7 @@ setTimeout(() => {
 ```
 
 ### API Reference (Overview)
-- `@koppla/engine`
+- `@kpla/engine`
     - `getEngine(): Promise<GraphEditor>`: Asynchronously loads the WASM module and returns a GraphEditor instance.
     - `GraphEditor`: The main class for interacting with the graph.
         - `.createNode(data, x, y)`
@@ -176,11 +176,11 @@ setTimeout(() => {
         - `.getNodes() / .getEdges()`
         - `.getRelations()`: Returns a list of relationships represented with you metadata. Use this to persist whatever data you want to derive from the connections made.
         - `.on(eventName, callback)`: Listen for events like node:create, world:update, etc.
-- `@koppla/canvas-driver`
+- `@kpla/canvas-driver`
     - `CanvasGUIDriver`: The main class for the UI.
         - `constructor(options)`: Takes an options object with DOM element IDs.
         - `.run(config, initialData)`: Starts the editor.
-- `@koppla/signals`
+- `@kpla/signals`
     - `createSignal(initialValue)`: Creates a reactive state primitive. Returns a [getter, setter] tuple.
     - `createEffect(fn)`: Creates a function that re-runs whenever a signal it uses is updated.
     - `DocumentParser`: Binds signals to your HTML.

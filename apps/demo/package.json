@@ -8,7 +8,7 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@koppla/canvas-driver": "workspace:^",
-    "@koppla/engine": "workspace:^"
+    "@kpla/canvas-driver": "workspace:^",
+    "@kpla/engine": "workspace:^"
   }
 }

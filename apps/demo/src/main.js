@@ -1,6 +1,6 @@
-import { CanvasGUIDriver } from "@koppla/canvas-driver";
-import { NodeShape } from "@koppla/engine";
-import wasm_url from '@koppla/engine/public/main.wasm?url';
+import { CanvasGUIDriver } from "@kpla/canvas-driver";
+import { NodeShape } from "@kpla/engine";
+import wasm_url from '@kpla/engine/public/main.wasm?url';
 
 const edge_types = [
   {

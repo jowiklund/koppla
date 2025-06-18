@@ -94,8 +94,9 @@ export class CanvasGUIDriver {
 
     this.dpr = window.devicePixelRatio || 1;
 
-    this._createLayer("bottom");
-    this._createLayer("top");
+    this._createLayer("static");
+    this._createLayer("objects");
+    this._createLayer("interactions");
 
     const edge_dialog = document.getElementById(opts.edge_dialog_id);
     assert_is_dialog(edge_dialog)
@@ -168,8 +169,12 @@ export class CanvasGUIDriver {
 
     this.graph.loadGraph(graph_data);
 
-    this._drawWorld();
-    this.graph.on("world:update", this._drawWorld.bind(this));
+    this._drawObjects();
+    this.graph.on("world:update", this._drawObjects.bind(this));
+
+    this._drawStatic();
+    this.graph.on("world:pan", this._drawStatic.bind(this));
+    this.graph.on("world:zoom", this._drawStatic.bind(this));
     return this.graph;
   }
 
@@ -449,7 +454,7 @@ export class CanvasGUIDriver {
   }
 
   _drawInteractions() {
-    const layer = this.layers.get("top")
+    const layer = this.layers.get("interactions")
     const logicalWidth = layer.canvas.width / this.dpr;
     const logicalHeight = layer.canvas.height / this.dpr;
     layer.ctx.clearRect(0, 0, logicalWidth, logicalHeight);
@@ -508,8 +513,8 @@ export class CanvasGUIDriver {
     requestAnimationFrame(this._drawInteractions.bind(this));
   }
 
-  _drawWorld() {
-    const layer = this.layers.get("bottom")
+  _drawStatic() {
+    const layer = this.layers.get("static")
     const logicalWidth = layer.canvas.width / this.dpr;
     const logicalHeight = layer.canvas.height / this.dpr;
     layer.ctx.clearRect(0, 0, logicalWidth, logicalHeight);
@@ -525,6 +530,18 @@ export class CanvasGUIDriver {
       this.config.grid_size,
       this.graph
     );
+    layer.ctx.restore();
+  }
+
+  _drawObjects() {
+    const layer = this.layers.get("objects")
+    const logicalWidth = layer.canvas.width / this.dpr;
+    const logicalHeight = layer.canvas.height / this.dpr;
+    layer.ctx.clearRect(0, 0, logicalWidth, logicalHeight);
+
+    layer.ctx.save();
+    layer.ctx.translate(this.graph.pan_coords.x, this.graph.pan_coords.y);
+    layer.ctx.scale(this.graph.scale, this.graph.scale);
 
     const edge_bundles = this.graph.getEdgeBundles();
 

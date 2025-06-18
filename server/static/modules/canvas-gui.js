@@ -12,22 +12,20 @@
 
 /**
  * @typedef {Object} CanvasDriverOptions
- * @property {string} canvas_id
+ * @property {string} container_id
  * @property {string} edge_dialog_id
  * @property {string} control_panel_id
  * @property {number} [node_radius]
  * @property {number} [grid_size]
  */
 
-import { assert_is_canvas, assert_is_dialog, assert_is_form, assert_is_input, assert_is_not_null } from "./assert.js";
+import { assert_is_dialog, assert_is_not_null } from "./assert.js";
 import { getEngine, GraphEditor, NodeShape } from "./graph-editor-api.js";
-import { createEffect, createSignal, DocumentParser } from "./signals.js";
+import { createSignal, DocumentParser } from "./signals.js";
 
 export class CanvasGUIDriver {
-  /** @type {HTMLCanvasElement} */
-  canvas;
-  /** @type {CanvasRenderingContext2D} */
-  ctx;
+  /** @type {HTMLElement} */
+  container;
   /** @type {HTMLDialogElement} */
   edge_dialog;
   /** @type {HTMLElement} */
@@ -36,13 +34,14 @@ export class CanvasGUIDriver {
   graph = null;
   /** @type {Promise<GraphEditor>} */
   startup_promise = null;
-  /** @type {HTMLDialogElement} */
-  edge_type_dialog = null;
   dpr = 1;
   drop_x = 0;
   drop_y = 0;
   /** @type {NodeData} */
   drop_data = null;
+
+  /** @type {Map<string, {canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}>} */
+  layers = new Map();
 
   /** @type {DocumentParser} */
   dom = null
@@ -70,6 +69,9 @@ export class CanvasGUIDriver {
   pan_start_x = 0;
   pan_start_y = 0;
 
+  /** @type {Array<{start_handle: number, end_handle: number}>} */
+  new_edges = [];
+
   /** @type {Array<import("./graph-editor-api.js").NodeHandle>} */
   selected_node_handles = [];
 
@@ -78,21 +80,22 @@ export class CanvasGUIDriver {
    */
   constructor(opts) {
     assert_is_not_null(opts.control_panel_id);
-    assert_is_not_null(opts.canvas_id);
+    assert_is_not_null(opts.container_id);
     assert_is_not_null(opts.edge_dialog_id);
+
+    const canvas_container = document.getElementById(opts.container_id);
+    assert_is_not_null(canvas_container);
+    this.container = canvas_container;
+
+    const canvas_styles = document.createAttribute("style");
+    canvas_styles.value = "display: block; position: absolute; inset: 0;"
+
     Object.assign(this.config, opts);
 
     this.dpr = window.devicePixelRatio || 1;
 
-    const canvas = document.getElementById(opts.canvas_id);
-    assert_is_canvas(canvas);
-    this.canvas = canvas;
-    const rect = canvas.getBoundingClientRect();
-    this.canvas.width = rect.width * this.dpr;
-    this.canvas.height = rect.height * this.dpr;
-
-    this.ctx = canvas.getContext("2d");
-    this.ctx.scale(this.dpr, this.dpr);
+    this._createLayer("bottom");
+    this._createLayer("top");
 
     const edge_dialog = document.getElementById(opts.edge_dialog_id);
     assert_is_dialog(edge_dialog)
@@ -101,11 +104,32 @@ export class CanvasGUIDriver {
     const control_panel = document.getElementById(opts.control_panel_id);
     this.control_panel = control_panel;
 
-    const edge_type_dialog = document.getElementById("create-edge-dialog");
-    assert_is_dialog(edge_type_dialog)
-    this.edge_type_dialog = edge_type_dialog;
-
     this.dom = new DocumentParser()
+  }
+
+  /**
+   * @param {string} name 
+   */
+  _createLayer(name) {
+    const canvas = document.createElement("canvas");
+    const layer_styles = document.createAttribute("style");
+    layer_styles.value = "display: block; position: absolute; inset: 0; width: 100%; height: 100%;"
+
+    this.container.appendChild(canvas);
+
+    const rect = this.container.getBoundingClientRect();
+    canvas.width = rect.width * this.dpr;
+    canvas.height = rect.height * this.dpr;
+
+    canvas.setAttributeNode(layer_styles);
+
+    const ctx = canvas.getContext("2d");
+    ctx.scale(this.dpr, this.dpr);
+
+    this.layers.set(name, {
+      canvas,
+      ctx,
+    });
   }
 
   /**
@@ -138,11 +162,14 @@ export class CanvasGUIDriver {
     this._registerControls();
     this._registerSignals();
 
-    this.graph.loadGraph(graph_data);
-
     this.dom.parse();
 
-    this._draw()
+    this._drawInteractions()
+
+    this.graph.loadGraph(graph_data);
+
+    this._drawWorld();
+    this.graph.on("world:update", this._drawWorld.bind(this));
     return this.graph;
   }
 
@@ -160,21 +187,35 @@ export class CanvasGUIDriver {
     }
 
     window.addEventListener("keydown", this._keydown.bind(this));
-    this.canvas.addEventListener("drop", this._drop.bind(this))
-    this.canvas.addEventListener("mousedown", this._mouseDown.bind(this));
-    this.canvas.addEventListener("mousemove", this._mouseMove.bind(this));
-    this.canvas.addEventListener("wheel", this._wheel.bind(this));
-    this.canvas.addEventListener("mouseup", this._mouseUp.bind(this));
-    this.canvas.addEventListener("dragover", (e) => {
+    this.container.addEventListener("drop", this._drop.bind(this))
+    this.container.addEventListener("mousedown", this._mouseDown.bind(this));
+    this.container.addEventListener("mousemove", this._mouseMove.bind(this));
+    this.container.addEventListener("wheel", this._wheel.bind(this));
+    this.container.addEventListener("mouseup", this._mouseUp.bind(this));
+
+    this.edge_dialog.addEventListener("close", () => {
+      this.new_edges = [];
+    })
+
+    document.getElementById("create-edge-form")
+      .addEventListener("submit", this._createEdges.bind(this))
+
+    this.container.addEventListener("dragover", (e) => {
       e.preventDefault();
       e.dataTransfer.dropEffect = "move";
     })
+  }
 
-    this.dom.signals.set("nodes", createSignal(this.graph.getNodes()))
-    this.graph.on("node:create", () => {
-      const [_, setNodes] = this.dom.signals.get("nodes");
-      setNodes(this.graph.getNodes());
-    })
+  _createEdges() {
+      const [event_type] = this.dom.signals.get("edge_type");
+      for (let i = 0; i < this.new_edges.length; i++) {
+        this.graph.createEdge(
+          this.new_edges[i].start_handle,
+          this.new_edges[i].end_handle,
+          event_type()
+        );
+      }
+      this.new_edges = [];
   }
 
   _registerSignals() {
@@ -192,7 +233,7 @@ export class CanvasGUIDriver {
    */
   _drop(e) {
     e.preventDefault();
-    const rect = this.canvas.getBoundingClientRect();
+    const rect = this.container.getBoundingClientRect();
     this.drop_x = this._snapToGrid(e.clientX - rect.left);
     this.drop_y = this._snapToGrid(e.clientY - rect.top);
 
@@ -212,20 +253,8 @@ export class CanvasGUIDriver {
    * @param {MouseEvent} e 
    */
   _mouseUp(e) {
-    let new_edges = [];
-    document.getElementById("create-edge-form").addEventListener("submit", (event) => {
-      assert_is_form(event.target);
-      const data = new FormData(event.target);
-      const event_type = parseInt(data.get("type").toString())
-      console.log(data.get("type"))
-      for (let i = 0; i < new_edges.length; i++) {
-        this.graph.createEdge(new_edges[i].start_handle, new_edges[i].end_handle, event_type);
-      }
-      new_edges = [];
-    })
-
     if (this.is_connecting) {
-      const rect = this.canvas.getBoundingClientRect();
+      const rect = this.container.getBoundingClientRect();
       const screen_x = e.clientX - rect.left;
       const screen_y = e.clientY - rect.top;
 
@@ -244,22 +273,21 @@ export class CanvasGUIDriver {
           const dy = Math.abs(mouse_y - node.y);
 
           if (dx <= this.config.node_radius && dy <= this.config.node_radius) {
-            new_edges.push({
+            this.new_edges.push({
               start_handle: handle,
               end_handle 
             })
-            this.edge_type_dialog.showModal();
+            this.edge_dialog.showModal();
             break;
           }
         }
       }
-
     }
 
     this.is_dragging = false;
     this.is_connecting = false;
     this.is_panning = false;
-    this.canvas.style.cursor = "default";
+    this.container.style.cursor = "default";
 
     if (this.is_selecting) {
       const min_x = Math.min(this.selection_start_x, this.current_mouse_x);
@@ -277,6 +305,7 @@ export class CanvasGUIDriver {
 
       this.is_selecting = false;
     }
+    this.graph.emit("world:update");
   }
 
   /**
@@ -310,7 +339,7 @@ export class CanvasGUIDriver {
     const wheel = e.deltaY < 0 ? 1 : -1;
     const zoom = Math.exp(wheel * zoom_intensity);
 
-    const rect = this.canvas.getBoundingClientRect();
+    const rect = this.container.getBoundingClientRect();
     const mouse_x = e.clientX - rect.left;
     const mouse_y = e.clientY - rect.top;
 
@@ -330,7 +359,7 @@ export class CanvasGUIDriver {
    * @param {MouseEvent} e 
    */
   _mouseDown(e) {
-    const rect = this.canvas.getBoundingClientRect();
+    const rect = this.container.getBoundingClientRect();
 
     const screen_x = e.clientX - rect.left;
     const screen_y = e.clientY - rect.top;
@@ -343,7 +372,7 @@ export class CanvasGUIDriver {
       this.is_panning = true;
       this.pan_start_x = screen_x;
       this.pan_start_y = screen_y;
-      this.canvas.style.cursor = "move";
+      this.container.style.cursor = "move";
       return;
     }
 
@@ -368,8 +397,9 @@ export class CanvasGUIDriver {
             const dy = mouse_y - node.y;
             this.drag_offsets.set(handle, {dx, dy})
           }
-          this.canvas.style.cursor = "grabbing";
+          this.container.style.cursor = "grabbing";
         }
+        this.graph.emit("world:update");
         return;
       }
     }
@@ -383,7 +413,7 @@ export class CanvasGUIDriver {
    * @param {MouseEvent} e 
    */
   _mouseMove(e) {
-    const rect = this.canvas.getBoundingClientRect();
+    const rect = this.container.getBoundingClientRect();
 
     const screen_x = e.clientX - rect.left;
     const screen_y = e.clientY - rect.top;
@@ -418,18 +448,78 @@ export class CanvasGUIDriver {
     }
   }
 
-  /** @private */
-  _draw() {
-    const logicalWidth = this.canvas.width / this.dpr;
-    const logicalHeight = this.canvas.height / this.dpr;
-    this.ctx.clearRect(0, 0, logicalWidth, logicalHeight);
+  _drawInteractions() {
+    const layer = this.layers.get("top")
+    const logicalWidth = layer.canvas.width / this.dpr;
+    const logicalHeight = layer.canvas.height / this.dpr;
+    layer.ctx.clearRect(0, 0, logicalWidth, logicalHeight);
 
-    this.ctx.save();
-    this.ctx.translate(this.graph.pan_coords.x, this.graph.pan_coords.y);
-    this.ctx.scale(this.graph.scale, this.graph.scale);
+    layer.ctx.save();
+    layer.ctx.translate(this.graph.pan_coords.x, this.graph.pan_coords.y);
+    layer.ctx.scale(this.graph.scale, this.graph.scale);
+
+    if (this.is_connecting) {
+      for (let handle of this.selected_node_handles) {
+        const start_node = this.graph.getNode(handle)
+        const mouse_coords = {
+          x: this._snapToGrid(this.current_mouse_x),
+          y: this._snapToGrid(this.current_mouse_y)
+        };
+        const { startGate, endGate } = getBestGates(
+          {
+            x: start_node.x,
+            y: start_node.y
+          }, mouse_coords);
+        const startCoords = getGateCoordinates(start_node, startGate, this.config.node_radius);
+
+        drawEdgeOrthogonal(
+          layer.ctx,
+          startCoords,
+          startGate,
+          mouse_coords,
+          endGate,
+          0,
+          {
+            line_dash: [5,5],
+            metadata: "",
+            stroke_width: 1,
+            stroke_color: "#888888",
+            name: "",
+            id: 0
+          }
+        );
+      }
+    }
+
+    if (this.is_selecting) {
+      layer.ctx.beginPath(); //#089fff
+      layer.ctx.strokeStyle = this.selection_color;
+      layer.ctx.fillStyle = `rgba(8, 190, 255, 0.1)`
+      layer.ctx.moveTo(this.selection_start_x, this.selection_start_y);
+      layer.ctx.lineTo(this.selection_start_x, this.current_mouse_y);
+      layer.ctx.lineTo(this.current_mouse_x, this.current_mouse_y);
+      layer.ctx.lineTo(this.current_mouse_x, this.selection_start_y);
+      layer.ctx.lineTo(this.selection_start_x, this.selection_start_y);
+      layer.ctx.stroke();
+      layer.ctx.fill();
+    }
+
+    layer.ctx.restore();
+    requestAnimationFrame(this._drawInteractions.bind(this));
+  }
+
+  _drawWorld() {
+    const layer = this.layers.get("bottom")
+    const logicalWidth = layer.canvas.width / this.dpr;
+    const logicalHeight = layer.canvas.height / this.dpr;
+    layer.ctx.clearRect(0, 0, logicalWidth, logicalHeight);
+
+    layer.ctx.save();
+    layer.ctx.translate(this.graph.pan_coords.x, this.graph.pan_coords.y);
+    layer.ctx.scale(this.graph.scale, this.graph.scale);
 
     drawWorldGrid(
-      this.ctx,
+      layer.ctx,
       logicalWidth,
       logicalHeight,
       this.config.grid_size,
@@ -438,8 +528,8 @@ export class CanvasGUIDriver {
 
     const edge_bundles = this.graph.getEdgeBundles();
 
-    this.ctx.strokeStyle = "#333333";
-    this.ctx.lineWidth = 2;
+    layer.ctx.strokeStyle = "#333333";
+    layer.ctx.lineWidth = 2;
 
     edge_bundles.forEach(bundle => {
       const bundleSize = bundle.length;
@@ -465,7 +555,7 @@ export class CanvasGUIDriver {
         const offset = initialOffset + index;
 
         drawEdgeOrthogonal(
-          this.ctx,
+          layer.ctx,
           startCoords,
           startGate,
           endCoords,
@@ -477,102 +567,53 @@ export class CanvasGUIDriver {
       });
     });
 
-    if (this.is_connecting) {
-      for (let handle of this.selected_node_handles) {
-        const start_node = this.graph.getNode(handle)
-        const mouse_coords = {
-          x: this._snapToGrid(this.current_mouse_x),
-          y: this._snapToGrid(this.current_mouse_y)
-        };
-        const { startGate, endGate } = getBestGates(
-          {
-            x: start_node.x,
-            y: start_node.y
-          }, mouse_coords);
-        const startCoords = getGateCoordinates(start_node, startGate, this.config.node_radius);
-
-        drawEdgeOrthogonal(
-          this.ctx,
-          startCoords,
-          startGate,
-          mouse_coords,
-          endGate,
-          0,
-          {
-            line_dash: [5,5],
-            metadata: "",
-            stroke_width: 1,
-            stroke_color: "#888888",
-            name: "",
-            id: 0
-          }
-        );
-      }
-    }
-
     const nodes = this.graph.getNodes();
-    let selection_color = "#089fff";
 
     for (let node of nodes) {
       const { x, y } = node;
-      this.ctx.beginPath();
+      layer.ctx.beginPath();
       const type = this.graph.getNodeType(node.type);
       switch (type.shape) {
         case NodeShape.CIRCLE:
-          this.ctx.arc(x, y, this.config.node_radius, 0, 2 * Math.PI);
+          layer.ctx.arc(x, y, this.config.node_radius, 0, 2 * Math.PI);
           break;
         case NodeShape.DIAMOND:
-          this.ctx.moveTo(x, y - this.config.node_radius)
-          this.ctx.lineTo(x + this.config.node_radius, y)
-          this.ctx.lineTo(x, y + this.config.node_radius)
-          this.ctx.lineTo(x - this.config.node_radius, y)
-          this.ctx.lineTo(x, y - this.config.node_radius)
+          layer.ctx.moveTo(x, y - this.config.node_radius)
+          layer.ctx.lineTo(x + this.config.node_radius, y)
+          layer.ctx.lineTo(x, y + this.config.node_radius)
+          layer.ctx.lineTo(x - this.config.node_radius, y)
+          layer.ctx.lineTo(x, y - this.config.node_radius)
           break;
         case NodeShape.SQUARE:
-          this.ctx.rect(x - this.config.node_radius, y - this.config.node_radius, this.config.node_radius*2, this.config.node_radius*2);
+          layer.ctx.rect(x - this.config.node_radius, y - this.config.node_radius, this.config.node_radius*2, this.config.node_radius*2);
           break;
         case NodeShape.SQUARE_ROUNDED:
-          this.ctx.roundRect(x - this.config.node_radius, y - this.config.node_radius, this.config.node_radius*2, this.config.node_radius*2, [5]);
+          layer.ctx.roundRect(x - this.config.node_radius, y - this.config.node_radius, this.config.node_radius*2, this.config.node_radius*2, [5]);
           break;
       }
-      this.ctx.fillStyle = type.fill_color;
-      this.ctx.fill();
+      layer.ctx.fillStyle = type.fill_color;
+      layer.ctx.fill();
       if (this.selected_node_handles.includes(node.handle)) {
-        this.ctx.strokeStyle = selection_color;
-        this.ctx.lineWidth = 4;
+        layer.ctx.strokeStyle = this.selection_color;
+        layer.ctx.lineWidth = 4;
       } else {
-        this.ctx.lineWidth = type.stroke_width;
-        this.ctx.strokeStyle = type.stroke_color;
+        layer.ctx.lineWidth = type.stroke_width;
+        layer.ctx.strokeStyle = type.stroke_color;
       }
-      this.ctx.stroke();
+      layer.ctx.stroke();
 
-      this.ctx.beginPath();
-      this.ctx.fillStyle = "#fff";
-      this.ctx.rect(x - (node.name.length / 2) * 8, y + this.config.node_radius + 5, node.name.length * 8, 20);
-      this.ctx.fill();
+      layer.ctx.beginPath();
+      layer.ctx.fillStyle = "#fff";
+      layer.ctx.rect(x - (node.name.length / 2) * 8, y + this.config.node_radius + 5, node.name.length * 8, 20);
+      layer.ctx.fill();
 
-      this.ctx.fillStyle = "#000";
-      this.ctx.font = "12px monospace";
-      this.ctx.textAlign = "center";
-      this.ctx.textBaseline = "top";
-      this.ctx.fillText(node.name, x, y + this.config.node_radius + 10);
+      layer.ctx.fillStyle = "#000";
+      layer.ctx.font = "12px monospace";
+      layer.ctx.textAlign = "center";
+      layer.ctx.textBaseline = "top";
+      layer.ctx.fillText(node.name, x, y + this.config.node_radius + 10);
     }
-
-    if (this.is_selecting) {
-      this.ctx.beginPath(); //#089fff
-      this.ctx.strokeStyle = selection_color;
-      this.ctx.fillStyle = `rgba(8, 190, 255, 0.1)`
-      this.ctx.moveTo(this.selection_start_x, this.selection_start_y);
-      this.ctx.lineTo(this.selection_start_x, this.current_mouse_y);
-      this.ctx.lineTo(this.current_mouse_x, this.current_mouse_y);
-      this.ctx.lineTo(this.current_mouse_x, this.selection_start_y);
-      this.ctx.lineTo(this.selection_start_x, this.selection_start_y);
-      this.ctx.stroke();
-      this.ctx.fill();
-    }
-
-    this.ctx.restore();
-    requestAnimationFrame(this._draw.bind(this));
+    layer.ctx.restore();
   }
 }
 
@@ -785,4 +826,3 @@ function drawEdgeOrthogonal(ctx, startCoords, startGate, endCoords, endGate, off
   ctx.fill();
   ctx.stroke();
 }
-

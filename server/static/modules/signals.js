@@ -268,7 +268,7 @@ export class DocumentParser {
  * @returns {string} - The resolved string.
  */
   _resolveExpression(template, context) {
-    return template.replace(this.expression_regex, (match, expression) => {
+    return template.replace(this.expression_regex, (_, expression) => {
       expression = expression.trim();
       const props = expression.split(".");
       let value = context;

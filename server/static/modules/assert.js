@@ -71,6 +71,16 @@ export function assert_is_canvas(el) {
 }
 
 /**
+ * @param {Node} el 
+ * @returns {asserts el is Attr}
+ */
+export function assert_is_attr(el) {
+  if (!("name" in el) && !("value" in el)) {
+    throw new Error("Node is not an attribute")
+  }
+}
+
+/**
  * @param {unknown} value 
  */
 export function assert_is_not_null(value) {

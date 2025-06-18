@@ -1,6 +1,5 @@
 import { CanvasGUIDriver } from "./modules/canvas-gui.js";
 import { NodeShape } from "./modules/graph-editor-api.js";
-import { DocumentParser } from "./modules/signals.js";
 
 const edge_types = [
   {
@@ -88,7 +87,7 @@ const node_types = [
 
 const canvas_gui = new CanvasGUIDriver({
   edge_dialog_id: "create-edge-dialog",
-  canvas_id: "node-canvas",
+  container_id: "canvas-container",
   control_panel_id: "control-panel",
 })
 

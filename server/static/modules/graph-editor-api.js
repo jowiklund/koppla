@@ -215,7 +215,8 @@ export class GraphEditor extends EventEmitter {
   pan(dx, dy) {
     this.pan_coords.x += dx;
     this.pan_coords.y += dy;
-    this.emit("world:pan")
+    this.emit("world:pan");
+    this.emit("world:update");
   }
 
   /**
@@ -226,7 +227,8 @@ export class GraphEditor extends EventEmitter {
   zoom(amount) {
     const new_scale = amount *= this.scale;
     this.scale = (Math.max(0.1, Math.min(new_scale, 6)));
-    this.emit("world:zoom")
+    this.emit("world:zoom");
+    this.emit("world:update");
   }
 
   /**
@@ -340,8 +342,9 @@ export class GraphEditor extends EventEmitter {
    * @param {NodeHandle} handle 
    */
   setNodePosition(handle, x, y) {
-    this._wasm.setNodePosition(handle, x, y)
-    this.emit("node:update")
+    this._wasm.setNodePosition(handle, x, y);
+    this.emit("node:update");
+    this.emit("world:update");
   }
 
   /**
@@ -352,7 +355,8 @@ export class GraphEditor extends EventEmitter {
   deleteNode(handle) {
     this._wasm.deleteNode(handle);
     this.node_data.delete(handle);
-    this.emit("node:delete", {node_handle: handle})
+    this.emit("node:delete", {node_handle: handle});
+    this.emit("world:update");
   }
 
   /**
@@ -364,9 +368,10 @@ export class GraphEditor extends EventEmitter {
     const node = this.getNode(handle)
     if (node.edges_outgoing.length == 0) return;
     for (let i = 0; i < node.edges_outgoing.length; i++) {
-      this._wasm.deleteEdge(node.edges_outgoing[i])
+      this._wasm.deleteEdge(node.edges_outgoing[i]);
     }
-    this.emit("edge:delete", {edge_handle: handle})
+    this.emit("edge:delete", {edge_handle: handle});
+    this.emit("world:update");
   }
 
   /**
@@ -396,7 +401,8 @@ export class GraphEditor extends EventEmitter {
    */
   createEdge(start_handle, end_handle, type) {
     this._wasm.createEdge(start_handle, end_handle, type);
-    this.emit("edge:create", {start_handle, end_handle, type})
+    this.emit("edge:create", {start_handle, end_handle, type});
+    this.emit("world:update");
   }
 }
 

@@ -4,7 +4,7 @@
  * logic engine written in Zig
  */
 
-import { assert_is_not_null } from "@kpla/assert";
+import { assert, assert_is_not_null } from "@kpla/assert";
 import { EventEmitter } from "./event-emitter.js";
 
 /** @typedef {number} NodeHandle */
@@ -86,13 +86,25 @@ export const NodeShape = {
  * @property {string} to_metadata
  */
 
+/**
+ * @typedef Coords
+ * @property {number} x
+ * @property {number} y
+ */
+
+/**
+ * @callback CoordinateRounder
+ * @param {number} value
+ * @returns {number}
+ */
+
 export class GraphEditor extends EventEmitter {
   /** @type {number} */
   scale = 1.0;
-  /** @type {import("./typedefs").Coords} */
+  /** @type {Coords} */
   pan_coords = { x: 0, y: 0 }
-  /** @type {import("./control-panel.js").CoordinateRounder} */
-  coordinate_rounder = null;
+  /** @type {CoordinateRounder} */
+  coordinate_rounder = (val) => val;
   /** @type {Map<NodeHandle, NodeBase>} */
   node_data = new Map();
   /** @type {NodeTypes} */
@@ -164,9 +176,14 @@ export class GraphEditor extends EventEmitter {
     /** @type {Array<Relation>} */
     const relations = [];
     for (let edge of edges) {
+      const from_node = this.node_data.get(edge.start_handle);
+      const to_node = this.node_data.get(edge.end_handle);
+      assert_is_not_null(from_node);
+      assert_is_not_null(to_node);
       const edge_type = this.getEdgeType(edge.type);
-      const from_metadata = this.node_data.get(edge.start_handle).metadata;
-      const to_metadata = this.node_data.get(edge.end_handle).metadata;
+      const from_metadata = from_node.metadata;
+      const to_metadata = to_node.metadata;
+      assert_is_not_null(edge_type);
       assert_is_not_null(edge_type.metadata);
       assert_is_not_null(from_metadata);
       assert_is_not_null(to_metadata);
@@ -183,7 +200,7 @@ export class GraphEditor extends EventEmitter {
   /**
    * @param {NodeTypeId} id 
    *
-   * @returns {NodeType}
+   * @returns {NodeType | undefined}
    */
   getNodeType(id) {
     return this.node_types.get(id);
@@ -199,7 +216,7 @@ export class GraphEditor extends EventEmitter {
 
   /**
    * @param {number} id
-   * @returns {EdgeType}
+   * @returns {EdgeType | undefined}
    */
   getEdgeType(id) {
     const type = this.edge_types.get(id);
@@ -235,7 +252,7 @@ export class GraphEditor extends EventEmitter {
   /**
    * Translate coordinates to world coords
    *
-   * @param {import("./typedefs").Coords} screen_coords 
+   * @param {Coords} screen_coords 
    * @param {boolean} round
    */
   screenToWorld(screen_coords, round = true) {
@@ -304,6 +321,7 @@ export class GraphEditor extends EventEmitter {
     for (let i = 0; i < node_count; i++) {
       const handle = this._wasm.getNodeHandleByIndex(i);
       const node = this.getNode(handle);
+      if (node == null) continue;
       nodes.push(node);
     }
 
@@ -368,6 +386,7 @@ export class GraphEditor extends EventEmitter {
    */
   deleteOutgoing(handle) {
     const node = this.getNode(handle)
+    if (node == null) return;
     if (node.edges_outgoing.length == 0) return;
     for (let i = 0; i < node.edges_outgoing.length; i++) {
       this._wasm.deleteEdge(node.edges_outgoing[i]);
@@ -401,7 +420,10 @@ export class GraphEditor extends EventEmitter {
       if (!bundles.has(key)) {
         bundles.set(key, []);
       }
-      bundles.get(key).push(edge);
+      assert(bundles.has(key));
+      const bundle = bundles.get(key);
+      assert_is_not_null(bundle);
+      bundle.push(edge);
     }
     return bundles;
   }

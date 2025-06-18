@@ -1,7 +1,11 @@
+import { assert_is_dialog, assert_is_not_null } from "@kpla/assert";
+import { getEngine, GraphEditor, NodeShape } from "@kpla/engine";
+import { createSignal, DocumentParser } from "@kpla/signals";
+
 /**
  * @typedef RunConfig
- * @property {Array<import("./graph-editor-api.js").EdgeType>} edge_types
- * @property {Array<import("./graph-editor-api.js").NodeType>} node_types
+ * @property {Array<import("@kpla/engine").EdgeType>} edge_types
+ * @property {Array<import("@kpla/engine").NodeType>} node_types
  */
 
 /** 
@@ -20,10 +24,6 @@
  * @property {number} [grid_size]
  */
 
-import { assert_is_dialog, assert_is_not_null } from "@kpla/assert";
-import { getEngine, GraphEditor, NodeShape } from "@kpla/engine";
-import { createSignal, DocumentParser } from "@kpla/signals";
-
 export class CanvasGUIDriver {
   /** @type {HTMLElement} */
   container;
@@ -31,20 +31,18 @@ export class CanvasGUIDriver {
   edge_dialog;
   /** @type {HTMLElement} */
   control_panel;
-  /** @type {GraphEditor} */
+  /** @type {GraphEditor | null} */
   graph = null;
-  /** @type {Promise<GraphEditor>} */
-  startup_promise = null;
   dpr = 1;
   drop_x = 0;
   drop_y = 0;
-  /** @type {NodeData} */
+  /** @type {NodeData | null} */
   drop_data = null;
 
   /** @type {Map<string, {canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}>} */
   layers = new Map();
 
-  /** @type {DocumentParser} */
+  /** @type {DocumentParser | null} */
   dom = null
 
   config = {
@@ -53,9 +51,9 @@ export class CanvasGUIDriver {
     wasm_url: ""
   };
 
-  /** @type {Set<import("./graph-editor-api.js").NodeHandle>} */
+  /** @type {Set<import("@kpla/engine").NodeHandle>} */
   moving_nodes = new Set();
-  /** @type {Set<import("./graph-editor-api.js").EdgeHandle>} */
+  /** @type {Set<import("@kpla/engine").EdgeHandle>} */
   moving_edges = new Set();
 
   selection_color = "#089fff";
@@ -79,7 +77,7 @@ export class CanvasGUIDriver {
   /** @type {Array<{start_handle: number, end_handle: number}>} */
   new_edges = [];
 
-  /** @type {Array<import("./graph-editor-api.js").NodeHandle>} */
+  /** @type {Array<import("@kpla/engine").NodeHandle>} */
   selected_node_handles = [];
 
   /**
@@ -106,10 +104,12 @@ export class CanvasGUIDriver {
     this._createLayer("interactions");
 
     const edge_dialog = document.getElementById(opts.edge_dialog_id);
+    assert_is_not_null(edge_dialog);
     assert_is_dialog(edge_dialog)
     this.edge_dialog = edge_dialog;
 
     const control_panel = document.getElementById(opts.control_panel_id);
+    assert_is_not_null(control_panel);
     this.control_panel = control_panel;
 
     this.dom = new DocumentParser()
@@ -133,6 +133,7 @@ export class CanvasGUIDriver {
     canvas.setAttributeNode(layer_styles);
 
     const ctx = canvas.getContext("2d");
+    assert_is_not_null(ctx);
     ctx.scale(this.dpr, this.dpr);
 
     this.layers.set(name, {
@@ -151,12 +152,11 @@ export class CanvasGUIDriver {
 
   /**
  * @param {RunConfig} config 
- * @param {Array<import("./graph-editor-api.js").NodeBase>} graph_data 
+ * @param {Array<import("@kpla/engine").NodeBase>} graph_data 
  * @returns {Promise<GraphEditor>}
  */
   async run(config, graph_data) {
-    this.startup_promise = getEngine(this.config.wasm_url);
-    this.graph = await this.startup_promise;
+    this.graph = await getEngine(this.config.wasm_url);
     assert_is_not_null(this.graph);
     this.graph.coordinate_rounder = this._snapToGrid.bind(this);
 
@@ -171,6 +171,7 @@ export class CanvasGUIDriver {
     this._registerControls();
     this._registerSignals();
 
+    assert_is_not_null(this.dom);
     this.dom.parse();
 
     this._drawInteractions()
@@ -188,6 +189,7 @@ export class CanvasGUIDriver {
 
   /** @private */
   _registerControls() {
+    assert_is_not_null(this.graph);
     for (let [key, style] of this.graph.node_types) {
       const draggable = createNodeDraggable(style.name, {
         data: {
@@ -210,30 +212,38 @@ export class CanvasGUIDriver {
       this.new_edges = [];
     })
 
-    document.getElementById("create-edge-form")
-      .addEventListener("submit", this._createEdges.bind(this))
+    const create_edge_form = document.getElementById("create-edge-form");
+    assert_is_not_null(create_edge_form);
+    create_edge_form.addEventListener("submit", this._createEdges.bind(this))
 
     this.container.addEventListener("dragover", (e) => {
       e.preventDefault();
+      assert_is_not_null(e.dataTransfer);
       e.dataTransfer.dropEffect = "move";
     })
   }
 
   /** @private */
   _createEdges() {
-      const [event_type] = this.dom.signals.get("edge_type");
-      for (let i = 0; i < this.new_edges.length; i++) {
-        this.graph.createEdge(
-          this.new_edges[i].start_handle,
-          this.new_edges[i].end_handle,
-          event_type()
-        );
-      }
-      this.new_edges = [];
+    assert_is_not_null(this.dom);
+    assert_is_not_null(this.graph);
+    const signal = this.dom.signals.get("edge_type");
+    assert_is_not_null(signal);
+    const [event_type] = signal;
+    for (let i = 0; i < this.new_edges.length; i++) {
+      this.graph.createEdge(
+        this.new_edges[i].start_handle,
+        this.new_edges[i].end_handle,
+        event_type()
+      );
+    }
+    this.new_edges = [];
   }
 
   /** @private */
   _registerSignals() {
+    assert_is_not_null(this.dom);
+    assert_is_not_null(this.graph);
     this.dom.signals.set(
       "edge_types",
       createSignal(Array
@@ -248,11 +258,13 @@ export class CanvasGUIDriver {
    * @param {DragEvent} e
    */
   _drop(e) {
+    assert_is_not_null(this.graph);
     e.preventDefault();
     const rect = this.container.getBoundingClientRect();
     this.drop_x = this._snapToGrid(e.clientX - rect.left);
     this.drop_y = this._snapToGrid(e.clientY - rect.top);
 
+    assert_is_not_null(e.dataTransfer);
     let drop_data = e.dataTransfer.getData("graph/node");
     this.node_data = JSON.parse(drop_data);
 
@@ -270,6 +282,7 @@ export class CanvasGUIDriver {
    * @param {MouseEvent} e 
    */
   _mouseUp(e) {
+    assert_is_not_null(this.graph);
     if (this.is_connecting) {
       const rect = this.container.getBoundingClientRect();
       const screen_x = e.clientX - rect.left;
@@ -332,6 +345,7 @@ export class CanvasGUIDriver {
    * @param {KeyboardEvent} e
    */
   _keydown(e) {
+    assert_is_not_null(this.graph);
     if (
       (e.key == "Delete") &&
         this.selected_node_handles.length > 0
@@ -354,6 +368,7 @@ export class CanvasGUIDriver {
    * @param {WheelEvent} e 
    */
   _wheel(e) {
+    assert_is_not_null(this.graph);
     e.preventDefault();
 
     const zoom_intensity = 0.1;
@@ -381,6 +396,7 @@ export class CanvasGUIDriver {
    * @param {MouseEvent} e 
    */
   _mouseDown(e) {
+    assert_is_not_null(this.graph);
     const rect = this.container.getBoundingClientRect();
 
     const screen_x = e.clientX - rect.left;
@@ -415,6 +431,7 @@ export class CanvasGUIDriver {
           this.drag_offsets.clear();
           for (let handle of this.selected_node_handles) {
             const node = this.graph.getNode(handle);
+            assert_is_not_null(node);
             const dx = mouse_x - node.x;
             const dy = mouse_y - node.y;
             this.drag_offsets.set(handle, {dx, dy})
@@ -450,6 +467,7 @@ export class CanvasGUIDriver {
    * @param {MouseEvent} e 
    */
   _mouseMove(e) {
+    assert_is_not_null(this.graph);
     const rect = this.container.getBoundingClientRect();
 
     const screen_x = e.clientX - rect.left;
@@ -487,7 +505,9 @@ export class CanvasGUIDriver {
 
   /** @private */
   _drawInteractions() {
+    assert_is_not_null(this.graph);
     const layer = this.layers.get("interactions")
+    assert_is_not_null(layer)
     const logicalWidth = layer.canvas.width / this.dpr;
     const logicalHeight = layer.canvas.height / this.dpr;
     layer.ctx.clearRect(0, 0, logicalWidth, logicalHeight);
@@ -499,6 +519,7 @@ export class CanvasGUIDriver {
     if (this.is_connecting) {
       for (let handle of this.selected_node_handles) {
         const start_node = this.graph.getNode(handle)
+        assert_is_not_null(start_node);
         const mouse_coords = {
           x: this._snapToGrid(this.current_mouse_x),
           y: this._snapToGrid(this.current_mouse_y)
@@ -563,7 +584,9 @@ export class CanvasGUIDriver {
 
   /** @private */
   _drawStatic() {
+    assert_is_not_null(this.graph);
     const layer = this.layers.get("static")
+    assert_is_not_null(layer);
     const logicalWidth = layer.canvas.width / this.dpr;
     const logicalHeight = layer.canvas.height / this.dpr;
     layer.ctx.clearRect(0, 0, logicalWidth, logicalHeight);
@@ -584,7 +607,9 @@ export class CanvasGUIDriver {
 
   /** @private */
   _drawObjects() {
+    assert_is_not_null(this.graph);
     const layer = this.layers.get("objects")
+    assert_is_not_null(layer);
     const logicalWidth = layer.canvas.width / this.dpr;
     const logicalHeight = layer.canvas.height / this.dpr;
     layer.ctx.clearRect(0, 0, logicalWidth, logicalHeight);
@@ -612,7 +637,7 @@ export class CanvasGUIDriver {
   /**
    * @private
    * @param {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} layer 
-   * @param {Array<import("./graph-editor-api.js").Edge>} bundle 
+   * @param {Array<import("@kpla/engine").Edge>} bundle 
    */
   _drawEdgeBundle(bundle, layer) {
     layer.ctx.strokeStyle = "#333333";
@@ -622,10 +647,14 @@ export class CanvasGUIDriver {
     const initialOffset = -(bundleSize - 1) / 2.0;
 
     bundle.forEach((edge, index) => {
+      assert_is_not_null(this.graph);
       const start_node = this.graph.getNode(edge.start_handle);
       const end_node = this.graph.getNode(edge.end_handle);
+      assert_is_not_null(start_node);
+      assert_is_not_null(end_node);
 
       const edge_type = this.graph.getEdgeType(edge.type);
+      assert_is_not_null(edge_type);
 
       const { startGate, endGate } = getBestGates({
         y: start_node.y,
@@ -655,13 +684,15 @@ export class CanvasGUIDriver {
 
   /**
    * @private
-   * @param {import("./graph-editor-api.js").Node} node 
+   * @param {import("@kpla/engine").Node} node 
    * @param {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} layer 
    */
   _drawNode(node, layer) {
+    assert_is_not_null(this.graph);
     const { x, y } = node;
     layer.ctx.beginPath();
     const type = this.graph.getNodeType(node.type);
+    assert_is_not_null(type);
     switch (type.shape) {
       case NodeShape.CIRCLE:
         layer.ctx.arc(x, y, this.config.node_radius, 0, 2 * Math.PI);
@@ -721,6 +752,7 @@ function createNodeDraggable(text, config) {
   node.style.borderLeftWidth = "8px";
 
   node.addEventListener("dragstart", (e) => {
+    assert_is_not_null(e.dataTransfer);
     e.dataTransfer.setData("graph/node", JSON.stringify(config))
   })
 
@@ -774,8 +806,8 @@ const GATES = {
 /**
  * Determines the best exit and entry gates for a connection
  * based on the relative position of two nodes.
- * @param {import("./typedefs.js").Coords} startNode The start node's coordinates.
- * @param {import("./typedefs.js").Coords} endNode The end node's coordinates.
+ * @param {import("@kpla/engine").Coords} startNode The start node's coordinates.
+ * @param {import("@kpla/engine").Coords} endNode The end node's coordinates.
  * @returns {{startGate: number, endGate: number}}
  */
 function getBestGates(startNode, endNode) {
@@ -798,10 +830,10 @@ function getBestGates(startNode, endNode) {
 }
 
 /**
- * @param {import("./typedefs.js").Coords} node The node's center coordinates.
+ * @param {import("@kpla/engine").Coords} node The node's center coordinates.
  * @param {number} gate The gate (from GATES enum).
  * @param {number} radius The node's radius.
- * @returns {import("./typedefs.js").Coords}
+ * @returns {import("@kpla/engine").Coords}
  */
 function getGateCoordinates(node, gate, radius) {
   switch (gate) {
@@ -815,12 +847,12 @@ function getGateCoordinates(node, gate, radius) {
 
 /**
  * @param {CanvasRenderingContext2D} ctx - 
- * @param {import("./typedefs.js").Coords} startCoords - 
+ * @param {import("@kpla/engine").Coords} startCoords - 
  * @param {number} startGate - 
- * @param {import("./typedefs.js").Coords} endCoords - 
+ * @param {import("@kpla/engine").Coords} endCoords - 
  * @param {number} endGate - 
  * @param {number} offset - 
- * @param {import("./graph-editor-api.js").EdgeType} edge_type 
+ * @param {import("@kpla/engine").EdgeType} edge_type 
  * @param {boolean} render_name 
  */
 function drawEdgeOrthogonal(

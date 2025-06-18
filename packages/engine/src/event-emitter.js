@@ -1,3 +1,5 @@
+import { assert_is_not_null } from "@kpla/assert";
+
 export class EventEmitter {
   /**
    * @type {Map<string, Array<Function>>}
@@ -14,7 +16,9 @@ export class EventEmitter {
       this.listeners.set(event_name, []);
     }
 
-    this.listeners.get(event_name).push(callback);
+    const listeners = this.listeners.get(event_name);
+    assert_is_not_null(listeners);
+    listeners.push(callback);
     return this;
   }
 

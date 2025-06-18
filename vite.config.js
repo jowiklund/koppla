@@ -1,5 +1,6 @@
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
+import dts from "vite-plugin-dts";
 
 export default defineConfig(() => {
   const packageName = process.env.PACKAGE_NAME;
@@ -13,6 +14,14 @@ export default defineConfig(() => {
 
   return {
     root: __dirname,
+    plugins: [
+      dts({
+        root: resolve(__dirname, `packages/${process.env.PACKAGE_NAME}/src`),
+        outputDir: resolve(__dirname, `packages/${process.env.PACKAGE_NAME}/dist`),
+        fileName: (entryName) => `${entryName}.d.ts`,
+        clearPureImport: false,
+      })
+    ],
     build: {
       lib: {
         entry: resolve(__dirname, `packages/${packageName}/src/index.js`),

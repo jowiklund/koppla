@@ -1,16 +1,20 @@
 {
   "name": "@kpla/signals",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "type": "module",
   "main": "dist/signals.es.js",
+  "types": "dist/index.d.ts",
   "exports": {
-    ".": "./dist/signals.es.js"
+    ".": {
+      "import": "./dist/signals.es.js",
+      "types": "./dist/index.d.ts"
+    }
   },
   "dependencies": {
     "@kpla/assert": "workspace:^"
   },
   "scripts": {
-    "dev": "cross-env PACKAGE_NAME=signals vite build --watch --config ../../vite.config.js",
-    "build": "cross-env PACKAGE_NAME=signals vite build --config ../../vite.config.js"
+    "build": "cross-env PACKAGE_NAME=signals vite build --config ../../vite.config.js",
+    "dev": "cross-env PACKAGE_NAME=signals vite build --watch --config ../../vite.config.js"
   }
 }

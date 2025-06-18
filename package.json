@@ -9,8 +9,9 @@
     "publish:all": "pnpm -r publish"
   },
   "devDependencies": {
-    "vite": "^5.0.0",
+    "cross-env": "^7.0.3",
     "pnpm": "^8.0.0",
-    "cross-env": "^7.0.3"
+    "vite": "^5.0.0",
+    "vite-plugin-dts": "^4.5.4"
   }
 }

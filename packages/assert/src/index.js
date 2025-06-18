@@ -81,16 +81,19 @@ export function assert_is_attr(el) {
 }
 
 /**
- * @param {unknown} value 
+ * @template {any} T
+ * @param {T} value 
+ * @returns {asserts value is NonNullable<T>}
  */
 export function assert_is_not_null(value) {
-  if (value == undefined || value == null) {
+  if (value === undefined || value === null) {
     throw new Error(`[ASSERTION FAILED]: Value was nullish`)
   }
 }
 
 /**
  * @param {boolean} expression 
+ * @return {asserts expression is true}
  */
 export function assert(expression) {
   if (!expression) {

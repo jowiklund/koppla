@@ -3,7 +3,7 @@
  * Exposes a small api for reactive states
  */
 
-import { assert_is_input, assert_msg } from "@kpla/assert";
+import { assert_is_input, assert_is_not_null, assert_msg } from "@kpla/assert";
 
 /**
  * @callback SignalGetter - Get the signal value
@@ -12,6 +12,7 @@ import { assert_is_input, assert_msg } from "@kpla/assert";
  * @typedef {[SignalGetter, SignalSetter]} Signal
  */
 
+/** @type {Function | null} */
 let active_effect = null;
 
 class Dependency {
@@ -77,10 +78,10 @@ const Attributes = {
 
 export class DocumentParser {
   /**
- * @type {Map<string, import("./signals").Signal>}
+ * @type {Map<string, Signal>}
  */
   signals = new Map();
-  /** @type {HTMLElement | Document} */
+  /** @type {HTMLElement | Document | DocumentFragment} */
   root = document;
   expression_regex = /\{\{(.*)\}\}/g;
 
@@ -92,17 +93,22 @@ export class DocumentParser {
    */
   get(name) {
     assert_msg(this.signals.has(name), `No input is bound to ${name}`)
-    return this.signals.get(name);
+    const signal = this.signals.get(name);
+    assert_is_not_null(signal)
+    return signal;
   }
 
   /**
    * @private
    * @param {string} name
    * @param {*} initial_value
+   * @returns {Signal}
    */
   _getOrCreateSignal(name, initial_value) {
     if (this.signals.has(name)) {
-      return this.signals.get(name);
+      const signal = this.signals.get(name)
+      assert_is_not_null(signal);
+      return signal;
     } else {
       const signal = createSignal(initial_value);
       this.signals.set(name, signal);
@@ -115,6 +121,7 @@ export class DocumentParser {
     const templates = this.root.querySelectorAll(`template[${Attributes.FOR}]`);
     for (const template of templates) {
       const expression = template.getAttribute(Attributes.FOR);
+      assert_is_not_null(expression);
       const match = expression.match(/(\S+)\s+in\s+(\S+)/);
       if (!match) continue;
       const [, item_name, array_name] = match;
@@ -124,6 +131,7 @@ export class DocumentParser {
       const end_anchor = document.createComment(`for: ${array_name} end`);
       const template_content = template.content;
 
+      assert_is_not_null(template.parentNode);
       template.parentNode.insertBefore(start_anchor, template);
       template.parentNode.insertBefore(end_anchor, template);
       template.remove();
@@ -147,6 +155,7 @@ export class DocumentParser {
           fragment.appendChild(clone);
         }
 
+        assert_is_not_null(end_anchor.parentNode);
         end_anchor.parentNode.insertBefore(fragment, end_anchor);
       });
     }
@@ -161,16 +170,19 @@ export class DocumentParser {
       if (el.hasAttribute(Attributes.VALUE)) {
         assert_is_input(el);
         const signal_name = el.getAttribute(Attributes.VALUE);
+        assert_is_not_null(signal_name);
         const [_, setValue] = this._getOrCreateSignal(signal_name, el.value);
         setValue(el.value);
 
         el.addEventListener("input", (e) => {
+          assert_is_not_null(e.target);
           assert_is_input(e.target);
           setValue(e.target.value);
         });
       }
       if (el.hasAttribute(Attributes.TEXT)) {
         const signal_name = el.getAttribute(Attributes.TEXT);
+        assert_is_not_null(signal_name);
         const [getText] = this._getOrCreateSignal(signal_name, null);
         createEffect(() => {
           el.textContent = getText();
@@ -182,7 +194,7 @@ export class DocumentParser {
   }
 
   /**
-   * @param {HTMLElement | DocumentFragment} root_node 
+   * @param {HTMLElement | DocumentFragment | Document} root_node 
    */
   _parseReactiveBindings(root_node) {
     const walker = document.createTreeWalker(root_node, NodeFilter.SHOW_TEXT);
@@ -191,12 +203,14 @@ export class DocumentParser {
 
     for (const node of text_nodes) {
       const original_text = node.nodeValue;
+      assert_is_not_null(original_text)
       if (!original_text.includes("{{")) continue;
 
       const dependencies = [...original_text.matchAll(this.expression_regex)]
       .map(match => match[1].trim());
 
       createEffect(() => {
+        /** @type {{[key:string]: any}}*/
         const context = {};
         for (const dep of dependencies) {
           const [getValue] = this._getOrCreateSignal(dep, "");
@@ -219,6 +233,7 @@ export class DocumentParser {
         .map(match => match[1].trim());
 
         createEffect(() => {
+        /** @type {{[key:string]: any}}*/
           const context = {};
           for (const dep of dependencies) {
             const [getValue] = this._getOrCreateSignal(dep, "");
@@ -255,30 +270,42 @@ export class DocumentParser {
     let text_node;
 
     while (text_node = walker.nextNode()) {
+      assert_is_not_null(text_node.nodeValue);
       if (text_node.nodeValue.includes("{{")) {
         text_node.nodeValue = this._resolveExpression(text_node.nodeValue, context);
       }
     }
   }
   /**
- * Resolves a string with {{...}} expressions against a data object.
  * @private
  * @param {string} template - The template string (e.g., "class-{{status}}").
  * @param {object} context - The data object to get values from (e.g., an item from a loop).
  * @returns {string} - The resolved string.
  */
-  _resolveExpression(template, context) {
+_resolveExpression(template, context) {
     return template.replace(this.expression_regex, (_, expression) => {
       expression = expression.trim();
       const props = expression.split(".");
+      /** @type {any} */
       let value = context;
+
       for (const prop of props) {
-        if (value === undefined) break;
-        value = value[prop]
+        if (value === undefined || value === null) {
+          value = undefined;
+          break;
+        }
+        value = value[prop];
       }
 
-      return value !== undefined && value !== null ? value : "";
-    })
+      if (value === undefined || value === null) {
+        return "";
+      }
+
+      if (typeof value === 'object') {
+        return "";
+      }
+      return String(value);
+    });
   }
 }
 
@@ -287,6 +314,7 @@ export class DocumentParser {
  * @returns {el is HTMLElement}
  */
 export function isElementNode(el) {
+  if (!el) return false;
   if (typeof el == "object" && "nodeType" in el && el.nodeType === Node.ELEMENT_NODE) {
     return true;
   }
@@ -298,6 +326,7 @@ export function isElementNode(el) {
  * @returns {el is DocumentFragment}
  */
 export function isFragmentNode(el) {
+  if (!el) return false;
   if (typeof el == "object" && "nodeType" in el && el.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
     return true;
   }

@@ -1,13 +1,17 @@
 {
   "name": "@kpla/assert",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "type": "module",
-  "main": "dist/assert.es.js",
+  "main": "./dist/assert.es.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./dist/assert.es.js"
+    ".": {
+      "import": "./dist/assert.es.js",
+      "types": "./dist/index.d.ts"
+    }
   },
   "scripts": {
-    "dev": "cross-env PACKAGE_NAME=assert vite build --watch --config ../../vite.config.js",
-    "build": "cross-env PACKAGE_NAME=assert vite build --config ../../vite.config.js"
+    "build": "cross-env PACKAGE_NAME=assert vite build --config ../../vite.config.js",
+    "dev": "cross-env PACKAGE_NAME=assert vite build --watch --config ../../vite.config.js"
   }
 }

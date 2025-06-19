@@ -1,6 +1,6 @@
 {
   "name": "@kpla/canvas-driver",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "type": "module",
   "main": "dist/canvas-driver.es.js",
   "types": "dist/index.d.ts",

@@ -1,6 +1,6 @@
 {
 	"name": "@kpla/engine",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"type": "module",
 	"main": "dist/engine.es.js",
 	"types": "dist/index.d.ts",

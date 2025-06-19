@@ -143,7 +143,7 @@ main();
   </form>
 </template>
 
-<script type="module/koppla"> <!-- script tags with type module/koppla will be parsed -->
+<script type="module/koppla"> // script tags with type module/koppla will be parsed
   const edge_type_data = [...driver.graph.edge_types.values()].filter(i => i.id >= 0);
   const [edge_types] = signal(edge_type_data); // for loop arrays needs to be wrapped in signals
   const [edgeType, setEdgeType] = signal(edge_type_data[0]?.id || "0");

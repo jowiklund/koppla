@@ -200,7 +200,7 @@ const parser = new DocumentParser(document.getElementById('app'), {
         - `constructor(root_element, providers)`: takes an element and an object with additional scope you want provided in the template.
         - `.parse()`: Scans the DOM and activates reactive bindings.
 
-#### `GraphEditor` events
+### `GraphEditor` events
 **Node Events**
 - `node:create`
   - **Fired by:** `createNode()`

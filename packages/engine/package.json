@@ -15,7 +15,7 @@
 		"@kpla/assert": "workspace:^"
 	},
 	"scripts": {
-		"build": "cross-env PACKAGE_NAME=engine vite build --config ../../vite.config.js",
+		"build": "./build.sh && cross-env PACKAGE_NAME=engine vite build --config ../../vite.config.js",
 		"dev": "cross-env PACKAGE_NAME=engine vite build --watch --config ../../vite.config.js"
 	}
 }

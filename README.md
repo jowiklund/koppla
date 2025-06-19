@@ -122,7 +122,19 @@ async function main() {
 main();
 ```
 2. Using the Signals & Document Parser (`@kpla/signals`)
-- Use Case: When you need an extremely lightweight, zero-dependency (except for @kpla/assert, i don't count that) alternative to larger frameworks for adding simple reactivity to your HTML.
+
+What is this, and why should (or shouldn't) you use it?
+
+Let's be honest: the world doesn't need another JavaScript reactivity library. @kpla/signals exists in a sea of ever-multiplying frameworks, making it, by definition, absolutely redundant.
+
+So why is it here? Because I felt Koppla needed some zero-dependency reactivity.
+
+This package is an exercise in minimalism. It supports a tiny subset of the features you're probably used to. The current focus is on honing the API, not adding bells and whistles. The plan is to support only what is absolutely necessary - which, in the grand scheme of things, is probably nothing at all.
+
+**Use it if:** You want a bare-metal, no-dependency solution for DOM reactivity and find the idea of that appealing.
+
+**Don't use it if:** You expect stability (breaking changes are coming before 1.0) or want it to be anything like React/Vue/Svelte/etc. (it won't be, ever).
+
 - Installation: `npm install @kpla/signals`
 
 #### Example:
@@ -132,7 +144,7 @@ main();
   <form id="create-edge-form" method="dialog" koppla-submit="createEdge">
     <label> Type: 
       <select name="type" koppla-value="edge_type_signal" id="edge-type-select">
-        <template koppla-for="edge in edge_types"> 
+        <template koppla-for="edge in edge_types"> <!-- loop must be degined on a template tag -->
           <option value={{edge.id}}>{{edge.name}}</option>
         </template>
       </select>
@@ -175,6 +187,51 @@ const parser = new DocumentParser(document.getElementById('app'), {
   driver: some_class_maybe
 });
 ```
+#### Control Flow & Rendering
+
+* `koppla-for`
+    * **Element:** `<template>`
+    * **Description:** Used to iterate over an array from the component's scope. The parser renders the content of the template for each item in the array.
+    * **Example:** `<template koppla-for="item in items">...</template>`
+
+#### Data Binding
+
+* `koppla-value`
+    * **Element:** `<input>`, `<select>`, `<textarea>`
+    * **Description:** Enables two-way data binding on form elements. The attribute's value must be the name of a `signal` in the component's scope. The parser will both update the element's value when the signal changes and update the signal when the user interacts with the element.
+    * **Example:** `<input koppla-value="message">`
+
+* **Reactive Attribute Expressions (`{{...}}`)**
+    * **Element:** Any HTML element.
+    * **Description:** The parser supports reactive expressions within the value of *any standard HTML attribute or text content*. It will automatically update the value whenever a signal used in the expression changes.
+    * **Example:** `<div class="{{ className }}">{{ textContent }}</div>`
+
+* **Special Boolean Attributes (`disabled`, `checked`, `selected`)**
+    * **Element:** Applicable elements like `<input>`, `<button>`, `<option>`.
+    * **Description:** When a reactive expression `{{...}}` is used with one of these attributes, the parser applies special boolean logic. If the expression evaluates to `true`, the attribute is added to the element. If it evaluates to `false`, the attribute is removed.
+    * **Example:** `<button disabled="{{ isLoading }}">Submit</button>`
+
+#### Event Handling
+
+The parser listens for attributes prefixed with `koppla-` followed by an event name.
+
+* `koppla-click`
+    * **Description:** Attaches a `click` event listener. The attribute's value must be the name of a function in the component's scope.
+    * **Example:** `<button koppla-click="doSomething">Click Me</button>`
+
+* `koppla-change`
+    * **Description:** Attaches a `change` event listener.
+    * **Example:** `<input type="checkbox" koppla-change="toggleSetting">`
+
+* `koppla-submit`
+    * **Description:** Attaches a `submit` event listener. This is typically used on a `<form>` element.
+    * **Example:** `<form koppla-submit="saveForm">...</form>`
+
+#### Component Definition
+
+* `type="module/koppla"`
+    * **Element:** `<script>`
+    * **Description:** This attribute does not control a rendered element directly but is essential for the parser. It is used to identify which `<script>` tag contains the logic for a declarative component, triggering the parser to process it.
 
 ### API Reference (Overview)
 - `@kpla/engine`

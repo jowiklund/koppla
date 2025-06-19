@@ -122,58 +122,69 @@ async function main() {
 main();
 ```
 2. Using the Signals & Document Parser (`@kpla/signals`)
-- Use Case: When you need an extremely lightweight, zero-dependency alternative to larger frameworks for adding simple reactivity to your HTML.
+- Use Case: When you need an extremely lightweight, zero-dependency (except for @kpla/assert, i don't count that) alternative to larger frameworks for adding simple reactivity to your HTML.
 - Installation: `npm install @kpla/signals`
 
 #### Example:
 ``` html
-<div id="app">
-  <input id="name-input" type="text">
-  <h1>Hello, {{name}}!</h1>
+<template> <!-- template tags are parsed and needs to be siblings with the script tag -->
+  <p>Choose connection type</p>
+  <form id="create-edge-form" method="dialog" koppla-submit="createEdge">
+    <label> Type: 
+      <select name="type" koppla-value="edge_type_signal" id="edge-type-select">
+        <template koppla-for="edge in edge_types"> 
+          <option value={{edge.id}}>{{edge.name}}</option>
+        </template>
+      </select>
+    </label>
+    <div class="btn-container">
+      <button id="close">Create</button>
+    </div>
+  </form>
+</template>
 
-  <ul>
-    <template koppla-for="$item in items">
-      <li>{{$item.text}}</li>
-    </template>
-  </ul>
-</div>
+<script type="module/koppla"> <!-- script tags with type module/koppla will be parsed -->
+  const edge_type_data = [...driver.graph.edge_types.values()].filter(i => i.id >= 0);
+  const [edge_types] = signal(edge_type_data); // for loop arrays needs to be wrapped in signals
+  const [edgeType, setEdgeType] = signal(edge_type_data[0]?.id || "0");
+
+  function createEdge(e) {
+    for (const new_edge of driver.new_edges) {
+      driver.graph.createEdge(
+        new_edge.start_handle,
+        new_edge.end_handle,
+        edgeType()
+      );
+    }
+  }
+
+  return { // Returned scope will be available in template
+    edge_types,
+    edge_type_signal: [edgeType, setEdgeType], // Binding input values requires a signal
+    createEdge
+  }
+</script>
 ```
+
 JavaScript:
 ``` javascript
-import { createSignal, createEffect, DocumentParser } from '@kpla/signals';
+import { DocumentParser } from '@kpla/signals';
 
 // 1. Initialize the parser on your root element
-const parser = new DocumentParser(document.getElementById('app'));
-
-// 2. Create signals by name. The parser will find and connect them.
-const [getName, setName] = parser.getOrCreateSignal('name', 'World');
-const [getItems, setItems] = parser.getOrCreateSignal('items', []);
-
-// 3. Bind the input to the 'name' signal
-document.getElementById('name-input').addEventListener('input', (e) => {
-  setName(e.target.value);
+const parser = new DocumentParser(document.getElementById('app'), {
+  driver: some_class_maybe
 });
-
-// 4. Run the parser to make the template reactive
-parser.parse();
-
-// 5. Now, any updates to the signals will automatically update the DOM
-setTimeout(() => {
-  setItems([
-    { text: 'First item' },
-    { text: 'Second item' }
-  ]);
-}, 1000);
 ```
 
 ### API Reference (Overview)
 - `@kpla/engine`
-    - `getEngine(): Promise<GraphEditor>`: Asynchronously loads the WASM module and returns a GraphEditor instance.
+    - `getEngine(wasm_url): Promise<GraphEditor>`: Asynchronously loads the WASM module and returns a GraphEditor instance.
     - `GraphEditor`: The main class for interacting with the graph.
         - `.createNode(data, x, y)`
         - `.createEdge(startHandle, endHandle, type)`
-        - `.deleteNode(handle)
-        - `.getNodes() / .getEdges()`
+        - `.deleteNode(handle)`
+        - `.getNodes()`
+        - `.getEdges()`
         - `.getRelations()`: Returns a list of relationships represented with you metadata. Use this to persist whatever data you want to derive from the connections made.
         - `.on(eventName, callback)`: Listen for events like node:create, world:update, etc.
 - `@kpla/canvas-driver`
@@ -183,9 +194,50 @@ setTimeout(() => {
 - `@kpla/signals`
     - `createSignal(initialValue)`: Creates a reactive state primitive. Returns a [getter, setter] tuple.
     - `createEffect(fn)`: Creates a function that re-runs whenever a signal it uses is updated.
+    - `createEffect(fn)`: Creates a function that re-runs whenever a signal it uses is updated.
+    - `computed(fn)`: Creates a computed value from signals
     - `DocumentParser`: Binds signals to your HTML.
-        - `.getOrCreateSignal(name, initialValue)`
+        - `constructor(root_element, providers)`: takes an element and an object with additional scope you want provided in the template.
         - `.parse()`: Scans the DOM and activates reactive bindings.
+
+#### `GraphEditor` events
+**Node Events**
+- `node:create`
+  - **Fired by:** `createNode()`
+  - **Description:** Occurs when a new node is created. The event payload includes the `node_handle`.
+- `node:update`
+  - **Fired by:** `setNodePosition()`
+  - **Description:** Occurs when a node's position is updated.
+- `node:delete`
+  - **Fired by:** `deleteNode()`
+  - **Description:** Occurs when a node is deleted. The event payload includes the `node_handle` of the deleted node.
+
+**Edge Events**
+- `edge:create`
+  - **Fired by:** `createEdge()`
+  - **Description:** Occurs when a new edge is created between two nodes. The payload contains the `start_handle`, `end_handle`, and `type`.
+- `edge:delete`
+  - **Fired by:** `deleteOutgoing()`
+  - **Description:** Occurs when the outgoing edges for a given node are deleted. The payload includes the handle of the node whose outgoing edges were deleted.
+
+**World Events**
+- `world:update`
+  - **Fired by:** `createNode()`, `pan()`, `zoom()`, `setNodePosition()`, `deleteNode()`, `deleteOutgoing()`, `createEdge()`
+  - **Description:** A general-purpose event that is fired whenever a significant change to the graph's state occurs, such as creating, deleting, or moving elements.
+- `world:pan`
+  - **Fired by:** `pan()`
+  - **Description:** Occurs specifically when the graph view is panned.
+- `world:zoom`
+  - **Fired by:** `zoom()`
+  - **Description:** Occurs specifically when the graph view is zoomed.
+
+**Metadata Events**
+- `meta:new_node_type`
+  - **Fired by:** `setNodeType()`
+  - **Description:** Occurs when a new node type is defined and added. The payload contains the `type` object.
+- `meta:new_edge_type`
+  - **Fired by:** `setEdgeType()`
+  - **Description:** Occurs when a new edge type is defined and added. The payload contains the `type` object.
 
 ### License
 This project is licensed under the MIT License. See the LICENSE file for details.

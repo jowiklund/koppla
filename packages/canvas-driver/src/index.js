@@ -1,6 +1,6 @@
 import { assert_is_dialog, assert_is_not_null } from "@kpla/assert";
 import { getEngine, GraphEditor, NodeShape } from "@kpla/engine";
-import { createSignal, DocumentParser } from "@kpla/signals";
+import { DocumentParser } from "@kpla/signals";
 
 /**
  * @typedef RunConfig
@@ -112,7 +112,9 @@ export class CanvasGUIDriver {
     assert_is_not_null(control_panel);
     this.control_panel = control_panel;
 
-    this.dom = new DocumentParser()
+    this.dom = new DocumentParser(document.body, {
+      driver: this
+    })
   }
 
   /**
@@ -169,14 +171,13 @@ export class CanvasGUIDriver {
     }
 
     this._registerControls();
-    this._registerSignals();
-
-    assert_is_not_null(this.dom);
-    this.dom.parse();
 
     this._drawInteractions()
 
     this.graph.loadGraph(graph_data);
+
+    assert_is_not_null(this.dom);
+    this.dom.parse();
 
     this._drawObjects();
     this.graph.on("world:update", this._drawObjects.bind(this));
@@ -212,45 +213,15 @@ export class CanvasGUIDriver {
       this.new_edges = [];
     })
 
-    const create_edge_form = document.getElementById("create-edge-form");
-    assert_is_not_null(create_edge_form);
-    create_edge_form.addEventListener("submit", this._createEdges.bind(this))
+    // const create_edge_form = document.getElementById("create-edge-form");
+    // assert_is_not_null(create_edge_form);
+    // create_edge_form.addEventListener("submit", this._createEdges.bind(this))
 
     this.container.addEventListener("dragover", (e) => {
       e.preventDefault();
       assert_is_not_null(e.dataTransfer);
       e.dataTransfer.dropEffect = "move";
     })
-  }
-
-  /** @private */
-  _createEdges() {
-    assert_is_not_null(this.dom);
-    assert_is_not_null(this.graph);
-    const signal = this.dom.signals.get("edge_type");
-    assert_is_not_null(signal);
-    const [event_type] = signal;
-    for (let i = 0; i < this.new_edges.length; i++) {
-      this.graph.createEdge(
-        this.new_edges[i].start_handle,
-        this.new_edges[i].end_handle,
-        event_type()
-      );
-    }
-    this.new_edges = [];
-  }
-
-  /** @private */
-  _registerSignals() {
-    assert_is_not_null(this.dom);
-    assert_is_not_null(this.graph);
-    this.dom.signals.set(
-      "edge_types",
-      createSignal(Array
-        .from(this.graph.edge_types.values())
-        .filter(item => item.id >= 0)
-      )
-    )
   }
 
   /**

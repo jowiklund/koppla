@@ -3,7 +3,7 @@
  * Exposes a small api for reactive states
  */
 
-import { assert_is_input, assert_is_not_null, assert_msg } from "@kpla/assert";
+import { assert_is_not_null } from "@kpla/assert";
 
 /**
  * @callback SignalGetter - Get the signal value
@@ -57,6 +57,24 @@ export function createSignal(value) {
 }
 
 /**
+ * Creates a reactive new read-only signal that computes its values based on other signals.
+ *
+ * @template T
+ * @param {() => T} getter_fn 
+ * @returns {SignalGetter}
+ */
+export function computed(getter_fn) {
+  const [computed_val, set_computed_val] = createSignal(undefined);
+
+  createEffect(() => {
+    const new_val = getter_fn()
+    set_computed_val(new_val);
+  })
+
+  return computed_val;
+}
+
+/**
  * @param {Function} fn
  */
 export function createEffect(fn) {
@@ -69,67 +87,114 @@ export function createEffect(fn) {
   effect();
 }
 
-/** @enum {string} */
-const Attributes = {
-  VALUE: "koppla-value",
-  TEXT: "koppla-text",
-  FOR: "koppla-for"
-}
-
 export class DocumentParser {
-  /**
- * @type {Map<string, Signal>}
- */
-  signals = new Map();
   /** @type {HTMLElement | Document | DocumentFragment} */
   root = document;
+  /** @type {object} */
+  providers;
   expression_regex = /\{\{(.*)\}\}/g;
 
-
   /**
-   * Get a signal given its name in the document
-   * @param {string} name
-   * @returns {Signal}
+   * @param {HTMLElement | Document} [root_element]
+   * @param {object} [providers]
    */
-  get(name) {
-    assert_msg(this.signals.has(name), `No input is bound to ${name}`)
-    const signal = this.signals.get(name);
-    assert_is_not_null(signal)
-    return signal;
-  }
-
-  /**
-   * @private
-   * @param {string} name
-   * @param {*} initial_value
-   * @returns {Signal}
-   */
-  _getOrCreateSignal(name, initial_value) {
-    if (this.signals.has(name)) {
-      const signal = this.signals.get(name)
-      assert_is_not_null(signal);
-      return signal;
-    } else {
-      const signal = createSignal(initial_value);
-      this.signals.set(name, signal);
-      return signal;
-    }
+  constructor(root_element = document, providers = {}) {
+    this.root = root_element;
+    this.providers = providers;
   }
 
   parse() {
-    /** @type {NodeListOf<HTMLTemplateElement>} */
-    const templates = this.root.querySelectorAll(`template[${Attributes.FOR}]`);
-    for (const template of templates) {
-      const expression = template.getAttribute(Attributes.FOR);
+    const components = this.root.querySelectorAll(`script[type="module/koppla"]`)
+    for (const script of components) {
+      if (script.parentElement) {
+        this._parseComponent(script.parentElement);
+      }
+    }
+  }
+
+  /**
+   * @param {HTMLElement} component_root 
+   */
+  _parseComponent(component_root) {
+    const template = component_root.querySelector("template");
+    const script = component_root.querySelector(`script[type="module/koppla"]`);
+    assert_is_not_null(template);
+    assert_is_not_null(script);
+
+    const script_content = script.textContent || "";
+
+    try {
+      const modified_script = `return (function() { ${script_content} })();`;
+
+      const provider_names = Object.keys(this.providers);
+      const provider_values = Object.values(this.providers);
+
+      const component_fn = new Function(
+        "signal",
+        "computed",
+        "effect",
+        ...provider_names,
+        modified_script
+      );
+
+      const reactive_scope = component_fn(
+        createSignal,
+        computed,
+        createEffect,
+        ...provider_values
+      );
+
+      this._bindTemplate(template, reactive_scope);
+
+    } catch(e) {
+      console.error("Error parsing component", e, component_root);
+    }
+  }
+
+  /**
+   * @param {HTMLTemplateElement} template 
+   * @param {object} scope 
+   */
+  _bindTemplate(template, scope) {
+    const content = template.content.cloneNode(true);
+
+    if (!isFragmentNode(content)) {
+      return;
+    }
+
+    this._bindForLoops(content, scope);
+
+    this._bindTextAndAttributes(content, scope);
+    this._bindEventListeners(content, scope);
+
+    assert_is_not_null(template.parentNode);
+    template.parentNode.replaceChild(content, template);
+  }
+
+  /**
+   * Finds and activates `for` loop directives within a node.
+   * @private
+   * @param {DocumentFragment | HTMLElement} root_node
+   * @param {{[key: string]: any}} parent_scope
+   */
+  _bindForLoops(root_node, parent_scope) {
+    const attr = "koppla-for";
+    const loop_templates = root_node.querySelectorAll(`template[${attr}]`);
+    for (const template of loop_templates) {
+      if (!(template instanceof HTMLTemplateElement)) continue;
+      const expression = template.getAttribute(attr);
       assert_is_not_null(expression);
       const match = expression.match(/(\S+)\s+in\s+(\S+)/);
       if (!match) continue;
-      const [, item_name, array_name] = match;
-      const [getArray] = this._getOrCreateSignal(array_name, []);
 
-      const start_anchor = document.createComment(`for: ${array_name} start`);
-      const end_anchor = document.createComment(`for: ${array_name} end`);
-      const template_content = template.content;
+      const [_, item_name, array_name] = match;
+
+      const array_signal_getter = parent_scope[array_name.replace(/\(\)/g, '')];
+      if (typeof array_signal_getter !== "function") continue;
+
+      const start_anchor = document.createComment(`koppla-for: ${expression} start`)
+      const end_anchor = document.createComment(`koppla-for: ${expression} end`)
+      const loop_content = template.content;
 
       assert_is_not_null(template.parentNode);
       template.parentNode.insertBefore(start_anchor, template);
@@ -137,175 +202,165 @@ export class DocumentParser {
       template.remove();
 
       createEffect(() => {
-        const items = getArray()
+        const items = array_signal_getter();
         if (!Array.isArray(items)) return;
-        let current_node = start_anchor.nextSibling;
-        while (current_node && current_node !== end_anchor) {
-          const next_node = current_node.nextSibling;
-          current_node.remove();
-          current_node = next_node;
+        let node = start_anchor.nextSibling;
+        while (node && node !== end_anchor) {
+          const next_node = node.nextSibling;
+          node.remove();
+          node = next_node;
         }
 
         const fragment = document.createDocumentFragment();
         for (const item of items) {
-          const clone = template_content.cloneNode(true);
-          if (!isElementNode(clone) && !isFragmentNode(clone)) return;
-          const context = {[item_name]: item};
-          this._populateInstance(clone, context)
+          const clone = loop_content.cloneNode(true);
+          if (!(clone instanceof DocumentFragment)) continue;
+          const item_scope = {...parent_scope, [item_name]: item};
+
+          this._bindForLoops(clone, item_scope);
+          this._bindTextAndAttributes(clone, item_scope);
+          this._bindEventListeners(clone, item_scope);
+
           fragment.appendChild(clone);
         }
-
         assert_is_not_null(end_anchor.parentNode);
         end_anchor.parentNode.insertBefore(fragment, end_anchor);
-      });
+      })
     }
-
-    const elements = this.root.querySelectorAll(`
-[${Attributes.VALUE}],
-[${Attributes.TEXT}],
-[${Attributes.FOR}]
-`)
-
-    for (let el of elements) {
-      if (el.hasAttribute(Attributes.VALUE)) {
-        assert_is_input(el);
-        const signal_name = el.getAttribute(Attributes.VALUE);
-        assert_is_not_null(signal_name);
-        const [_, setValue] = this._getOrCreateSignal(signal_name, el.value);
-        setValue(el.value);
-
-        el.addEventListener("input", (e) => {
-          assert_is_not_null(e.target);
-          assert_is_input(e.target);
-          setValue(e.target.value);
-        });
-      }
-      if (el.hasAttribute(Attributes.TEXT)) {
-        const signal_name = el.getAttribute(Attributes.TEXT);
-        assert_is_not_null(signal_name);
-        const [getText] = this._getOrCreateSignal(signal_name, null);
-        createEffect(() => {
-          el.textContent = getText();
-        });
-      }
-    }
-
-    this._parseReactiveBindings(this.root);
   }
 
   /**
-   * @param {HTMLElement | DocumentFragment | Document} root_node 
+   * @private
+   * @param {DocumentFragment | HTMLElement} root_node
+   * @param {{[key: string]: any}} scope
    */
-  _parseReactiveBindings(root_node) {
-    const walker = document.createTreeWalker(root_node, NodeFilter.SHOW_TEXT);
-    const text_nodes = [];
-    while (walker.nextNode()) text_nodes.push(walker.currentNode);
+  _bindTextAndAttributes(root_node, scope) {
+    const elements = root_node.querySelectorAll("*");
 
-    for (const node of text_nodes) {
-      const original_text = node.nodeValue;
-      assert_is_not_null(original_text)
-      if (!original_text.includes("{{")) continue;
+    for (const element of elements) {
+      if (element.hasAttribute("koppla-value")) {
+        const signal_name = element.getAttribute("koppla-value");
+        assert_is_not_null(signal_name)
 
-      const dependencies = [...original_text.matchAll(this.expression_regex)]
-      .map(match => match[1].trim());
-
-      createEffect(() => {
-        /** @type {{[key:string]: any}}*/
-        const context = {};
-        for (const dep of dependencies) {
-          const [getValue] = this._getOrCreateSignal(dep, "");
-          context[dep] = getValue();
+        const signal = scope[signal_name];
+        if (Array.isArray(signal) && typeof signal[0] === "function") {
+          const [getter] = scope[signal_name] || [];
+          if (getter && (
+            element instanceof HTMLInputElement ||
+              element instanceof HTMLSelectElement ||
+              element instanceof HTMLTextAreaElement
+          )) {
+            createEffect(() => {
+              if (element.type === 'checkbox' && "checked" in element) {
+                element.checked = getter();
+              } else {
+                element.value = getter();
+              }
+            });
+          }
         }
-        node.nodeValue = this._resolveExpression(original_text, context);
-      });
+      }
+
+      for (const attr of [...element.attributes]) {
+        if (attr.name === 'koppla-for' || attr.name.startsWith("koppla-")) continue;
+
+        if (attr.value.includes("{{")) {
+          const original_attr_value = attr.value;
+          createEffect(() => {
+            const new_value = this._resolveExpressions(original_attr_value, scope);
+            if (
+              ["true", "false"].includes(new_value) &&
+              ["selected", "disabled", "checked"].includes(attr.name)
+            ) {
+              if (new_value === "true") element.setAttribute(attr.name, "");
+              else element.removeAttribute(attr.name);
+            } else {
+              element.setAttribute(attr.name, new_value);
+            }
+          })
+        }
+      }
     }
 
-    const all_elements = isElementNode(root_node)
-      ? [root_node, ...root_node.querySelectorAll("*")]
-      : [...root_node.querySelectorAll("*")]
-
-    for (const element of all_elements) {
-      for (const attr of [...element.attributes]) {
-        const original_attr_value = attr.value;
-        if (!original_attr_value.includes("{{")) continue;
-
-        const dependencies = [...original_attr_value.matchAll(this.expression_regex)]
-        .map(match => match[1].trim());
-
+    const walker = document.createTreeWalker(root_node, NodeFilter.SHOW_TEXT);
+    /** @type {Node | null} */
+    let text_node;
+    while (text_node = walker.nextNode()) {
+      if (text_node.nodeValue && text_node.nodeValue.includes("{{")) {
+        const original_text = text_node.nodeValue;
         createEffect(() => {
-        /** @type {{[key:string]: any}}*/
-          const context = {};
-          for (const dep of dependencies) {
-            const [getValue] = this._getOrCreateSignal(dep, "");
-            context[dep] = getValue();
-          }
-          element.setAttribute(attr.name, this._resolveExpression(original_attr_value, context))
+          assert_is_not_null(text_node);
+          text_node.nodeValue = this._resolveExpressions(original_text, scope);
         })
       }
     }
   }
 
-
   /**
- * @private
- * @param {DocumentFragment| HTMLElement} root_node - The node to populate
- * @param {object} context - The data object for this instance
- */
-  _populateInstance(root_node, context) {
-    /** @type {Array<Element>} */
-    const all_elements = isElementNode(root_node)
-      ? [root_node, ...root_node.querySelectorAll("*")]
-      : [...root_node.querySelectorAll("*")];
+   * @private
+   * @param {DocumentFragment | HTMLElement} root_node
+   * @param {{[key:string]: any}} scope 
+   */
+  _bindEventListeners(root_node, scope) {
+    const events = ["click", "change", "submit"];
 
-    for (const element of all_elements) {
-      for (const attr of [...element.attributes]) {
-        if (attr.value.includes("{{")) {
-          const new_value = this._resolveExpression(attr.value, context);
-          element.setAttribute(attr.name, new_value);
+    for (const event_name of events) {
+      const attr_name = `koppla-${event_name}`;
+      const elements_with_listeners = root_node.querySelectorAll(`[${attr_name}]`);
+      for (const element of elements_with_listeners) {
+        const handler_name = element.getAttribute(attr_name);
+        if (handler_name && typeof scope[handler_name] === "function") {
+          element.addEventListener(event_name, (event) => scope[handler_name](event));
         }
       }
     }
 
-    const walker = document.createTreeWalker(root_node, NodeFilter.SHOW_TEXT);
-    let text_node;
-
-    while (text_node = walker.nextNode()) {
-      assert_is_not_null(text_node.nodeValue);
-      if (text_node.nodeValue.includes("{{")) {
-        text_node.nodeValue = this._resolveExpression(text_node.nodeValue, context);
+    const value_bound_elements = root_node.querySelectorAll('[koppla-value]');
+    for (const element of value_bound_elements) {
+      const signal_name = element.getAttribute("koppla-value");
+      assert_is_not_null(signal_name);
+      const [, setter] = scope[signal_name] || [];
+      if (setter && (element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLTextAreaElement)) {
+        const eventName = (element.type === 'checkbox' || element.tagName === 'SELECT') ? 'change' : 'input';
+        element.addEventListener(eventName, (event) => {
+          const target = /** @type {HTMLInputElement} */ (event.target);
+          const value = target.type === 'checkbox' ? target.checked : target.value;
+          setter(value);
+        });
       }
     }
   }
+
   /**
- * @private
- * @param {string} template - The template string (e.g., "class-{{status}}").
- * @param {object} context - The data object to get values from (e.g., an item from a loop).
- * @returns {string} - The resolved string.
- */
-_resolveExpression(template, context) {
+   * @private
+   * @param {string} template 
+   * @param {{[key: string]: any}} scope 
+   */
+  _resolveExpressions(template, scope) {
     return template.replace(this.expression_regex, (_, expression) => {
       expression = expression.trim();
-      const props = expression.split(".");
-      /** @type {any} */
-      let value = context;
 
-      for (const prop of props) {
-        if (value === undefined || value === null) {
-          value = undefined;
-          break;
+      const scope_keys = Object.keys(scope);
+      const scope_values = Object.values(scope);
+
+      try {
+        const evaluator = new Function(...scope_keys, `return ${expression}`);
+        const result = evaluator(...scope_values);
+
+        if (result === undefined || result === null) {
+          return "";
         }
-        value = value[prop];
-      }
 
-      if (value === undefined || value === null) {
+        if (typeof result === 'object') {
+           return "";
+        }
+
+        return String(result);
+      } catch (e) {
+        console.warn(`Error evaluating expression: "${expression}"`, e);
         return "";
       }
-
-      if (typeof value === 'object') {
-        return "";
-      }
-      return String(value);
-    });
+    })
   }
 }
 
@@ -328,6 +383,22 @@ export function isElementNode(el) {
 export function isFragmentNode(el) {
   if (!el) return false;
   if (typeof el == "object" && "nodeType" in el && el.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * @typedef {Object} TextNode
+ * @property {string} nodeValue
+ */
+/**
+ * @param {unknown} el 
+ * @returns {boolean}
+ */
+export function isTextNode(el) {
+  if (!el) return false;
+  if (typeof el == "object" && "nodeType" in el && el.nodeType === Node.TEXT_NODE) {
     return true;
   }
   return false;

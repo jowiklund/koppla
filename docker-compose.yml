@@ -1,0 +1,7 @@
+services:
+  koppla-demo:
+    build: .
+    container_name: koppla_demo_app
+    ports:
+      - "6969:80"
+    restart: unless-stopped

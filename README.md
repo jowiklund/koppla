@@ -24,6 +24,10 @@ Koppla is not a monolithic framework. It's a collection of packages that you can
 #### The Full Graph Editor
 This is the fastest way to get a complete, interactive graph editor running. This approach uses all the modules together.
 
+
+*A point on the implementation: *
+My first attempt at this driver was slow because it redrew everything all the time. The sollution was to move towards retained rendering over immediate. I split the canvas into three layers: one for the static grid, one for the nodes and edges, and a third for live interactions like dragging. This way, only small parts of the view update at once, triggered by events instead of a constant loop. I also learned that using many boolean flags like is_dragging to manage user actions gets complicated. A future improvement is to replace that system with a cleaner and more reliable state machine.
+
 <picture>
     <img alt="Graph" src="assets/graph.png">
 </picture>

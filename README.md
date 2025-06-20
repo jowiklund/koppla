@@ -12,7 +12,7 @@
 
 <div align="center">
   <picture>
-    <img alt="Connect everything" src="assets/kopplaeverything.png" width="450">
+    <img alt="Connect everything" src="assets/kopplaeverything.png">
   </picture>
 </div>
 

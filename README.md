@@ -10,6 +10,12 @@
 <p align="center">k'ɔpːla</p>
 <h4 align="center">Connect everything</h4>
 
+<div align="center">
+  <picture>
+    <img alt="Connect everything" src="assets/kopplaeverything.png" width="450">
+  </picture>
+</div>
+
 <h2 align="center">WORK IN PROGRESS - NOTHING IS FINALIZED</h2>
 
 Koppla is a set of powerful, independent JavaScript modules designed to work together or separately. At its core is a high-performance graph engine powered by WebAssembly, but its components can be used to create everything from a full-featured graph editor to a simple, reactive web page.

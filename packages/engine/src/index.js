@@ -161,10 +161,16 @@ export class GraphEditor extends EventEmitter {
 
   /**
    * @param {NodeType} type
-   * @returns void
+   * @param {{[key: string]: string}} colors
    */
-  setNodeType(type) {
+  setNodeType(type, colors = {}) {
     this.node_types.set(type.id, type)
+    if (Object.keys(colors).includes(type.stroke_color)) {
+      type.stroke_color = colors[type.stroke_color]
+    }
+    if (Object.keys(colors).includes(type.fill_color)) {
+      type.fill_color = colors[type.fill_color]
+    }
     this.emit("meta:new_node_type", {type})
   }
 
@@ -208,9 +214,13 @@ export class GraphEditor extends EventEmitter {
 
   /**
    * @param {EdgeType} type
+   * @param {{[key: string]: string}} colors 
    */
-  setEdgeType(type) {
+  setEdgeType(type, colors = {}) {
     this.edge_types.set(type.id, type);
+    if (Object.keys(colors).includes(type.stroke_color)) {
+      type.stroke_color = colors[type.stroke_color]
+    }
     this.emit("meta:new_edge_type", {type})
   }
 

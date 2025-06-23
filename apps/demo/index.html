@@ -44,32 +44,72 @@
 			</script>
 		</dialog>
 
-		<dialog id="edit-node-dialog" koppla-ref="dialog">
+		<dialog id="edit-node-dialog">
 			<template>
-				{{selectedNode() && selectedNode().name}}
+				<form method="dialog">
+					<input class="invisible-input" koppla-value="node_name" />
+					<hr>
+				</form>
 			</template>
 			<script type="module/koppla">
 				const [selectedNode, setSelectedNode] = signal(null);
+				const [nodeName, setNodeName] = signal("");
 				effect(() => {
 					console.log("Effect: ", selectedNode());
 				})
 
 				root.addEventListener("close", (e) => {
 					setSelectedNode(null);
+					setNodeName("");
 				})
 
 				driver.on("dblclick", (e) => {
 					if (e.node != null) {
 						setSelectedNode(e.node);
+						setNodeName(e.node.name);
 						root.showModal();
 					}
 				});
 
 				return {
-					selectedNode
+					selectedNode: [selectedNode, setSelectedNode],
+					node_name: [nodeName, setNodeName]
 				}
 			</script>
 		</dialog>
+
+		<div class="tooltips-btn">
+			<template>
+				<dialog koppla-ref="dialog">
+					<div class="tooltips">
+						<div><span>ctrl</span> + <span>drag</span>: pan</div>
+						<div><span>shift</span> + <span>drag</span>: connect</div>
+						<div><span>del</span>: delete selected</div>
+						<div><span>backspace</span>: delete selected connections</div>
+						<div><span>scroll</span>: zoom</div>
+					</div>
+				</dialog>
+				<button koppla-ref="btn" koppla-click="openToolTips">?</button>
+			</template>
+			<script type="module/koppla">
+				const [getDialog, setDialog] = signal(null);
+
+				function openToolTips() {
+					if (getDialog() != null) {
+						getDialog().showModal()
+					}
+				}
+
+				effect(() => {
+					console.log(this.dialog)
+				})
+				return {
+					openToolTips,
+					dialog: [getDialog, setDialog]
+				}
+			</script>
+		</div>
+
 
 		<div id="control-panel" class="control-panel"></div>
 		<div id="canvas-container" class="canvas-container"></div>
@@ -249,4 +289,3 @@
 		</script>
 	</body>
 </html>
-

@@ -32,6 +32,20 @@ import { EventEmitter } from "./event-emitter.js";
  * @property {import("@kpla/engine").Node | null} node
  */
 
+const styles = getComputedStyle(document.body)
+
+/**
+ * @enum {string}
+ * @readonly
+ */
+const Colors = {
+  background_primary: styles.getPropertyValue("--background-primary"),
+  background_secondary: styles.getPropertyValue("--background-secondary"),
+  text_primary: styles.getPropertyValue("--text-primary"),
+  text_secondary: styles.getPropertyValue("--text-primary"),
+  accent_color: styles.getPropertyValue("--accent-color"),
+  accent_color_op: styles.getPropertyValue("--accent-color-op"),
+}
 
 export class CanvasGUIDriver extends EventEmitter {
   /** @type {HTMLElement} */
@@ -65,7 +79,7 @@ export class CanvasGUIDriver extends EventEmitter {
   /** @type {Set<import("@kpla/engine").EdgeHandle>} */
   moving_edges = new Set();
 
-  selection_color = "#089fff";
+  selection_color = Colors.accent_color;
 
   current_mouse_x = 0;
   current_mouse_y = 0;
@@ -173,11 +187,11 @@ export class CanvasGUIDriver extends EventEmitter {
     this.graph.coordinate_rounder = this._snapToGrid.bind(this);
 
     for (let type of config.edge_types) {
-      this.graph.setEdgeType(type);
+      this.graph.setEdgeType(type, Colors);
     }
 
     for (let type of config.node_types) {
-      this.graph.setNodeType(type);
+      this.graph.setNodeType(type, Colors);
     }
 
     this._registerControls();
@@ -564,7 +578,7 @@ export class CanvasGUIDriver extends EventEmitter {
             line_dash: [5,5],
             metadata: "",
             stroke_width: 1,
-            stroke_color: "#888888",
+            stroke_color: Colors.text_primary,
             name: "",
             id: 0
           }
@@ -574,8 +588,8 @@ export class CanvasGUIDriver extends EventEmitter {
 
     if (this.is_selecting) {
       layer.ctx.beginPath(); //#089fff
-      layer.ctx.strokeStyle = this.selection_color;
-      layer.ctx.fillStyle = `rgba(8, 190, 255, 0.1)`
+      layer.ctx.strokeStyle = Colors.accent_color;
+      layer.ctx.fillStyle = Colors.accent_color_op;
       layer.ctx.moveTo(this.selection_start_x, this.selection_start_y);
       layer.ctx.lineTo(this.selection_start_x, this.current_mouse_y);
       layer.ctx.lineTo(this.current_mouse_x, this.current_mouse_y);
@@ -662,7 +676,7 @@ export class CanvasGUIDriver extends EventEmitter {
    * @param {Array<import("@kpla/engine").Edge>} bundle 
    */
   _drawEdgeBundle(bundle, layer) {
-    layer.ctx.strokeStyle = "#333333";
+    layer.ctx.strokeStyle = Colors.text_primary;
     layer.ctx.lineWidth = 2;
 
     const bundleSize = bundle.length;
@@ -745,11 +759,11 @@ export class CanvasGUIDriver extends EventEmitter {
     layer.ctx.stroke();
 
     layer.ctx.beginPath();
-    layer.ctx.fillStyle = "#fff";
+    layer.ctx.fillStyle = Colors.background_primary;
     layer.ctx.rect(x - (node.name.length / 2) * 8, y + this.config.node_radius + 5, node.name.length * 8, 20);
     layer.ctx.fill();
 
-    layer.ctx.fillStyle = "#000";
+    layer.ctx.fillStyle = Colors.text_primary;
     layer.ctx.font = "12px monospace";
     layer.ctx.textAlign = "center";
     layer.ctx.textBaseline = "top";
@@ -798,7 +812,7 @@ function drawWorldGrid(ctx, canvasWidth, canvas_height, grid_size, graph) {
 
   const dotRadius = 1;
 
-  ctx.fillStyle = "#ebebeb";
+  ctx.fillStyle = Colors.background_secondary;
 
   for (let x = startX; x < worldViewBottomRight.x; x += grid_size) {
     for (let y = startY; y < worldViewBottomRight.y; y += grid_size) {
@@ -935,11 +949,11 @@ function drawEdgeOrthogonal(
     const midX = sx + (ex - sx) / 2 + offsetAmount;
     const midY = sy + (ey - sy) / 2 + offsetAmount;
     ctx.beginPath();
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = Colors.background_primary;
     ctx.rect(midX - (edge_type.name.length / 2) * 8, midY - 10, edge_type.name.length * 8, 20);
     ctx.fill();
 
-    ctx.fillStyle = "#6e6e6e";
+    ctx.fillStyle = Colors.text_secondary;
     ctx.font = "12px monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
@@ -972,7 +986,7 @@ function drawEdgeOrthogonal(
     ctx.lineTo(sx + 5, sy + 35);
   }
 
-  ctx.fillStyle = "#FFFFFF";
+  ctx.fillStyle = Colors.background_primary;
   ctx.fill();
   ctx.stroke();
 }

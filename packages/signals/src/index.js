@@ -273,7 +273,12 @@ export class DocumentParser {
       if (element.hasAttribute("koppla-ref")) {
         const ref_name = element.getAttribute(Attr.REF);
         assert_is_not_null(ref_name);
-        scope[ref_name] = element;
+
+        if (isSignal(scope[ref_name])) {
+          scope[ref_name][1](element)
+        } else {
+          scope[ref_name] = createSignal(element)
+        }
         element.removeAttribute(Attr.REF)
       }
 

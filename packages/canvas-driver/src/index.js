@@ -1,6 +1,7 @@
 import { assert_is_dialog, assert_is_not_null } from "@kpla/assert";
 import { getEngine, GraphEditor, NodeShape } from "@kpla/engine";
-import { DocumentParser } from "@kpla/signals";
+import { createSignal, DocumentParser } from "@kpla/signals";
+import { EventEmitter } from "./event-emitter.js";
 
 /**
  * @typedef RunConfig
@@ -24,7 +25,15 @@ import { DocumentParser } from "@kpla/signals";
  * @property {number} [grid_size]
  */
 
-export class CanvasGUIDriver {
+/**
+ * @typedef {Object} PositionData
+ * @property {import("@kpla/engine").Coords} screen
+ * @property {import("@kpla/engine").Coords} mouse
+ * @property {import("@kpla/engine").Node | null} node
+ */
+
+
+export class CanvasGUIDriver extends EventEmitter {
   /** @type {HTMLElement} */
   container;
   /** @type {HTMLDialogElement} */
@@ -84,6 +93,7 @@ export class CanvasGUIDriver {
    * @param {CanvasDriverOptions} opts
    */
   constructor(opts) {
+    super();
     assert_is_not_null(opts.control_panel_id);
     assert_is_not_null(opts.container_id);
     assert_is_not_null(opts.edge_dialog_id);
@@ -208,6 +218,7 @@ export class CanvasGUIDriver {
     this.container.addEventListener("mousemove", this._mouseMove.bind(this));
     this.container.addEventListener("wheel", this._wheel.bind(this));
     this.container.addEventListener("mouseup", this._mouseUp.bind(this));
+    this.container.addEventListener("dblclick", this._emitDoubleClick.bind(this));
 
     this.edge_dialog.addEventListener("close", () => {
       this.new_edges = [];
@@ -222,6 +233,14 @@ export class CanvasGUIDriver {
       assert_is_not_null(e.dataTransfer);
       e.dataTransfer.dropEffect = "move";
     })
+  }
+
+  /**
+   * @param {MouseEvent} e
+   */
+  _emitDoubleClick(e) {
+    const pos = this._getPositionData({x: e.clientX, y: e.clientY});
+    this.emit("dblclick", pos);
   }
 
   /**
@@ -368,32 +387,24 @@ export class CanvasGUIDriver {
    */
   _mouseDown(e) {
     assert_is_not_null(this.graph);
-    const rect = this.container.getBoundingClientRect();
+    const pos = this._getPositionData({
+      x: e.clientX,
+      y: e.clientY
+    })
 
-    const screen_x = e.clientX - rect.left;
-    const screen_y = e.clientY - rect.top;
-
-    const world_coords = this.graph.screenToWorld({x: screen_x, y: screen_y}, false);
-    const mouse_x = world_coords.x;
-    const mouse_y = world_coords.y;
+    this.emit("click", pos);
 
     if (e.ctrlKey) {
       this.is_panning = true;
-      this.pan_start_x = screen_x;
-      this.pan_start_y = screen_y;
+      this.pan_start_x = pos.screen.x;
+      this.pan_start_y = pos.screen.y;
       this.container.style.cursor = "move";
       return;
     }
 
-    const nodes = this.graph.getNodes();
-    for (let i = nodes.length - 1; i >= 0; i--) {
-      const node = nodes[i];
-      const dx = Math.abs(mouse_x - node.x);
-      const dy = Math.abs(mouse_y - node.y);
-
-      if (dx <= this.config.node_radius && dy <= this.config.node_radius) {
-        if (!this.selected_node_handles.includes(node.handle)) {
-          this.selected_node_handles = [node.handle]
+    if (pos.node) {
+        if (!this.selected_node_handles.includes(pos.node.handle)) {
+          this.selected_node_handles = [pos.node.handle]
         }
         if (e.shiftKey) {
           this.is_connecting = true;
@@ -403,14 +414,13 @@ export class CanvasGUIDriver {
           for (let handle of this.selected_node_handles) {
             const node = this.graph.getNode(handle);
             assert_is_not_null(node);
-            const dx = mouse_x - node.x;
-            const dy = mouse_y - node.y;
+            const dx = pos.mouse.x - node.x;
+            const dy = pos.mouse.y - node.y;
             this.drag_offsets.set(handle, {dx, dy})
           }
           this.container.style.cursor = "grabbing";
         }
-        return;
-      }
+      return;
     }
 
     if (this.is_dragging) {
@@ -430,9 +440,50 @@ export class CanvasGUIDriver {
 
     this.selected_node_handles = [];
     this.is_selecting = true;
-    this.selection_start_x = mouse_x;
-    this.selection_start_y = mouse_y;
+    this.selection_start_x = pos.mouse.x;
+    this.selection_start_y = pos.mouse.y;
   }
+
+  /**
+   * @param {import("@kpla/engine").Coords} mouse_coords 
+   * @returns {PositionData}
+   */
+  _getPositionData(mouse_coords)  {
+    assert_is_not_null(this.graph);
+    const rect = this.container.getBoundingClientRect();
+
+    const screen_x = mouse_coords.x - rect.left;
+    const screen_y = mouse_coords.y - rect.top;
+
+    const {x, y} = this.graph.screenToWorld({x: screen_x, y: screen_y}, false);
+
+    const coords = {
+      mouse: {x,y},
+      screen: {
+        x: screen_x,
+        y: screen_y
+      }
+    }
+
+    const nodes = this.graph.getNodes();
+    for (let i = nodes.length - 1; i >= 0; i--) {
+      const node = nodes[i];
+      const dx = Math.abs(x - node.x);
+      const dy = Math.abs(y - node.y);
+
+      if (dx <= this.config.node_radius && dy <= this.config.node_radius) {
+        return {
+          node,
+          ...coords
+        }
+      }
+    }
+    return {
+      node: null,
+      ...coords
+    }
+  }
+
   /**
    * @private
    * @param {MouseEvent} e 

@@ -39,7 +39,34 @@
 				return {
 					edge_types,
 					edge_type_signal: [edgeType, setEdgeType],
-					createEdge
+					createEdge,
+				}
+			</script>
+		</dialog>
+
+		<dialog id="edit-node-dialog" koppla-ref="dialog">
+			<template>
+				{{selectedNode() && selectedNode().name}}
+			</template>
+			<script type="module/koppla">
+				const [selectedNode, setSelectedNode] = signal(null);
+				effect(() => {
+					console.log("Effect: ", selectedNode());
+				})
+
+				root.addEventListener("close", (e) => {
+					setSelectedNode(null);
+				})
+
+				driver.on("dblclick", (e) => {
+					if (e.node != null) {
+						setSelectedNode(e.node);
+						root.showModal();
+					}
+				});
+
+				return {
+					selectedNode
 				}
 			</script>
 		</dialog>

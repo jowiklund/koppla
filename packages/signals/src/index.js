@@ -87,6 +87,15 @@ export function createEffect(fn) {
   effect();
 }
 
+/**
+ * @enum {string}
+ */
+const Attr = {
+  VALUE: "koppla-value",
+  FOR: "koppla-for",
+  REF: "koppla-ref",
+}
+
 export class DocumentParser {
   /** @type {HTMLElement | Document | DocumentFragment} */
   root = document;
@@ -133,6 +142,7 @@ export class DocumentParser {
         "signal",
         "computed",
         "effect",
+        "root",
         ...provider_names,
         modified_script
       );
@@ -141,6 +151,7 @@ export class DocumentParser {
         createSignal,
         computed,
         createEffect,
+        component_root,
         ...provider_values
       );
 
@@ -178,11 +189,10 @@ export class DocumentParser {
    * @param {{[key: string]: any}} parent_scope
    */
   _bindForLoops(root_node, parent_scope) {
-    const attr = "koppla-for";
-    const loop_templates = root_node.querySelectorAll(`template[${attr}]`);
+    const loop_templates = root_node.querySelectorAll(`template[${Attr.FOR}]`);
     for (const template of loop_templates) {
       if (!(template instanceof HTMLTemplateElement)) continue;
-      const expression = template.getAttribute(attr);
+      const expression = template.getAttribute(Attr.FOR);
       assert_is_not_null(expression);
       const match = expression.match(/(\S+)\s+in\s+(\S+)/);
       if (!match) continue;
@@ -192,8 +202,8 @@ export class DocumentParser {
       const array_signal_getter = parent_scope[array_name.replace(/\(\)/g, '')];
       if (typeof array_signal_getter !== "function") continue;
 
-      const start_anchor = document.createComment(`koppla-for: ${expression} start`)
-      const end_anchor = document.createComment(`koppla-for: ${expression} end`)
+      const start_anchor = document.createComment(`${Attr.FOR}: ${expression} start`)
+      const end_anchor = document.createComment(`${Attr.FOR}: ${expression} end`)
       const loop_content = template.content;
 
       assert_is_not_null(template.parentNode);
@@ -238,12 +248,11 @@ export class DocumentParser {
     const elements = root_node.querySelectorAll("*");
 
     for (const element of elements) {
-      if (element.hasAttribute("koppla-value")) {
-        const signal_name = element.getAttribute("koppla-value");
+      if (element.hasAttribute(Attr.VALUE)) {
+        const signal_name = element.getAttribute(Attr.VALUE);
         assert_is_not_null(signal_name)
 
-        const signal = scope[signal_name];
-        if (Array.isArray(signal) && typeof signal[0] === "function") {
+        if (isSignal(scope[signal_name])) {
           const [getter] = scope[signal_name] || [];
           if (getter && (
             element instanceof HTMLInputElement ||
@@ -261,8 +270,15 @@ export class DocumentParser {
         }
       }
 
+      if (element.hasAttribute("koppla-ref")) {
+        const ref_name = element.getAttribute(Attr.REF);
+        assert_is_not_null(ref_name);
+        scope[ref_name] = element;
+        element.removeAttribute(Attr.REF)
+      }
+
       for (const attr of [...element.attributes]) {
-        if (attr.name === 'koppla-for' || attr.name.startsWith("koppla-")) continue;
+        if (attr.name.startsWith("koppla-")) continue;
 
         if (attr.value.includes("{{")) {
           const original_attr_value = attr.value;
@@ -285,15 +301,50 @@ export class DocumentParser {
     const walker = document.createTreeWalker(root_node, NodeFilter.SHOW_TEXT);
     /** @type {Node | null} */
     let text_node;
+    const nodes_to_process = [];
     while (text_node = walker.nextNode()) {
       if (text_node.nodeValue && text_node.nodeValue.includes("{{")) {
-        const original_text = text_node.nodeValue;
-        createEffect(() => {
-          assert_is_not_null(text_node);
-          text_node.nodeValue = this._resolveExpressions(original_text, scope);
-        })
+        nodes_to_process.push(text_node)
       }
     }
+
+    for (const original_node of nodes_to_process) {
+      if (!original_node.nodeValue) continue;
+      const original_content = original_node.nodeValue;
+      const parent_node = original_node.parentNode;
+
+      if (!parent_node) {
+        console.warn(`Skipping detached node: ${original_content}`)
+        continue;
+      }
+
+      const start_anchor = document.createComment(`koppla-exp-start: ${original_content.trim()}`)
+      const end_anchor = document.createComment(`koppla-exp-end: ${original_content.trim()}`)
+
+      parent_node.insertBefore(start_anchor, original_node);
+      parent_node.insertBefore(end_anchor, original_node.nextSibling);
+      if (isElementNode(original_node)) {
+        original_node.remove()
+      }
+
+      createEffect(() => {
+        let node_to_remove = start_anchor.nextSibling;
+        while(node_to_remove && node_to_remove !== end_anchor) {
+          const next = node_to_remove.nextSibling;
+          node_to_remove.remove()
+          node_to_remove = next;
+        }
+
+        const new_resolved_text = this._resolveExpressions(original_content, scope);
+
+        const new_text_node = document.createTextNode(new_resolved_text);
+
+        if (end_anchor.parentNode) {
+          end_anchor.parentNode.insertBefore(new_text_node, end_anchor);
+        }
+      })
+    }
+
   }
 
   /**
@@ -302,7 +353,7 @@ export class DocumentParser {
    * @param {{[key:string]: any}} scope 
    */
   _bindEventListeners(root_node, scope) {
-    const events = ["click", "change", "submit"];
+    const events = ["click", "change", "submit", "close"];
 
     for (const event_name of events) {
       const attr_name = `koppla-${event_name}`;
@@ -345,7 +396,11 @@ export class DocumentParser {
 
       try {
         const evaluator = new Function(...scope_keys, `return ${expression}`);
-        const result = evaluator(...scope_values);
+        let result = evaluator(...scope_values);
+
+        if (isSignal(result)) {
+          result = result[0]();
+        }
 
         if (result === undefined || result === null) {
           return "";
@@ -404,4 +459,10 @@ export function isTextNode(el) {
   return false;
 }
 
-
+/**
+ * @param { unknown } val
+ * @returns {val is Signal}
+ */
+function isSignal(val) {
+  return Array.isArray(val) && typeof val[0] === "function" && typeof val[1] === "function";
+}

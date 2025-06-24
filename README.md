@@ -308,5 +308,15 @@ The parser listens for attributes prefixed with `koppla-` followed by an event n
   - **Fired by:** `setEdgeType()`
   - **Description:** Occurs when a new edge type is defined and added. The payload contains the `type` object.
 
+### `CanvasGUIDriver` events
+- `click`, `dblclick`
+  - **Fired by:** any click/double click in canvas
+  - **Description:** Payload contains a `PositionData` object.
+
+`PositionData`
+- `screen`: `Coords`
+- `mouse`: `Coords`
+- `node`: `Node | null`
+
 ### License
 This project is licensed under the MIT License. See the LICENSE file for details.

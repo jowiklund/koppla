@@ -20,6 +20,9 @@
 
 Koppla is a set of powerful, independent JavaScript modules designed to work together or separately. At its core is a high-performance graph engine powered by WebAssembly, but its components can be used to create everything from a full-featured graph editor to a simple, reactive web page.
 
+> [!CAUTION]
+> Koppla is a work in progress and is not stable yet
+
 ### Core Philosophy: A Modular Toolkit
 Koppla is not a monolithic framework. It's a collection of packages that you can pick and choose from based on your needs.
 - `@kpla/engine`: The core graph logic. A high-performance WebAssembly engine wrapped in a clean GraphEditor API. Use this for backend graph processing or building a completely custom frontend (e.g., with React, Svelte, or Three.js).

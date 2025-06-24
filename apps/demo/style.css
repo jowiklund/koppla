@@ -46,6 +46,28 @@ body {
 	background-color: var(--background-primary);
 }
 
+.toolbar {
+	position: fixed;
+	bottom: 1rem;
+	left: 5rem;
+	margin: 0 auto;
+	width: 200px;
+	display: flex;
+	align-items: center;
+	z-index: 100;
+	max-width: 90%;
+	width: 100%;
+}
+
+.toolbar button {
+	border: none;
+	background-color: var(--accent-color);
+	color: var(--text-primary);
+	border-radius: var(--border-radius);
+	font-size: .8rem;
+	padding: .5rem 1rem;
+}
+
 .tooltips {
 	padding: .5rem;
 	border-radius: var(--border-radius);

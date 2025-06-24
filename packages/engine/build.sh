@@ -23,6 +23,7 @@ zig build-exe src/main.zig\
     --export=getEdgeEndNodeHandle \
     --export=getEdgeType \
     --export=deleteEdge \
+    --export=sortNodes \
     -O ReleaseSmall
 
 rm main.wasm.o

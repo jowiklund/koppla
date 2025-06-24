@@ -201,4 +201,134 @@ export fn getNodeIncomingCount(handle: NodeHandle) usize {
     return node.edges_incoming.items.len;
 }
 
+const NodeForce = struct {
+    fx: f32,
+    fy: f32,
+};
+
+export fn sortNodes(
+    iterations: usize,
+    k_attraction: f32,
+    k_repulsion: f32,
+    optimal_dist: f32,
+    damping_factor: f32
+) void {
+    if (node_list.items.len == 0) {
+        return;
+    }
+
+    var node_forces = std.ArrayList(NodeForce).init(fba.allocator());
+    defer node_forces.deinit();
+
+    node_forces.ensureTotalCapacity(node_list.items.len) catch @panic("OOM: node_forces cap");
+
+    for (0..node_list.items.len) |_| {
+        node_forces.append(.{
+            .fx = 0.0,
+            .fy = 0.0
+        }) catch @panic("OOM: node_forces append");
+    }
+
+    for (0..iterations) |_| {
+        for (node_forces.items) |*force_item| {
+            force_item.fx = 0.0;
+            force_item.fy = 0.0;
+        }
+
+        for (node_list.items, 0..) |node1_ptr, i| {
+            for (node_list.items, 0..) |node2_ptr, j| {
+                if (i == j) continue;
+
+                const dx = node1_ptr.x - node2_ptr.x;
+                const dy = node1_ptr.y - node2_ptr.y;
+                const dist_sq = dx * dx + dy * dy;
+
+                const min_dist_sq = 0.01;
+                const dist = std.math.sqrt(dist_sq + min_dist_sq);
+
+                const force_magnitude = k_repulsion / dist_sq;
+
+                const unit_dx = dx / dist;
+                const unit_dy = dy / dist;
+
+                const fx = force_magnitude * unit_dx;
+                const fy = force_magnitude * unit_dy;
+
+                node_forces.items[i].fx += fx;
+                node_forces.items[i].fy += fy;
+            }
+        }
+
+        for (edge_list.items) |edge_ptr| {
+            const start_node_ptr: *Node = @ptrFromInt(edge_ptr.start_node);
+            const end_node_ptr: *Node = @ptrFromInt(edge_ptr.end_node);
+
+            var start_node_idx: ?usize = null;
+            for (node_list.items, 0..) |node_ptr, k| {
+                if (@intFromPtr(node_ptr) == @intFromPtr(start_node_ptr)) {
+                    start_node_idx = k;
+                    break;
+                }
+            }
+
+            var end_node_idx: ?usize = null;
+            for (node_list.items, 0..) |node_ptr, k| {
+                if (@intFromPtr(node_ptr) == @intFromPtr(end_node_ptr)) {
+                    end_node_idx = k;
+                    break;
+                }
+            }
+
+            if (start_node_idx == null or end_node_idx == null) {
+                continue;
+            }
+
+            const dx = start_node_ptr.x - end_node_ptr.x;
+            const dy = start_node_ptr.y - end_node_ptr.y;
+            const dist_sq = dx*dx + dy*dy;
+            const min_dist_sq = 0.01;
+            const dist = std.math.sqrt(dist_sq + min_dist_sq);
+
+            const force_magnitude = k_attraction * (dist - optimal_dist);
+
+            const unit_dx = dx / dist;
+            const unit_dy = dy / dist;
+
+            const fx = force_magnitude * unit_dx;
+            const fy = force_magnitude * unit_dy;
+
+            node_forces.items[start_node_idx.?].fx -= fx;
+            node_forces.items[start_node_idx.?].fy -= fy;
+
+            node_forces.items[end_node_idx.?].fx += fx;
+            node_forces.items[end_node_idx.?].fy += fy;
+        }
+
+        for (node_list.items, 0..) |node_ptr, i| {
+            if (node_ptr.is_fixed) {
+                node_ptr.velocity_x = 0.0;
+                node_ptr.velocity_y = 0.0;
+                continue;
+            }
+
+            node_ptr.velocity_x = (node_ptr.velocity_x + node_forces.items[i].fx) * damping_factor;
+            node_ptr.velocity_y = (node_ptr.velocity_y + node_forces.items[i].fy) * damping_factor;
+
+            const max_velocity = 5.0;
+            const current_speed_sq =
+                node_ptr.velocity_x * node_ptr.velocity_x +
+                node_ptr.velocity_y * node_ptr.velocity_y;
+            if (current_speed_sq > max_velocity*max_velocity) {
+                const current_speed = std.math.sqrt(current_speed_sq);
+                node_ptr.velocity_x = (node_ptr.velocity_x / current_speed) * max_velocity;
+                node_ptr.velocity_y = (node_ptr.velocity_y / current_speed) * max_velocity;
+            }
+
+            node_ptr.x += node_ptr.velocity_x;
+            node_ptr.y += node_ptr.velocity_y;
+        }
+    }
+
+}
+
 extern fn print(usize) void;

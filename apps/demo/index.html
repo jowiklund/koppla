@@ -75,6 +75,20 @@
 			</script>
 		</dialog>
 
+		<div class="toolbar">
+			<template>
+				<button koppla-click="sort">Sort</button>
+			</template>
+			<script type="module/koppla">
+				function sort() {
+					driver.graph.sortNodes();
+				}
+				return {
+					sort
+				}
+			</script>
+		</div>
+
 		<div class="tooltips-btn">
 			<template>
 				<dialog koppla-ref="dialog">

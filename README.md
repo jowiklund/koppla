@@ -16,8 +16,6 @@
   </picture>
 </div>
 
-<h2 align="center">WORK IN PROGRESS - NOTHING IS FINALIZED</h2>
-
 Koppla is a set of powerful, independent JavaScript modules designed to work together or separately. At its core is a high-performance graph engine powered by WebAssembly, but its components can be used to create everything from a full-featured graph editor to a simple, reactive web page.
 
 > [!CAUTION]

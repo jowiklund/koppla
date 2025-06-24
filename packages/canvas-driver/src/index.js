@@ -661,28 +661,67 @@ export class CanvasGUIDriver extends EventEmitter {
     assert_is_not_null(this.graph);
     const layer = this.layers.get("objects")
     assert_is_not_null(layer);
-    const logicalWidth = layer.canvas.width / this.dpr;
-    const logicalHeight = layer.canvas.height / this.dpr;
-    layer.ctx.clearRect(0, 0, logicalWidth, logicalHeight);
+    const logical_width = layer.canvas.width / this.dpr;
+    const logical_height = layer.canvas.height / this.dpr;
+    layer.ctx.clearRect(0, 0, logical_width, logical_height);
     layer.ctx.save();
     layer.ctx.translate(this.graph.pan_coords.x, this.graph.pan_coords.y);
     layer.ctx.scale(this.graph.scale, this.graph.scale);
 
+    const world_corners = this._getWorldCorners(
+      logical_width,
+      logical_height,
+      50 / this.graph.scale
+    );
+
+    const visible_nodes = this.graph.getNodes()
+    .filter(node => !this.moving_nodes.has(node.handle))
+    .filter(n => this._isInView({x: n.x, y: n.y}, world_corners));
+
+    const visible_handles = new Set(visible_nodes.map(n => n.handle));
+
     const edge_bundles = this.graph.getEdgeBundles((edge) => {
-      return !this.moving_edges.has(edge.handle)
+      return !this.moving_edges.has(edge.handle) &&
+        (
+          visible_handles.has(edge.start_handle) ||
+          visible_handles.has(edge.end_handle)
+        )
     });
 
     edge_bundles.forEach(bundle => {
       this._drawEdgeBundle(bundle, layer);
     });
 
-    const nodes = this.graph.getNodes()
-    .filter(node => !this.moving_nodes.has(node.handle));
-
-    for (let node of nodes) {
+    for (let node of visible_nodes) {
       this._drawNode(node, layer);
     }
+
     layer.ctx.restore();
+  }
+
+  /**
+   * @param {import("@kpla/engine").Coords} coords 
+   * @param {[import("@kpla/engine").Coords, import("@kpla/engine").Coords]} world_corners
+   */
+  _isInView(coords, world_corners) {
+    const [top_left, bottom_right] = world_corners;
+    return coords.x > top_left.x &&
+      coords.x < bottom_right.x &&
+      coords.y > top_left.y &&
+      coords.y < bottom_right.y
+  }
+
+  /**
+   * @param {number} canvas_width 
+   * @param {number} canvas_height
+   * @param {number} buffer
+   * @returns {[import("@kpla/engine").Coords, import("@kpla/engine").Coords]}
+   */
+  _getWorldCorners(canvas_width, canvas_height, buffer = 0) {
+    assert_is_not_null(this.graph);
+    const world_top_left = this.graph.screenToWorld({x: 0 - buffer, y: 0 - buffer});
+    const world_bottom_right = this.graph.screenToWorld({x: canvas_width + buffer, y: canvas_height + buffer});
+    return [world_top_left, world_bottom_right];
   }
 
   /**

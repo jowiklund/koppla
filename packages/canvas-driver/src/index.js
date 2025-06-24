@@ -1,7 +1,8 @@
 import { assert_is_dialog, assert_is_not_null } from "@kpla/assert";
 import { getEngine, GraphEditor, NodeShape } from "@kpla/engine";
-import { createSignal, DocumentParser } from "@kpla/signals";
+import { DocumentParser } from "@kpla/signals";
 import { EventEmitter } from "./event-emitter.js";
+import { EventName, State, StateMachine } from "./state-machine.js";
 
 /**
  * @typedef RunConfig
@@ -81,19 +82,11 @@ export class CanvasGUIDriver extends EventEmitter {
 
   selection_color = Colors.accent_color;
 
-  current_mouse_x = 0;
-  current_mouse_y = 0;
-
-  is_dragging = false;
   drag_offsets = new Map();
 
-  is_connecting = false;
-
-  is_selecting = false;
   selection_start_x = 0;
   selection_start_y = 0;
 
-  is_panning = false;
   pan_start_x = 0;
   pan_start_y = 0;
 
@@ -103,11 +96,15 @@ export class CanvasGUIDriver extends EventEmitter {
   /** @type {Array<import("@kpla/engine").NodeHandle>} */
   selected_node_handles = [];
 
+  /** @type {StateMachine} state */
+  state;
+
   /**
    * @param {CanvasDriverOptions} opts
    */
   constructor(opts) {
     super();
+    this.state = new StateMachine();
     assert_is_not_null(opts.control_panel_id);
     assert_is_not_null(opts.container_id);
     assert_is_not_null(opts.edge_dialog_id);
@@ -215,6 +212,7 @@ export class CanvasGUIDriver extends EventEmitter {
   /** @private */
   _registerControls() {
     assert_is_not_null(this.graph);
+
     for (let [key, style] of this.graph.node_types) {
       const draggable = createNodeDraggable(style.name, {
         data: {
@@ -227,6 +225,7 @@ export class CanvasGUIDriver extends EventEmitter {
     }
 
     window.addEventListener("keydown", this._keydown.bind(this));
+    window.addEventListener("resize", this._onResize.bind(this));
     this.container.addEventListener("drop", this._drop.bind(this))
     this.container.addEventListener("mousedown", this._mouseDown.bind(this));
     this.container.addEventListener("mousemove", this._mouseMove.bind(this));
@@ -237,10 +236,6 @@ export class CanvasGUIDriver extends EventEmitter {
     this.edge_dialog.addEventListener("close", () => {
       this.new_edges = [];
     })
-
-    // const create_edge_form = document.getElementById("create-edge-form");
-    // assert_is_not_null(create_edge_form);
-    // create_edge_form.addEventListener("submit", this._createEdges.bind(this))
 
     this.container.addEventListener("dragover", (e) => {
       e.preventDefault();
@@ -287,7 +282,7 @@ export class CanvasGUIDriver extends EventEmitter {
    */
   _mouseUp(e) {
     assert_is_not_null(this.graph);
-    if (this.is_connecting) {
+    if (this.state.is(State.CONNECTING)) {
       const rect = this.container.getBoundingClientRect();
       const screen_x = e.clientX - rect.left;
       const screen_y = e.clientY - rect.top;
@@ -318,18 +313,16 @@ export class CanvasGUIDriver extends EventEmitter {
       }
     }
 
-    this.is_dragging = false;
-    this.is_connecting = false;
-    this.is_panning = false;
     this.container.style.cursor = "default";
     this.moving_nodes.clear();
     this.moving_edges.clear();
 
-    if (this.is_selecting) {
-      const min_x = Math.min(this.selection_start_x, this.current_mouse_x);
-      const max_x = Math.max(this.selection_start_x, this.current_mouse_x);
-      const min_y = Math.min(this.selection_start_y, this.current_mouse_y);
-      const max_y = Math.max(this.selection_start_y, this.current_mouse_y);
+    if (this.state.is(State.SELECTING)) {
+      const { mouse } = this.state.ctx.pos;
+      const min_x = Math.min(this.selection_start_x, mouse.x);
+      const max_x = Math.max(this.selection_start_x, mouse.x);
+      const min_y = Math.min(this.selection_start_y, mouse.y);
+      const max_y = Math.max(this.selection_start_y, mouse.y);
 
       for (let node of this.graph.getNodes()) {
         const inside_x = (node.x >= min_x && node.x <= max_x);
@@ -338,10 +331,17 @@ export class CanvasGUIDriver extends EventEmitter {
           this.selected_node_handles.push(node.handle);
         }
       }
-
-      this.is_selecting = false;
     }
+
     this.graph.emit("world:update");
+    this.state.dispatch(EventName.MOUSE_UP, {
+      pos: {
+        node: null,
+        screen: {x: 0, y: 0},
+        mouse: {x: 0, y: 0}
+      }, 
+      event: e
+    })
   }
 
   /**
@@ -395,49 +395,67 @@ export class CanvasGUIDriver extends EventEmitter {
     )
   }
 
+  _onResize() {
+    const rect = this.container.getBoundingClientRect();
+    for (const [_, layer] of this.layers.entries()) {
+        layer.canvas.width = rect.width * this.dpr;
+        layer.canvas.height = rect.height * this.dpr;
+        layer.ctx.scale(this.dpr, this.dpr);
+    }
+    this._drawStatic();
+    this._drawObjects();
+  }
+
   /**
    * @private
    * @param {MouseEvent} e 
    */
   _mouseDown(e) {
     assert_is_not_null(this.graph);
-    const pos = this._getPositionData({
-      x: e.clientX,
-      y: e.clientY
+
+    this.state.dispatch(EventName.MOUSE_DOWN, {
+      pos: this._getPositionData({
+        x: e.clientX,
+        y: e.clientY
+      }),
+      event: e
     })
 
-    this.emit("click", pos);
+    this.emit("click", this.state.ctx.pos);
 
-    if (e.ctrlKey) {
-      this.is_panning = true;
-      this.pan_start_x = pos.screen.x;
-      this.pan_start_y = pos.screen.y;
+    if (this.state.is(State.PANNING)) {
+      const {screen} = this.state.ctx.pos;
+      this.pan_start_x = screen.x;
+      this.pan_start_y = screen.y;
       this.container.style.cursor = "move";
       return;
     }
 
-    if (pos.node) {
-        if (!this.selected_node_handles.includes(pos.node.handle)) {
-          this.selected_node_handles = [pos.node.handle]
-        }
-        if (e.shiftKey) {
-          this.is_connecting = true;
-        } else {
-          this.is_dragging = true;
-          this.drag_offsets.clear();
-          for (let handle of this.selected_node_handles) {
-            const node = this.graph.getNode(handle);
-            assert_is_not_null(node);
-            const dx = pos.mouse.x - node.x;
-            const dy = pos.mouse.y - node.y;
-            this.drag_offsets.set(handle, {dx, dy})
-          }
-          this.container.style.cursor = "grabbing";
-        }
+    if (this.state.is(State.CONNECTING)) {
+      const {node} = this.state.ctx.pos;
+      assert_is_not_null(node);
+      if (!this.selected_node_handles.includes(node.handle)) {
+        this.selected_node_handles = [node.handle]
+      }
       return;
     }
 
-    if (this.is_dragging) {
+    if (this.state.is(State.DRAGGING)) {
+      const {node, mouse} = this.state.ctx.pos;
+      assert_is_not_null(node);
+      if (!this.selected_node_handles.includes(node.handle)) {
+        this.selected_node_handles = [node.handle]
+      }
+      this.drag_offsets.clear();
+      for (let handle of this.selected_node_handles) {
+        const node = this.graph.getNode(handle);
+        assert_is_not_null(node);
+        const dx = mouse.x - node.x;
+        const dy = mouse.y - node.y;
+        this.drag_offsets.set(handle, {dx, dy})
+      }
+      this.container.style.cursor = "grabbing";
+
       this.moving_nodes.clear();
       this.moving_edges.clear();
 
@@ -450,12 +468,13 @@ export class CanvasGUIDriver extends EventEmitter {
         }
       }
       this._drawObjects();
+      return;
     }
 
+    const {mouse} = this.state.ctx.pos;
     this.selected_node_handles = [];
-    this.is_selecting = true;
-    this.selection_start_x = pos.mouse.x;
-    this.selection_start_y = pos.mouse.y;
+    this.selection_start_x = mouse.x;
+    this.selection_start_y = mouse.y;
   }
 
   /**
@@ -506,25 +525,19 @@ export class CanvasGUIDriver extends EventEmitter {
     assert_is_not_null(this.graph);
     const rect = this.container.getBoundingClientRect();
 
-    const screen_x = e.clientX - rect.left;
-    const screen_y = e.clientY - rect.top;
+    this.state.ctx.pos = this._getPositionData({x: e.clientX, y: e.clientY});
+    this.state.ctx.event = e;
 
-    const world_coords = this.graph.screenToWorld({x: screen_x, y: screen_y}, false)
-    const mouse_x = world_coords.x;
-    const mouse_y = world_coords.y;
-
-    this.current_mouse_x = mouse_x;
-    this.current_mouse_y = mouse_y;
-
-    if (this.is_dragging) {
+    if (this.state.is(State.DRAGGING)) {
+      const {mouse} = this.state.ctx.pos;
       for (let [handle, offset] of this.drag_offsets.entries()) {
-        const new_x = this._snapToGrid(mouse_x - offset.dx);
-        const new_y = this._snapToGrid(mouse_y - offset.dy);
+        const new_x = this._snapToGrid(mouse.x - offset.dx);
+        const new_y = this._snapToGrid(mouse.y - offset.dy);
         this.graph.setNodePosition(handle, new_x, new_y);
       }
     }
 
-    if (this.is_panning) {
+    if (this.state.is(State.PANNING)) {
       const screen_x = e.clientX - rect.left;
       const screen_y = e.clientY - rect.top;
 
@@ -552,13 +565,14 @@ export class CanvasGUIDriver extends EventEmitter {
     layer.ctx.translate(this.graph.pan_coords.x, this.graph.pan_coords.y);
     layer.ctx.scale(this.graph.scale, this.graph.scale);
 
-    if (this.is_connecting) {
+    if (this.state.is(State.CONNECTING)) {
+      const {mouse} = this.state.ctx.pos;
       for (let handle of this.selected_node_handles) {
         const start_node = this.graph.getNode(handle)
         assert_is_not_null(start_node);
         const mouse_coords = {
-          x: this._snapToGrid(this.current_mouse_x),
-          y: this._snapToGrid(this.current_mouse_y)
+          x: this._snapToGrid(mouse.x),
+          y: this._snapToGrid(mouse.y),
         };
         const { startGate, endGate } = getBestGates(
           {
@@ -586,14 +600,15 @@ export class CanvasGUIDriver extends EventEmitter {
       }
     }
 
-    if (this.is_selecting) {
+    if (this.state.is(State.SELECTING)) {
+      const {mouse} = this.state.ctx.pos;
       layer.ctx.beginPath(); //#089fff
       layer.ctx.strokeStyle = Colors.accent_color;
       layer.ctx.fillStyle = Colors.accent_color_op;
       layer.ctx.moveTo(this.selection_start_x, this.selection_start_y);
-      layer.ctx.lineTo(this.selection_start_x, this.current_mouse_y);
-      layer.ctx.lineTo(this.current_mouse_x, this.current_mouse_y);
-      layer.ctx.lineTo(this.current_mouse_x, this.selection_start_y);
+      layer.ctx.lineTo(this.selection_start_x, mouse.y);
+      layer.ctx.lineTo(mouse.x, mouse.y);
+      layer.ctx.lineTo(mouse.x, this.selection_start_y);
       layer.ctx.lineTo(this.selection_start_x, this.selection_start_y);
       layer.ctx.stroke();
       layer.ctx.fill();

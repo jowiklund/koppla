@@ -314,9 +314,9 @@ The parser listens for attributes prefixed with `koppla-` followed by an event n
   - **Description:** Payload contains a `PositionData` object.
 
 `PositionData`
-- `screen`: `Coords`
-- `mouse`: `Coords`
-- `node`: `Node | null`
+- `screen`: `Coords` the mouse coordinates relative to the screen
+- `mouse`: `Coords` the mouse coordinates relative to the world
+- `node`: `Node | null` the node, if you clicked on one
 
 ### License
 This project is licensed under the MIT License. See the LICENSE file for details.

@@ -138,6 +138,12 @@ body {
 	font-size: 1.2rem;
 }
 
+.control-panel button:disabled {
+	color: var(--text-secondary);
+	background-color: var(--background-accent);
+	cursor: default;
+}
+
 .control-panel button:hover {
 	background-color: var(--background-accent);
 }
@@ -145,6 +151,18 @@ body {
 .control-panel__section {
 	padding: 1rem;
 	border-bottom: var(--small-border);
+}
+
+.control-panel__section--footer {
+	border-top: var(--small-border);
+	margin-top: auto;
+	border-bottom: none;
+	display: flex;
+	align-items: center;
+}
+
+.control-panel__section--footer button {
+	margin-left: auto;
 }
 
 .control-panel__section p {

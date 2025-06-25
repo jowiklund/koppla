@@ -76,47 +76,26 @@
 			</script>
 		</dialog>
 
-		<div class="tooltips-btn">
-			<template>
-				<dialog koppla-ref="dialog">
-					<div class="tooltips">
-						<div><span>ctrl</span> + <span>drag</span>: pan</div>
-						<div><span>shift</span> + <span>drag</span>: connect</div>
-						<div><span>del</span>: delete selected</div>
-						<div><span>backspace</span>: delete selected connections</div>
-						<div><span>scroll</span>: zoom</div>
-					</div>
-				</dialog>
-				<button koppla-ref="btn" koppla-click="openToolTips">?</button>
-			</template>
-			<script type="module/koppla">
-				const [getDialog, setDialog] = signal(null);
-
-				function openToolTips() {
-					if (getDialog() != null) {
-						getDialog().showModal()
-					}
-				}
-
-				return {
-					openToolTips,
-					dialog: [getDialog, setDialog]
-				}
-			</script>
-		</div>
-
-
 		<div id="workspace" class="workspace">
 			<div id="canvas-container" class="canvas-container"></div>
 			<div id="control-panel" class="control-panel">
 				<template>
+					<dialog koppla-ref="dialog">
+						<div class="tooltips">
+							<div><span>ctrl</span> + <span>drag</span>: pan</div>
+							<div><span>shift</span> + <span>drag</span>: connect</div>
+							<div><span>del</span>: delete selected</div>
+							<div><span>backspace</span>: delete selected connections</div>
+							<div><span>scroll</span>: zoom</div>
+						</div>
+					</dialog>
 					<div class="control-panel__section">
 						<p>Sorting</p>
 						<div class="control-panel__button-group">
-							<button koppla-click="sort">
+							<button koppla-click="sort" title="Fruchterman-Reingold esque sorting">
 								<span class="material-symbols-outlined">graph_3</span>
 							</button>
-							<button koppla-click="sort">
+							<button koppla-click="sort" title="Hierarchy based sorting" disabled>
 								<span class="material-symbols-outlined">graph_1</span>
 							</button>
 						</div>
@@ -124,21 +103,36 @@
 					<div class="control-panel__section">
 						<p>Position</p>
 						<div class="control-panel__button-group">
-							<button koppla-click="sort">
+							<button koppla-click="sort" disabled>
 								<span class="material-symbols-outlined">align_justify_space_even</span>
 							</button>
-							<button>
+							<button disabled>
 								<span class="material-symbols-outlined">align_space_even</span>
 							</button>
 						</div>
+					</div>
+					<div class="control-panel__section control-panel__section--footer">
+						<button koppla-click="openToolTips">
+							<span class="material-symbols-outlined">question_mark</span>
+						</button>
 					</div>
 				</template>
 				<script type="module/koppla">
 					function sort() {
 						driver.graph.sortNodes()
 					}
+					const [getDialog, setDialog] = signal(null);
+
+					function openToolTips() {
+						if (getDialog() != null) {
+							getDialog().showModal()
+						}
+					}
+
 					return {
-						sort
+						sort,
+						openToolTips,
+						dialog: [getDialog, setDialog]
 					}
 				</script>
 			</div>

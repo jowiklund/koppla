@@ -24,6 +24,8 @@ zig build-exe src/main.zig\
     --export=getEdgeType \
     --export=deleteEdge \
     --export=sortNodes \
+    --export=alloc \
+    --export=free \
     -O ReleaseSmall
 
 rm main.wasm.o

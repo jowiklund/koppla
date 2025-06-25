@@ -9,6 +9,14 @@ const NodeHandle = usize;
 const EdgeHandle = usize;
 const EdgeType = u8;
 
+export fn alloc(size: usize) usize {
+    return @intFromPtr(fba.allocator().alloc(u8, size)) catch @panic("OOM: js alloc");
+}
+
+export fn free(ptr: usize, len: usize) void {
+    fba.allocator().free(@ptrFromInt(ptr), len);
+}
+
 pub const Edge = struct {
     start_node: NodeHandle,
     end_node: NodeHandle,

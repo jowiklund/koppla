@@ -3,6 +3,7 @@
 	<head>
 		<title>Koppla</title>
 		<link rel="stylesheet" href="style.css" />
+		<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
 	</head>
 	<body>
 		<dialog id="create-edge-dialog">
@@ -75,20 +76,6 @@
 			</script>
 		</dialog>
 
-		<div class="toolbar">
-			<template>
-				<button koppla-click="sort">Sort</button>
-			</template>
-			<script type="module/koppla">
-				function sort() {
-					driver.graph.sortNodes();
-				}
-				return {
-					sort
-				}
-			</script>
-		</div>
-
 		<div class="tooltips-btn">
 			<template>
 				<dialog koppla-ref="dialog">
@@ -119,8 +106,43 @@
 		</div>
 
 
-		<div id="control-panel" class="control-panel"></div>
-		<div id="canvas-container" class="canvas-container"></div>
+		<div id="workspace" class="workspace">
+			<div id="canvas-container" class="canvas-container"></div>
+			<div id="control-panel" class="control-panel">
+				<template>
+					<div class="control-panel__section">
+						<p>Sorting</p>
+						<div class="control-panel__button-group">
+							<button koppla-click="sort">
+								<span class="material-symbols-outlined">graph_3</span>
+							</button>
+							<button koppla-click="sort">
+								<span class="material-symbols-outlined">graph_1</span>
+							</button>
+						</div>
+					</div>
+					<div class="control-panel__section">
+						<p>Position</p>
+						<div class="control-panel__button-group">
+							<button koppla-click="sort">
+								<span class="material-symbols-outlined">align_justify_space_even</span>
+							</button>
+							<button>
+								<span class="material-symbols-outlined">align_space_even</span>
+							</button>
+						</div>
+					</div>
+				</template>
+				<script type="module/koppla">
+					function sort() {
+						driver.graph.sortNodes()
+					}
+					return {
+						sort
+					}
+				</script>
+			</div>
+		</div>
 
 		<script type="module">
 

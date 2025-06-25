@@ -3,18 +3,22 @@
 	--text-secondary: #999999;
 	--background-primary: #ffffff;
 	--background-secondary: #ebebeb;
+	--background-accent: #efefef;
 	--accent-color: #089fff;
 	--accent-color-op: rgba(8, 190, 255, 0.1);
 
 	--border-radius: 10px;
+
+	--small-border: .5px solid var(--text-secondary);
 }
 
 @media (prefers-color-scheme: dark) {
 	:root {
 		--text-primary: #ffffff;
 		--text-secondary: #999999;
-		--background-primary: #2f3238;
-		--background-secondary: #4e535c;
+		--background-primary: #1e2024;
+		--background-secondary: #2f3238;
+		--background-accent: #4e535c;
 		
 		--accent-color: #126396;
 		--accent-color-op: rgba(8, 190, 255, 0.1);
@@ -35,37 +39,25 @@ textarea {
 
 body {
 	margin: 0;
-	background-color: var(--background-primary);
 	overflow: hidden;
+}
+
+.workspace {
+	display: flex;
+	align-items: center;
+	gap: .5rem;
+	background-color: var(--background-primary);
+	width: 100vw;
+	height: 100vh;
+	box-sizing: border-box;
 }
 
 .canvas-container {
 	position: relative;
-	width: 100vw;
-	height: 100vh;
 	background-color: var(--background-primary);
-}
-
-.toolbar {
-	position: fixed;
-	bottom: 1rem;
-	left: 5rem;
-	margin: 0 auto;
-	width: 200px;
-	display: flex;
-	align-items: center;
-	z-index: 100;
-	max-width: 90%;
-	width: 100%;
-}
-
-.toolbar button {
-	border: none;
-	background-color: var(--accent-color);
-	color: var(--text-primary);
-	border-radius: var(--border-radius);
-	font-size: .8rem;
-	padding: .5rem 1rem;
+	flex: 1;
+	height: 100%;
+	box-sizing: border-box;
 }
 
 .tooltips {
@@ -95,16 +87,16 @@ body {
 
 .tooltips-btn {
 	position: fixed;
-	left: 1rem;
+	right: 1rem;
 	bottom: 1rem;
-	z-index: 100;
+	z-index: 101;
 }
 
 .tooltips-btn button {
 	font-size: 1rem;
 	color: var(--text-primary);
 	background-color: var(--background-primary);
-	border: 2px solid var(--text-secondary);
+	border: 1px solid var(--text-secondary);
 	padding: .5rem;
 	width: 2rem;
 	height: 2rem;
@@ -115,28 +107,53 @@ body {
 }
 
 .control-panel {
-	position: fixed;
-	right: 1rem;
-	bottom: 1rem;
-	top: 1rem;
-	border-radius: 10px;
-	border: 1px solid var(--text-secondary);
-	background-color: var(--background-primary);
+	align-self: flex-start;
+	background-color: var(--background-secondary);
 	color: var(--text-primary);
-	padding: .5rem;
 	z-index: 100;
+	min-width: 250px;
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	box-sizing: border-box;
+	font-family: monospace;
+	border-left: var(--small-border);
 }
 
 .control-panel button {
-	border-radius: 10px;
+	height: 1.8rem;
+	width: 1.8rem;
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	margin-bottom: 1rem;
-	border: none;
-	cursor: pointer;
+	padding: .5rem;
+	background-color: var(--background-primary);
+	color: var(--text-primary);
+	transition: all .1s ease-in-out;
+	border: 1px solid var(--text-secondary);
+	border-radius: 5px;
+}
+
+.control-panel button span {
+	font-size: 1.2rem;
+}
+
+.control-panel button:hover {
+	background-color: var(--background-accent);
+}
+
+.control-panel__section {
 	padding: 1rem;
-	width: 100%;
+	border-bottom: var(--small-border);
+}
+
+.control-panel__section p {
+	margin: 0 0 .5rem 0;
+}
+
+.control-panel__button-group {
+	display: flex;
+	gap: .5rem;
 }
 
 .node-draggable {

@@ -213,16 +213,16 @@ export class CanvasGUIDriver extends EventEmitter {
   _registerControls() {
     assert_is_not_null(this.graph);
 
-    for (let [key, style] of this.graph.node_types) {
-      const draggable = createNodeDraggable(style.name, {
-        data: {
-          name: style.name,
-          color: style.fill_color
-        },
-        type: key
-      })
-      this.control_panel.appendChild(draggable);
-    }
+    // for (let [key, style] of this.graph.node_types) {
+    //   const draggable = createNodeDraggable(style.name, {
+    //     data: {
+    //       name: style.name,
+    //       color: style.fill_color
+    //     },
+    //     type: key
+    //   })
+    //   this.control_panel.appendChild(draggable);
+    // }
 
     window.addEventListener("keydown", this._keydown.bind(this));
     window.addEventListener("resize", this._onResize.bind(this));

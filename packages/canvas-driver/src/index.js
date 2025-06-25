@@ -179,7 +179,7 @@ export class CanvasGUIDriver extends EventEmitter {
  * @returns {Promise<GraphEditor>}
  */
   async run(config, graph_data) {
-    this.graph = await getEngine(this.config.wasm_url);
+    this.graph = await getEngine(this.config.wasm_url, this.config.grid_size);
     assert_is_not_null(this.graph);
     this.graph.coordinate_rounder = this._snapToGrid.bind(this);
 
@@ -212,17 +212,6 @@ export class CanvasGUIDriver extends EventEmitter {
   /** @private */
   _registerControls() {
     assert_is_not_null(this.graph);
-
-    // for (let [key, style] of this.graph.node_types) {
-    //   const draggable = createNodeDraggable(style.name, {
-    //     data: {
-    //       name: style.name,
-    //       color: style.fill_color
-    //     },
-    //     type: key
-    //   })
-    //   this.control_panel.appendChild(draggable);
-    // }
 
     window.addEventListener("keydown", this._keydown.bind(this));
     window.addEventListener("resize", this._onResize.bind(this));

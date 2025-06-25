@@ -24,6 +24,12 @@ zig build-exe src/main.zig\
     --export=getEdgeType \
     --export=deleteEdge \
     --export=sortNodes \
+    --export=alloc \
+    --export=free \
+    --export=alignHoriz \
+    --export=alignVert \
+    --export=evenHoriz \
+    --export=evenVert \
     -O ReleaseSmall
 
 rm main.wasm.o

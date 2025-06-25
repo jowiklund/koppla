@@ -117,13 +117,14 @@ export class GraphEditor extends EventEmitter {
 
   /**
    * @param {any} wasm_instance 
+   * @param {number} grid_size 
    */
-  constructor(wasm_instance) {
+  constructor(wasm_instance, grid_size) {
     super();
     this._wasm = wasm_instance.exports;
     this._memory = this._wasm.memory;
     this._string_buffer_ptr = this._wasm.js_string_buffer.value;
-    this._wasm.init();
+    this._wasm.init(grid_size);
 
     this.edge_types.set(-1, {
       stroke_width: 2,
@@ -147,6 +148,75 @@ export class GraphEditor extends EventEmitter {
   sortNodes() {
     this._wasm.sortNodes(500, 0.01, 1000.0, 200.0, 0.9);
     this.emit("world:update");
+  }
+
+  /**
+   * @param {NodeHandle[]} node_handles 
+   */
+  alignHoriz(node_handles) {
+    if (node_handles.length === 0) return;
+    const [ptr, byte_len] = this._setSelected(node_handles);
+
+    this._wasm.alignHoriz(ptr, node_handles.length);
+
+    this._wasm.free(ptr, byte_len);
+    this.emit("world:update");
+  }
+
+  /**
+   * @param {NodeHandle[]} node_handles 
+   */
+  alignVert(node_handles) {
+    if (node_handles.length === 0) return;
+    const [ptr, byte_len] = this._setSelected(node_handles);
+
+    this._wasm.alignVert(ptr, node_handles.length);
+
+    this._wasm.free(ptr, byte_len);
+    this.emit("world:update");
+  }
+
+  /**
+   * @param {NodeHandle[]} node_handles 
+   */
+  evenHoriz(node_handles) {
+    if (node_handles.length === 0) return;
+    const [ptr, byte_len] = this._setSelected(node_handles);
+
+    this._wasm.evenHoriz(ptr, node_handles.length);
+
+    this._wasm.free(ptr, byte_len);
+    this.emit("world:update");
+  }
+
+  /**
+   * @param {NodeHandle[]} node_handles 
+   */
+  evenVert(node_handles) {
+    if (node_handles.length === 0) return;
+    const [ptr, byte_len] = this._setSelected(node_handles);
+
+    this._wasm.evenVert(ptr, node_handles.length);
+
+    this._wasm.free(ptr, byte_len);
+    this.emit("world:update");
+  }
+
+  /**
+   * @param {NodeHandle[]} node_handles 
+   * @returns {[number, number]} - [ptr, len]
+   */
+  _setSelected(node_handles) {
+    const buffer = this._wasm.memory.buffer;
+    const handle_size = 4;
+
+    const byte_len = node_handles.length * handle_size;
+    const ptr = this._wasm.alloc(byte_len);
+
+    const node_handles_view = new Uint32Array(buffer, ptr, node_handles.length);
+
+    node_handles_view.set(node_handles);
+    return [ptr, byte_len];
   }
 
   /**
@@ -275,8 +345,8 @@ export class GraphEditor extends EventEmitter {
     const world_y = (screen_coords.y - this.pan_coords.y) / this.scale;
     if (round) {
       return {
-        x: this.coordinate_rounder(world_x),
-        y: this.coordinate_rounder(world_y)
+        x: world_x,
+        y: world_y
       }
     }
     return {
@@ -465,9 +535,10 @@ function print(data) {
 
 /**
  * @param {string} wasm_url
+ * @param {number} grid_size
  * @returns {Promise<GraphEditor | null>}
  */
-export async function getEngine(wasm_url) {
+export async function getEngine(wasm_url, grid_size) {
   try {
     const wasm_source = await fetch(wasm_url);
     const wasm_buffer = await wasm_source.arrayBuffer();
@@ -477,7 +548,7 @@ export async function getEngine(wasm_url) {
       }
     })
 
-    return new GraphEditor(wasm.instance);
+    return new GraphEditor(wasm.instance, grid_size);
   } catch (err) {
     console.error(err)
     return null

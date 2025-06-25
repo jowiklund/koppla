@@ -9,6 +9,17 @@ const NodeHandle = usize;
 const EdgeHandle = usize;
 const EdgeType = u8;
 
+export fn alloc(size: usize) usize {
+    const ptr = (fba.allocator().alloc(u8, size) catch @panic("OOM: js alloc")).ptr;
+    return @intFromPtr(ptr);
+}
+
+export fn free(ptr: usize, len: usize) void {
+    const typed_raw_array_ptr: [*]u8 = @ptrFromInt(ptr);
+    const slice_to_free: []u8 = typed_raw_array_ptr[0..len];
+    fba.allocator().free(slice_to_free);
+}
+
 pub const Edge = struct {
     start_node: NodeHandle,
     end_node: NodeHandle,
@@ -29,17 +40,24 @@ pub const Node = struct {
 var node_list: std.ArrayList(*Node) = undefined;
 var edge_list: std.ArrayList(*Edge) = undefined;
 
-export fn init() void {
+var grid_size: f32 = 0.1;
+
+export fn init(gz: f32) void {
+    grid_size = gz;
     fba = std.heap.FixedBufferAllocator.init(&memory_buffer);
     node_list = std.ArrayList(*Node).init(fba.allocator());
     edge_list = std.ArrayList(*Edge).init(fba.allocator());
 }
 
+fn snapToGrid(val: f32) f32 {
+    return std.math.round(val / grid_size) * grid_size;
+}
+
 export fn createNode(x: f32, y: f32) NodeHandle {
     const node = fba.allocator().create(Node) catch @panic("OOM: Node");
     node.* = .{
-        .x = x,
-        .y = y,
+        .x = snapToGrid(x),
+        .y = snapToGrid(y),
         .edges_incoming = std.ArrayList(EdgeHandle).init(fba.allocator()),
         .edges_outgoing = std.ArrayList(EdgeHandle).init(fba.allocator()),
         .mass = 1.0,
@@ -166,8 +184,8 @@ export fn getNodeY(handle: usize) f32 {
 
 export fn setNodePosition(handle: NodeHandle, new_x: f32, new_y: f32) void {
     const node_ptr: *Node = @ptrFromInt(handle);
-    node_ptr.x = new_x;
-    node_ptr.y = new_y;
+    node_ptr.x = snapToGrid(new_x);
+    node_ptr.y = snapToGrid(new_y);
 }
 
 export fn getNodeCount() usize {
@@ -205,6 +223,180 @@ const NodeForce = struct {
     fx: f32,
     fy: f32,
 };
+
+export fn alignHoriz(
+    node_handles_ptr: [*]const NodeHandle,
+    node_handles_len: usize,
+) void {
+    var node_ys = std.ArrayList(f32).init(fba.allocator());
+    defer node_ys.deinit();
+
+    for (0..node_handles_len) |i| {
+        const handle = node_handles_ptr[i];
+        const node: *Node = @ptrFromInt(handle);
+
+        node_ys.append(node.y) catch @panic("OOM: align ys append");
+    }
+
+    var sum: f32 = 0.0;
+    for (node_ys.items) |y| {
+        sum += y;
+    }
+
+    const len: f32 = @floatFromInt(node_handles_len);
+    const my: f32 = snapToGrid(sum / len);
+
+    for (0..node_handles_len) |i| {
+        const handle = node_handles_ptr[i];
+        const node: *Node = @ptrFromInt(handle);
+
+        node.y = my;
+    }
+}
+
+export fn alignVert(
+    node_handles_ptr: [*]const NodeHandle,
+    node_handles_len: usize,
+) void {
+    var node_xs = std.ArrayList(f32).init(fba.allocator());
+    defer node_xs.deinit();
+
+    for (0..node_handles_len) |i| {
+        const handle = node_handles_ptr[i];
+        const node: *Node = @ptrFromInt(handle);
+
+        node_xs.append(node.x) catch @panic("OOM: align ys append");
+    }
+
+    var sum: f32 = 0.0;
+    for (node_xs.items) |y| {
+        sum += y;
+    }
+
+    const len: f32 = @floatFromInt(node_handles_len);
+    const mx: f32 = snapToGrid(sum / len);
+
+    for (0..node_handles_len) |i| {
+        const handle = node_handles_ptr[i];
+        const node: *Node = @ptrFromInt(handle);
+
+        node.x = mx;
+    }
+}
+
+export fn evenHoriz(
+    node_handles_ptr: [*]const NodeHandle,
+    node_handles_len: usize,
+) void {
+    if (node_handles_len == 0) {
+        return;
+    }
+    if (node_handles_len == 1) {
+        return;
+    }
+
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const temp_allocator = gpa.allocator();
+
+    const sorted_handles = temp_allocator
+        .dupe(NodeHandle, node_handles_ptr[0..node_handles_len])
+        catch @panic("OOM: sort handles");
+
+    defer temp_allocator.free(sorted_handles);
+
+    std.sort.heap(usize, sorted_handles, {}, struct {
+        fn compare(_: void, h1: NodeHandle, h2: NodeHandle) bool {
+            const node1: *Node = @ptrFromInt(h1);
+            const node2: *Node = @ptrFromInt(h2);
+            return node1.x < node2.x;
+        }
+    }.compare);
+
+
+    var big: f32 = 0.0;
+    var small: f32 = std.math.floatMax(f32);
+
+    for (0..node_handles_len) |i| {
+        const handle = node_handles_ptr[i];
+        const node: *Node = @ptrFromInt(handle);
+
+        if (node.x > big) big = node.x;
+        if (node.x < small) small = node.x;
+    }
+
+    const dx = big - small;
+    const len_f32: f32 = @floatFromInt(node_handles_len);
+
+    const spacing: f32 = if (node_handles_len > 1) dx / (len_f32 - 1.0) else 0.0;
+
+    for (0..node_handles_len) |i| {
+        const handle = sorted_handles[i];
+        const node: *Node = @ptrFromInt(handle);
+
+        const i_f: f32 = @floatFromInt(i);
+        const target_x = small + (spacing * i_f);
+
+        node.x = snapToGrid(target_x);
+    }
+}
+
+export fn evenVert(
+    node_handles_ptr: [*]const NodeHandle,
+    node_handles_len: usize,
+) void {
+    if (node_handles_len == 0) {
+        return;
+    }
+    if (node_handles_len == 1) {
+        return;
+    }
+
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const temp_allocator = gpa.allocator();
+
+    const sorted_handles = temp_allocator
+        .dupe(NodeHandle, node_handles_ptr[0..node_handles_len])
+        catch @panic("OOM: sort handles");
+
+    defer temp_allocator.free(sorted_handles);
+
+    std.sort.heap(usize, sorted_handles, {}, struct {
+        fn compare(_: void, h1: NodeHandle, h2: NodeHandle) bool {
+            const node1: *Node = @ptrFromInt(h1);
+            const node2: *Node = @ptrFromInt(h2);
+            return node1.y < node2.y;
+        }
+    }.compare);
+
+
+    var big: f32 = 0.0;
+    var small: f32 = std.math.floatMax(f32);
+
+    for (0..node_handles_len) |i| {
+        const handle = node_handles_ptr[i];
+        const node: *Node = @ptrFromInt(handle);
+
+        if (node.y > big) big = node.y;
+        if (node.y < small) small = node.y;
+    }
+
+    const dx = big - small;
+    const len_f32: f32 = @floatFromInt(node_handles_len);
+
+    const spacing: f32 = if (node_handles_len > 1) dx / (len_f32 - 1.0) else 0.0;
+
+    for (0..node_handles_len) |i| {
+        const handle = sorted_handles[i];
+        const node: *Node = @ptrFromInt(handle);
+
+        const i_f: f32 = @floatFromInt(i);
+        const target_x = small + (spacing * i_f);
+
+        node.y = snapToGrid(target_x);
+    }
+}
 
 export fn sortNodes(
     iterations: usize,
@@ -328,7 +520,10 @@ export fn sortNodes(
             node_ptr.y += node_ptr.velocity_y;
         }
     }
-
+    for (node_list.items) |node_ptr| {
+        node_ptr.x = snapToGrid(node_ptr.x);
+        node_ptr.y = snapToGrid(node_ptr.y);
+    }
 }
 
-extern fn print(usize) void;
+extern fn print(f32) void;

@@ -103,11 +103,17 @@
 					<div class="control-panel__section">
 						<p>Position</p>
 						<div class="control-panel__button-group">
-							<button koppla-click="sort" disabled>
+							<button koppla-click="alignVert">
 								<span class="material-symbols-outlined">align_justify_space_even</span>
 							</button>
-							<button disabled>
+							<button koppla-click="alignHoriz">
 								<span class="material-symbols-outlined">align_space_even</span>
+							</button>
+							<button koppla-click="evenHoriz">
+								<span class="material-symbols-outlined">horizontal_distribute</span>
+							</button>
+							<button koppla-click="evenVert">
+								<span class="material-symbols-outlined">vertical_distribute</span>
 							</button>
 						</div>
 					</div>
@@ -121,6 +127,23 @@
 					function sort() {
 						driver.graph.sortNodes()
 					}
+
+					function alignHoriz() {
+						driver.graph.alignHoriz(driver.selected_node_handles);
+					}
+
+					function alignVert() {
+						driver.graph.alignVert(driver.selected_node_handles);
+					}
+
+					function evenHoriz() {
+						driver.graph.evenHoriz(driver.selected_node_handles);
+					}
+
+					function evenVert() {
+						driver.graph.evenVert(driver.selected_node_handles);
+					}
+
 					const [getDialog, setDialog] = signal(null);
 
 					function openToolTips() {
@@ -132,7 +155,11 @@
 					return {
 						sort,
 						openToolTips,
-						dialog: [getDialog, setDialog]
+						dialog: [getDialog, setDialog],
+						alignHoriz,
+						alignVert,
+						evenHoriz,
+						evenVert
 					}
 				</script>
 			</div>

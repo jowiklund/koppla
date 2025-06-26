@@ -336,8 +336,9 @@ export fn evenHoriz(
 
         const i_f: f32 = @floatFromInt(i);
         const target_x = small + (spacing * i_f);
+        const rnd_down: f32 = target_x - @mod(target_x, grid_size);
 
-        node.x = snapToGrid(target_x);
+        node.x = snapToGrid(rnd_down);
     }
 }
 
@@ -392,9 +393,10 @@ export fn evenVert(
         const node: *Node = @ptrFromInt(handle);
 
         const i_f: f32 = @floatFromInt(i);
-        const target_x = small + (spacing * i_f);
+        const target_y = small + (spacing * i_f);
+        const rnd_down: f32 = target_y - @mod(target_y, grid_size);
 
-        node.y = snapToGrid(target_x);
+        node.y = snapToGrid(rnd_down);
     }
 }
 

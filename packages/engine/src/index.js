@@ -146,8 +146,11 @@ export class GraphEditor extends EventEmitter {
   }
 
   sortNodes() {
-    this._wasm.sortNodes(500, 0.01, 1000.0, 200.0, 0.9);
-    this.emit("world:update");
+    setInterval(() => {
+        this._wasm.sortNodes(10, 0.01, 1000.0, 200.0, 0.9);
+        this.emit("world:update");
+    }, 16)
+    //this.emit("world:update");
   }
 
   /**

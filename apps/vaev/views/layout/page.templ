@@ -1,0 +1,25 @@
+package layout
+
+templ Doc(child func() templ.Component) {
+	<!DOCTYPE html>
+	<html lang="se">
+		<head>
+			<meta name="viewport" content="width=device-width, initial-scale=1">
+			<meta charset="UTF-8">
+			<link href="/public/style.css" rel="stylesheet" />
+			<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+			<link rel="icon" type="image/png" href="/public/favicon.ico">
+			<title>Vaev</title>
+		</head>
+		<body>
+			<div 
+				id="app"
+				data-signals="{session_key: '', user: {name: ''}}" 
+				data-persist__session
+			>
+			@child()
+			</div>
+			<script type="module" src="/public/index.js"></script>
+		</body>
+	</html>
+}

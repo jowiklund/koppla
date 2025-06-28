@@ -7,7 +7,8 @@
     "dev": "pnpm --filter demo-app... --parallel dev",
     "vaev:dev:backend": "cd apps/vaev && cross-env APP_ENV=development go tool templ generate --watch --cmd=\"go run .\"",
     "vaev:build:backend": "pnpm --filter vaev build && cd apps/vaev && go tool templ generate && go build -tags production -o ../../build/vaev-server .",
-    "vaev:dev": "concurrently \"pnpm --filter vaev dev\" \"pnpm run vaev:dev:backend\"",
+    "watch:vaev-stack": "pnpm --filter \"{./apps/vaev}...\" --parallel dev",
+    "vaev:dev": "concurrently \"pnpm run watch:vaev-stack\" \"pnpm run vaev:dev:backend\"",
     "build": "pnpm -r --filter \"./packages/**\" build",
     "build:watch": "pnpm -r --parallel --filter \"./packages/**\" build --watch",
     "publish:all": "pnpm -r publish"

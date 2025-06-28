@@ -54,7 +54,6 @@ const NODE_TYPE = {
   RESOURCE: 2
 }
 
-
 /** @type {Array<import("./modules/graph-editor-api.js").NodeType>} */
 const node_types = [
   {

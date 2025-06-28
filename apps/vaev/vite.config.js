@@ -1,25 +1,34 @@
 import { defineConfig } from 'vite';
+import { resolve } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig(() => {
   const isWatchMode = process.argv.includes('--watch');
 
   return {
-    root: __dirname,
+    base: "./",
+    plugins: [
+    ],
     build: {
-      lib: {
-        entry: `./frontend/js/index.js`,
-        name: `vaev`,
-        formats: ['es'],
-        fileName: `index`,
-      },
-      watch: isWatchMode ? {
-        clearScreen: false,
-      } : null,
-      outDir: "./dist",
+      outDir: resolve(__dirname, 'dist'),
+      emptyOutDir: !isWatchMode,
+      watch: isWatchMode ? { clearScreen: false } : null,
       rollupOptions: {
-        external: (id) => id.startsWith('@kpla/'),
+        input: {
+            index: resolve(__dirname, 'frontend/js/index.js'),
+            style: resolve(__dirname, 'frontend/css/style.css'),
+        },
+        output: {
+          entryFileNames: `[name].js`,
+          assetFileNames: `[name].[ext]`,
+        }
       },
     },
+
+    server: {
+        port: 5173,
+    }
   };
 });
-

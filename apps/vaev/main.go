@@ -1,9 +1,6 @@
 package main
 
 import (
-	"embed"
-	"fmt"
-	"io/fs"
 	"koppla/apps/vaev/views/dashboard"
 	"koppla/apps/vaev/views/layout"
 	"log"
@@ -17,21 +14,14 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-//go:embed all:dist
-var embedded_files embed.FS
-
 func main() {
-	static_fs, err := fs.Sub(embedded_files, "dist")
-	if err != nil {
-		log.Fatal("shitfuck")
-		fmt.Printf("shitfuck")
-	}
-
 	r := chi.NewMux()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Compress(5))
+
+	is_dev := os.Getenv("APP_ENV") == "development"
 
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -39,35 +29,41 @@ func main() {
 		})
 	})
 
-	r.Route("/", func(r chi.Router) {
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			templ.Handler(layout.Doc(func() templ.Component {
-				return dashboard.Dashboard()
-			})).ServeHTTP(w, r)
-		})
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		templ.Handler(layout.Doc(func() templ.Component {
+			return dashboard.Dashboard()
+		})).ServeHTTP(w, r)
 	})
 
-	is_dev := os.Getenv("APP_ENV") == "development"
-
 	if is_dev {
-		viteDevServerURL, _ := url.Parse("http://localhost:5173")
-		proxy := httputil.NewSingleHostReverseProxy(viteDevServerURL)
+		log.Println("Development mode: proxying to Vite server on http://localhost:5173")
+		vite_proxy := newReverseProxy("http://localhost:5173")
+		r.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/dist/index.js" {
+				r.URL.Path = "/frontend/js/index.js"
+			} else if r.URL.Path == "/dist/style.css" {
+				r.URL.Path = "/frontend/css/style.css"
+			}
 
-		r.Handle("/public/*", http.StripPrefix("/public", proxy))
-
-		log.Println("Development mode: proxying assets to Vite dev server.")
-		r.NotFound(proxy.ServeHTTP)
+			vite_proxy.ServeHTTP(w, r)
+		})
 
 	} else {
-		r.Handle("/public/*", http.StripPrefix("/public", http.FileServer(http.FS(static_fs))))
+		log.Println("Production mode: serving assets from embedded filesystem.")
+		file_server_handler := GetStaticFileServer()
+		r.Handle("/dist/*", http.StripPrefix("/dist", file_server_handler))
 	}
-
-	fileServer := http.FileServer(http.FS(static_fs))
-
-	r.Handle("/public/*", http.StripPrefix("/public", fileServer))
 
 	log.Println("Server starting on :8080")
 	if err := http.ListenAndServe(":8080", r); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func newReverseProxy(target string) *httputil.ReverseProxy {
+	url, err := url.Parse(target)
+	if err != nil {
+		log.Fatalf("Failed to parse target URL for reverse proxy: %v", err)
+	}
+	return httputil.NewSingleHostReverseProxy(url)
 }

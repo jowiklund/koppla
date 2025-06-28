@@ -1,0 +1,237 @@
+:root {
+	--text-primary: #000000;
+	--text-secondary: #999999;
+	--background-primary: #ffffff;
+	--background-secondary: #ebebeb;
+	--background-accent: #efefef;
+	--accent-color: #089fff;
+	--accent-color-op: rgba(8, 190, 255, 0.1);
+
+	--border-radius: 10px;
+
+	--small-border: .5px solid var(--text-secondary);
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--text-primary: #ffffff;
+		--text-secondary: #999999;
+		--background-primary: #1e2024;
+		--background-secondary: #2f3238;
+		--background-accent: #4e535c;
+		
+		--accent-color: #126396;
+		--accent-color-op: rgba(8, 190, 255, 0.1);
+	}
+}
+
+button {
+	cursor: pointer;
+}
+
+input,
+select,
+textarea {
+	background-color: var(--background-primary);
+	color: var(--text-primary);
+	margin-top: .5rem;
+}
+
+body {
+	margin: 0;
+	overflow: hidden;
+}
+
+.workspace {
+	display: flex;
+	align-items: center;
+	gap: .5rem;
+	background-color: var(--background-primary);
+	width: 100vw;
+	height: 100vh;
+	box-sizing: border-box;
+}
+
+.canvas-container {
+	position: relative;
+	background-color: var(--background-primary);
+	flex: 1;
+	height: 100%;
+	box-sizing: border-box;
+}
+
+.tooltips {
+	padding: .5rem;
+	border-radius: var(--border-radius);
+	color: var(--text-secondary);
+	background-color: var(--background-primary);
+	font-family: monospace;
+	font-size: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.tooltips span {
+	display: inline-block;
+	padding: .125rem .25rem;
+	border-radius: 5px;
+	color: var(--background-primary);
+	border: 1px solid var(--text-secondary);
+	background-color: var(--text-secondary);
+}
+
+.tooltips div {
+	margin-right: .5rem;
+}
+
+.tooltips-btn {
+	position: fixed;
+	right: 1rem;
+	bottom: 1rem;
+	z-index: 101;
+}
+
+.tooltips-btn button {
+	font-size: 1rem;
+	color: var(--text-primary);
+	background-color: var(--background-primary);
+	border: 1px solid var(--text-secondary);
+	padding: .5rem;
+	width: 2rem;
+	height: 2rem;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	border-radius: 1000px;
+}
+
+.control-panel {
+	align-self: flex-start;
+	background-color: var(--background-secondary);
+	color: var(--text-primary);
+	z-index: 100;
+	min-width: 250px;
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	box-sizing: border-box;
+	font-family: monospace;
+	border-left: var(--small-border);
+}
+
+.control-panel button {
+	height: 1.8rem;
+	width: 1.8rem;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	padding: .5rem;
+	background-color: var(--background-primary);
+	color: var(--text-primary);
+	transition: all .1s ease-in-out;
+	border: 1px solid var(--text-secondary);
+	border-radius: 5px;
+}
+
+.control-panel button span {
+	font-size: 1.2rem;
+}
+
+.control-panel button:disabled {
+	color: var(--text-secondary);
+	background-color: var(--background-accent);
+	cursor: default;
+}
+
+.control-panel button:hover {
+	background-color: var(--background-accent);
+}
+
+.control-panel__section {
+	padding: 1rem;
+	border-bottom: var(--small-border);
+}
+
+.control-panel__section--footer {
+	border-top: var(--small-border);
+	margin-top: auto;
+	border-bottom: none;
+	display: flex;
+	align-items: center;
+}
+
+.control-panel__section--footer button {
+	margin-left: auto;
+}
+
+.control-panel__section p {
+	margin: 0 0 .5rem 0;
+}
+
+.control-panel__button-group {
+	display: flex;
+	gap: .5rem;
+}
+
+.node-draggable {
+	font-family: monospace;
+	padding: 1rem;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	border: 2px solid black;
+	margin-bottom: .5rem;
+	border-radius: 10px;
+	cursor: grab;
+}
+
+dialog:focus {
+	outline: 0;
+}
+
+dialog {
+	border-radius: 5px;
+	border: 1px solid var(--text-secondary);
+	font-family: monospace;
+	min-width: 250px;
+	background-color: var(--background-primary);
+	color: var(--text-primary);
+}
+
+dialog input, dialog select {
+	padding: .5rem;
+	border-radius: 5px;
+	display: block;
+	margin-bottom: .5rem;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+dialog button {
+	background-color: var(--accent-color);
+	border: none;
+	border-radius: 5px;
+	padding: .5rem 1rem;
+	color: var(--text-primary);
+}
+
+dialog .btn-container {
+	display: flex;
+	justify-content: flex-end;
+}
+
+.invisible-input {
+	border: none;
+}
+
+.invisible-input:focus {
+	outline: 0;
+}
+
+hr {
+	border: none;
+	height: 1px;
+	background-color: var(--text-secondary);
+}
+

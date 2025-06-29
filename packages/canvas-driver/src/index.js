@@ -206,6 +206,9 @@ export class CanvasGUIDriver extends EventEmitter {
     this._drawStatic();
     this.graph.on("world:pan", this._drawStatic.bind(this));
     this.graph.on("world:zoom", this._drawStatic.bind(this));
+
+    this.emit("run", this.graph);
+
     return this.graph;
   }
 
@@ -295,11 +298,11 @@ export class CanvasGUIDriver extends EventEmitter {
               start_handle: handle,
               end_handle 
             })
-            this.edge_dialog.showModal();
             break;
           }
         }
       }
+      this.emit("create:connections", this.new_edges)
     }
 
     this.container.style.cursor = "default";

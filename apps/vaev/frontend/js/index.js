@@ -87,15 +87,15 @@ const node_types = [
 	}
 ]
 
-const canvas_gui = new CanvasGUIDriver({
-	wasm_url,
-	edge_dialog_id: "create-edge-dialog",
-	container_id: "canvas-container",
-	control_panel_id: "control-panel",
+window.canvas_gui = new CanvasGUIDriver({
+  edge_dialog_id: "create-edge-dialog",
+  container_id: "canvas-container",
+  control_panel_id: "control-panel",
+  wasm_url
 })
 
 document.addEventListener("DOMContentLoaded", async () => {
-	await canvas_gui.run({
+	await window.canvas_gui.run({
 		edge_types,
 		node_types
 	},

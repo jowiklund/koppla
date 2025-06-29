@@ -1,11 +1,16 @@
-package dashboard
+package graph
 
-templ Main() {
+import "github.com/pocketbase/pocketbase"
+
+templ Main(app *pocketbase.PocketBase, project_id string) {
+	{{node_types := GetNodeTypes(app)}}
+	{{edge_types := GetEdgeTypes(app)}}
 	<div id="workspace" 
+		data-signals-node-types={templ.JSONString(node_types)}
 		data-signals-driver="null"
 		data-signals-edge-types="null"
 		data-signals="{driver: null, edgeTypes: []}"
-		data-on-load=" $driver = window.canvas_gui; $driver.on('run', (e) => $edgeTypes = $driver.graph.config.edge_types)"
+		data-on-load="$driver = window.canvas_gui;"
 		class="workspace"
 	>
 		<div id="canvas-container" class="canvas-container"></div>
@@ -31,10 +36,13 @@ templ Main() {
 					<button koppla-click="evenHoriz">
 						<span class="material-symbols-outlined">horizontal_distribute</span>
 					</button>
-					<button koppla-click="evenVert">
+					<button data-on-click="$driver.graph.evenVert($driver.selected_node_handles)">
 						<span class="material-symbols-outlined">vertical_distribute</span>
 					</button>
 				</div>
+			}
+			@ControlPanelSection("Select") {
+				@NodeTypeSelect(app)
 			}
 			@Footer()
 		</div>
@@ -60,6 +68,48 @@ templ Main() {
 				</div>
 			</form>
 		</dialog>
+		<script type="module">
+			import {CanvasGUIDriver, wasm_url, throttle} from "/dist/index.js";
+
+			const node_types = JSON.parse({{templ.JSONString(node_types)}});
+			const edge_types = JSON.parse({{templ.JSONString(edge_types)}});
+
+			console.log(node_types, edge_types)
+
+			window.canvas_gui = new CanvasGUIDriver({
+				container_id: "canvas-container",
+				control_panel_id: "control-panel",
+				wasm_url
+			})
+
+			window.canvas_gui.run({
+				edge_types,
+				node_types
+			}, [
+				{
+					name: "Product owners",
+					type: "qgo5vvmzgdmdhs3",
+					edges_outgoing: [],
+					edges_incoming: [],
+					metadata: '{"id": "po"}'
+				},
+				{
+					name: "Developers",
+					type: "qgo5vvmzgdmdhs3",
+					edges_outgoing: [],
+					edges_incoming: [],
+					metadata: '{"id": "devs"}'
+				},
+			]).then((graph) => {
+				const log_save = throttle(() => {
+					console.log({
+						nodes: graph.getNodes(),
+						edges: graph.getEdges()
+					})
+				}, 2000)
+				graph.on("world:update", log_save)
+			})
+		</script>
 	</div>
 }
 
@@ -85,4 +135,13 @@ templ ControlPanelSection(title string) {
 		<p>{title}</p>
 		{ children... }
 	</div>
+}
+
+templ NodeTypeSelect(app *pocketbase.PocketBase) {
+	{{nodetypes := *GetNodeTypes(app)}}
+	<select>
+	for _, n := range nodetypes {
+		<option value={n.Id}>{n.Name}</option>
+	}
+	</select>
 }

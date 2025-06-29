@@ -85,9 +85,9 @@ export function assert_is_attr(el) {
  * @param {T} value 
  * @returns {asserts value is NonNullable<T>}
  */
-export function assert_is_not_null(value) {
+export function assert_is_not_null(value, msg = "Value was undefined") {
   if (value === undefined || value === null) {
-    throw new Error(`[ASSERTION FAILED]: Value was nullish`)
+    throw new Error(`[ASSERTION FAILED]: ${msg}`)
   }
 }
 

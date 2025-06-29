@@ -9,8 +9,8 @@ import { EventEmitter } from "./event-emitter.js";
 
 /** @typedef {number} NodeHandle */
 /** @typedef {number} EdgeHandle */
-/** @typedef {number} EdgeTypeId */
-/** @typedef {number} NodeTypeId */
+/** @typedef {string} EdgeTypeId */
+/** @typedef {string} NodeTypeId */
 /** @typedef {string} NodeTypeName */
 /** @typedef {number} ZoneType */
 /** @typedef {number} GroupType */
@@ -40,7 +40,7 @@ import { EventEmitter } from "./event-emitter.js";
  * @property {EdgeHandle} handle
  * @property {NodeHandle} start_handle
  * @property {NodeHandle} end_handle
- * @property {number} type
+ * @property {EdgeTypeId} type
  */
 
 /**
@@ -76,10 +76,6 @@ export const NodeShape = {
  */
 
 /**
- * @typedef {Map<NodeTypeId, NodeType>} NodeTypes
- */
-
-/**
  * @typedef {Object} Relation
  * @property {string} edge_type_metadata
  * @property {string} from_metadata
@@ -107,9 +103,9 @@ export class GraphEditor extends EventEmitter {
   coordinate_rounder = (val) => val;
   /** @type {Map<NodeHandle, NodeBase>} */
   node_data = new Map();
-  /** @type {NodeTypes} */
+  /** @type {Map<NodeTypeId, NodeType>} */
   node_types = new Map();
-  /** @type {Map<number, EdgeType>} */
+  /** @type {Map<EdgeTypeId, EdgeType>} */
   edge_types = new Map();
 
   /** @private */
@@ -126,10 +122,10 @@ export class GraphEditor extends EventEmitter {
     this._string_buffer_ptr = this._wasm.js_string_buffer.value;
     this._wasm.init(grid_size);
 
-    this.edge_types.set(-1, {
+    this.edge_types.set("-1", {
       stroke_width: 2,
       stroke_color: "#000000",
-      id: -1,
+      id: "-1",
       name: "default",
       metadata: "",
       line_dash: []
@@ -138,6 +134,7 @@ export class GraphEditor extends EventEmitter {
 
   /**
    * @param {Array<NodeBase>} nodes
+   * @deprecated
    */
   loadGraph(nodes) {
     for (let i = 0; i < nodes.length; i++) {
@@ -145,12 +142,23 @@ export class GraphEditor extends EventEmitter {
     }
   }
 
+  /**
+   * @param {Array<Node>} nodes 
+   * @param {Array<Edge>} edges 
+   */
+  load(nodes, edges) {
+    for (const node of nodes) {
+      this.createNode(node, node.x, node.y);
+    }
+    for (const edge of edges) {
+      this.createEdge(edge.end_handle, edge.end_handle, edge.type);
+    }
+    this.emit("world:loaded");
+  }
+
   sortNodes() {
-    setInterval(() => {
-        this._wasm.sortNodes(10, 0.01, 1000.0, 200.0, 0.9);
-        this.emit("world:update");
-    }, 16)
-    //this.emit("world:update");
+    this._wasm.sortNodes(10, 0.01, 1000.0, 200.0, 0.9);
+    this.emit("world:update");
   }
 
   /**
@@ -303,12 +311,12 @@ export class GraphEditor extends EventEmitter {
   }
 
   /**
-   * @param {number} id
+   * @param {EdgeTypeId} id
    * @returns {EdgeType | undefined}
    */
   getEdgeType(id) {
     const type = this.edge_types.get(id);
-    if (!type) return this.edge_types.get(-1);
+    if (!type) return this.edge_types.get("-1");
     return type;
   }
 

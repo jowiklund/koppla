@@ -1,4 +1,4 @@
-import { assert_is_dialog, assert_is_not_null } from "@kpla/assert";
+import { assert_is_not_null } from "@kpla/assert";
 import { getEngine, GraphEditor, NodeShape } from "@kpla/engine";
 import { DocumentParser } from "@kpla/signals";
 import { EventEmitter } from "./event-emitter.js";
@@ -19,7 +19,6 @@ import { EventName, State, StateMachine } from "./state-machine.js";
 /**
  * @typedef {Object} CanvasDriverOptions
  * @property {string} container_id
- * @property {string} edge_dialog_id
  * @property {string} control_panel_id
  * @property {string} wasm_url
  * @property {number} [node_radius]
@@ -51,8 +50,6 @@ const Colors = {
 export class CanvasGUIDriver extends EventEmitter {
   /** @type {HTMLElement} */
   container;
-  /** @type {HTMLDialogElement} */
-  edge_dialog;
   /** @type {HTMLElement} */
   control_panel;
   /** @type {GraphEditor | null} */
@@ -107,7 +104,6 @@ export class CanvasGUIDriver extends EventEmitter {
     this.state = new StateMachine();
     assert_is_not_null(opts.control_panel_id);
     assert_is_not_null(opts.container_id);
-    assert_is_not_null(opts.edge_dialog_id);
 
     const canvas_container = document.getElementById(opts.container_id);
     assert_is_not_null(canvas_container);
@@ -124,10 +120,6 @@ export class CanvasGUIDriver extends EventEmitter {
     this._createLayer("objects");
     this._createLayer("interactions");
 
-    const edge_dialog = document.getElementById(opts.edge_dialog_id);
-    assert_is_not_null(edge_dialog);
-    assert_is_dialog(edge_dialog)
-    this.edge_dialog = edge_dialog;
 
     const control_panel = document.getElementById(opts.control_panel_id);
     assert_is_not_null(control_panel);
@@ -224,10 +216,6 @@ export class CanvasGUIDriver extends EventEmitter {
     this.container.addEventListener("wheel", this._wheel.bind(this));
     this.container.addEventListener("mouseup", this._mouseUp.bind(this));
     this.container.addEventListener("dblclick", this._emitDoubleClick.bind(this));
-
-    this.edge_dialog.addEventListener("close", () => {
-      this.new_edges = [];
-    })
 
     this.container.addEventListener("dragover", (e) => {
       e.preventDefault();
@@ -586,7 +574,7 @@ export class CanvasGUIDriver extends EventEmitter {
             stroke_width: 1,
             stroke_color: Colors.text_primary,
             name: "",
-            id: 0
+            id: "0"
           }
         );
       }
@@ -774,7 +762,7 @@ export class CanvasGUIDriver extends EventEmitter {
     const { x, y } = node;
     layer.ctx.beginPath();
     const type = this.graph.getNodeType(node.type);
-    assert_is_not_null(type);
+    assert_is_not_null(type, "Invalid node type");
     switch (type.shape) {
       case NodeShape.CIRCLE:
         layer.ctx.arc(x, y, this.config.node_radius, 0, 2 * Math.PI);

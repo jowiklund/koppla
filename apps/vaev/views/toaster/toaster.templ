@@ -1,0 +1,12 @@
+package toaster
+
+import "fmt"
+
+templ ErrorMessage(msg string, id string) {
+	{{msg_id := fmt.Sprintf("%s-%s", msg, id)}}
+	<div
+		data-ref={msg_id}
+		data-on-load={fmt.Sprintf("setTimeout(() => {$%s.remove()}, 5000)", msg_id)}
+		class="toaster__msg toaster__msg--error"
+	>{msg}</div>
+}

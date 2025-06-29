@@ -42,6 +42,11 @@ body {
 	overflow: hidden;
 }
 
+.toaster {
+	position: fixed;
+	z-index: 200;
+}
+
 .workspace {
 	display: flex;
 	align-items: center;

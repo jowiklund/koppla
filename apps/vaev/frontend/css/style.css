@@ -59,6 +59,7 @@ body {
 	background-color: var(--background-primary);
 	margin: 0;
 	overflow: hidden;
+	color: var(--text-primary);
 }
 
 button {

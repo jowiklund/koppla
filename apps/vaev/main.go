@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
+	"koppla/apps/vaev/routing"
 	"koppla/apps/vaev/views/auth"
+	"koppla/apps/vaev/views/dashboard"
 	"koppla/apps/vaev/views/graph"
+	"koppla/apps/vaev/views/intro"
 	"koppla/apps/vaev/views/layout"
 	"log"
 	"net/http"
@@ -40,6 +43,14 @@ func main() {
 		r.Use(auth.WithAuthGuard)
 		r.Get("/hello", func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("You fine"))
+		})
+
+		r.Route("/dashboard", func(r chi.Router) {
+			r.Get("/projects", func(w http.ResponseWriter, r *http.Request) {
+				templ.Handler(layout.Doc(func() templ.Component {
+					return dashboard.Projects()
+				})).ServeHTTP(w, r)
+			})
 		})
 
 		r.Route("/project", func(r chi.Router) {
@@ -96,16 +107,41 @@ func main() {
 		})).ServeHTTP(w, r)
 	})
 
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		_, err := auth.GetSignedInUser(app, r)
+		if err == nil {
+			routing.RedirectTo(w, r, "/dashboard/projects", false)
+			return
+		}
+
+		templ.Handler(
+			layout.Doc(
+				func() templ.Component {
+					return intro.Intro()
+				},
+				layout.Resource{
+					Component: func() templ.Component {
+						return layout.Link("stylesheet", "/dist/intro.css")
+					},
+					Type: layout.T_LINK,
+				},
+			),
+		).ServeHTTP(w, r)
+	})
+
 	auth.AuthRoutes(app, r)
 
 	if is_dev {
 		log.Println("Development mode: proxying to Vite server on http://localhost:5173")
 		vite_proxy := newReverseProxy("http://localhost:5173")
 		r.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/dist/index.js" {
+			switch r.URL.Path {
+			case "/dist/index.js":
 				r.URL.Path = "/frontend/js/index.js"
-			} else if r.URL.Path == "/dist/style.css" {
+			case "/dist/style.css":
 				r.URL.Path = "/frontend/css/style.css"
+			case "/dist/intro.css":
+				r.URL.Path = "/frontend/css/intro.css"
 			}
 
 			vite_proxy.ServeHTTP(w, r)

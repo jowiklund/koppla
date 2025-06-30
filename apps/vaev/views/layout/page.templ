@@ -1,6 +1,21 @@
 package layout
 
-templ Doc(child func() templ.Component) {
+type ResourceType int
+
+const (
+	T_LINK ResourceType = iota
+	T_SCRIPT
+)
+
+type Resource struct {
+	Component func() templ.Component
+	Type ResourceType
+}
+
+templ Doc(
+	child func() templ.Component,
+	resources... Resource,
+) {
 	<!DOCTYPE html>
 	<html lang="se">
 		<head>
@@ -9,6 +24,11 @@ templ Doc(child func() templ.Component) {
 			<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
 			<link rel="icon" type="image/png" href="/public/favicon.ico">
 			<link rel="stylesheet" href="/dist/style.css" />
+			for _, r := range resources {
+				if r.Type == T_LINK {
+					@r.Component()
+				}
+			}
 			<title>Vaev</title>
 		</head>
 		<body>
@@ -19,6 +39,19 @@ templ Doc(child func() templ.Component) {
 			</div>
 			<div id="toaster" class="toaster"></div>
 			<script type="module" src="/dist/index.js"></script>
+			for _, r := range resources {
+				if r.Type == T_SCRIPT {
+					@r.Component()
+				}
+			}
 		</body>
 	</html>
+}
+
+templ Script(type_name string, src string) {
+	<script type={type_name} src={src}></script>
+}
+
+templ Link(rel string, href string) {
+	<link rel={rel} href={href} />
 }

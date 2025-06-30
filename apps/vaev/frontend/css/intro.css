@@ -1,0 +1,26 @@
+.intro-section {
+	background-color: var(--background-secondary);
+	width: 100%;
+}
+
+.intro-section--right {
+	clip-path: polygon(0 0, 100% 0, 100% 100%, 0 35%);
+	min-height: 400px;
+}
+
+.intro-section--left {
+	clip-path: polygon(0% 35%, 100% 0, 100% 100%, 0 70%);
+	min-height: 600px;
+}
+
+.intro-section__inner {
+	max-width: 200ch;
+	margin: 0 auto;
+}
+
+.intro-section h1 {
+	margin-top: 0;
+	font-size: 6rem;
+	text-align: right;
+	padding: calc(var(--gap-8) * 2);
+}

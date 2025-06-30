@@ -47,9 +47,25 @@ func main() {
 
 		r.Route("/dashboard", func(r chi.Router) {
 			r.Get("/projects", func(w http.ResponseWriter, r *http.Request) {
-				templ.Handler(layout.Doc(func() templ.Component {
-					return dashboard.Projects()
-				})).ServeHTTP(w, r)
+				projects := []graph.Project{}
+
+				user, err := auth.GetSignedInUser(app, r)
+				if err != nil {
+					log.Fatal("User was nil when saving project")
+				}
+
+				app.DB().
+					Select("*").
+					From("projects").
+					Where(dbx.NewExp("owner = {:owner}", dbx.Params{"owner": user.Id})).
+					All(&projects)
+
+				fmt.Printf("%+v", projects)
+
+				dasboard_styles := layout.NewStylesheet("/dist/dashboard.css")
+				doc(func() templ.Component {
+					return dashboard.Projects(projects)
+				}, dasboard_styles).ServeHTTP(w, r)
 			})
 		})
 
@@ -63,8 +79,6 @@ func main() {
 					log.Fatal("User was nil when saving project")
 				}
 
-				fmt.Printf("%+v", user)
-
 				app.DB().
 					Select("*").
 					From("projects").
@@ -72,7 +86,7 @@ func main() {
 					AndWhere(dbx.NewExp("owner = {:owner}", dbx.Params{"owner": user.Id})).
 					One(&project)
 
-				fmt.Printf("%+v", project)
+				fmt.Printf("\nProject: %+v\n", project)
 			})
 			r.Post("/{id}/load", func(w http.ResponseWriter, r *http.Request) {
 			})
@@ -82,7 +96,7 @@ func main() {
 
 	r.Get("/project/{id}", func(w http.ResponseWriter, r *http.Request) {
 		project_id := chi.URLParam(r, "id")
-		project := graph.Project{}
+		var project *graph.Project
 
 		user, err := auth.GetSignedInUser(app, r)
 		if err != nil {
@@ -100,7 +114,11 @@ func main() {
 			AndWhere(dbx.NewExp("owner = {:owner}", dbx.Params{"owner": user.Id})).
 			One(&project)
 
-		fmt.Printf("%+v", project)
+		if project == nil {
+			routing.RedirectTo(w, r, "/", false)
+		}
+
+		fmt.Printf("\nProject: %+v\n", project)
 
 		templ.Handler(layout.Doc(func() templ.Component {
 			return graph.Main(app, project_id)
@@ -119,12 +137,7 @@ func main() {
 				func() templ.Component {
 					return intro.Intro()
 				},
-				layout.Resource{
-					Component: func() templ.Component {
-						return layout.Link("stylesheet", "/dist/intro.css")
-					},
-					Type: layout.T_LINK,
-				},
+				layout.NewStylesheet("/dist/intro.css"),
 			),
 		).ServeHTTP(w, r)
 	})
@@ -142,6 +155,8 @@ func main() {
 				r.URL.Path = "/frontend/css/style.css"
 			case "/dist/intro.css":
 				r.URL.Path = "/frontend/css/intro.css"
+			case "/dist/dashboard.css":
+				r.URL.Path = "/frontend/css/dashboard.css"
 			}
 
 			vite_proxy.ServeHTTP(w, r)
@@ -155,13 +170,16 @@ func main() {
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		se.Router.Any("/", apis.WrapStdHandler(r))
-
 		return se.Next()
 	})
 
 	if err := app.Start(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func doc(child func() templ.Component, resources ...layout.Resource) *templ.ComponentHandler {
+	return templ.Handler(layout.Doc(child, resources...))
 }
 
 func newReverseProxy(target string) *httputil.ReverseProxy {

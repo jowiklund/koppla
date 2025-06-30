@@ -44,7 +44,9 @@ func GetEdgeTypes(app *pocketbase.PocketBase) *[]EdgeType {
 }
 
 type Project struct {
-	Id    string `db:"id" json:"id"`
-	Owner string `db:"owner" json:"owner"`
-	Name  string `db:"name" json:"name"`
+	Id      string `db:"id" json:"id"`
+	Owner   string `db:"owner" json:"owner"`
+	Name    string `db:"name" json:"name"`
+	Updated string `db:"updated" json:"updated"`
+	Created string `db:"created" json:"created"`
 }

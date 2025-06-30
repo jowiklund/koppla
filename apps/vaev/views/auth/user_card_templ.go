@@ -260,7 +260,7 @@ func userCardOptions() templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<button data-on-click=\"@post('/auth/logout')\">Log out</button>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<a href=\"/dashboard/projects\"><span class=\"material-symbols-outlined\">cases</span>Projects</a> <button data-on-click=\"@post('/auth/logout')\"><span class=\"material-symbols-outlined text-red\">logout</span>Log out</button>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

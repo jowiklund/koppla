@@ -1,6 +1,33 @@
 package dashboard
 
-templ Projects() {
-	<div id="user-card" data-on-load="@get('/auth/user')"></div>
-	<div>Projects</div>
+import "koppla/apps/vaev/views/graph"
+import "time"
+import "fmt"
+
+templ Projects(projects []graph.Project) {
+	<div class="dashboard">
+		<div class="dashboard-controls">
+			<div id="user-card" data-on-load="@get('/auth/user')"></div>
+		</div>
+		<div class="projects-list">
+			for _, p := range projects {
+				{{
+					layout := "2006-01-02 15:04:05.000Z"
+					datetime, _ := time.Parse(layout, p.Updated)
+					updated := datetime.Format("2006-01-02")
+				}}
+				<div class="project-item">
+					<div class="project-item__thumbnail"></div>
+					<div class="project-item__info">
+						<a
+							href={fmt.Sprintf("/project/%s", p.Id)}
+							class="project-item__info__title clickover"
+						> {p.Name} </a>
+						<p class="project-item__info__modified">{updated}</p>
+					</div>
+				</div>
+			}
+		</div>
+	</div>
+
 }

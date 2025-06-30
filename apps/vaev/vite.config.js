@@ -20,6 +20,7 @@ export default defineConfig(() => {
             index: resolve(__dirname, 'frontend/js/index.js'),
             style: resolve(__dirname, 'frontend/css/style.css'),
             intro: resolve(__dirname, 'frontend/css/intro.css'),
+            projects: resolve(__dirname, 'frontend/css/dashboard.css'),
         },
         output: {
           entryFileNames: `[name].js`,

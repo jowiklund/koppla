@@ -14,10 +14,8 @@ templ Doc(child func() templ.Component) {
 		<body>
 			<div 
 				id="app"
-				data-signals="{session_key: '', user: {name: ''}}" 
-				data-persist__session
 			>
-			@child()
+				@child()
 			</div>
 			<div id="toaster" class="toaster"></div>
 			<script type="module" src="/dist/index.js"></script>

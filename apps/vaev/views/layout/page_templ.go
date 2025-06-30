@@ -29,7 +29,7 @@ func Doc(child func() templ.Component) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html lang=\"se\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><meta charset=\"UTF-8\"><link href=\"https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined\" rel=\"stylesheet\"><link rel=\"icon\" type=\"image/png\" href=\"/public/favicon.ico\"><link rel=\"stylesheet\" href=\"/dist/style.css\"><title>Vaev</title></head><body><div id=\"app\" data-signals=\"{session_key: '', user: {name: ''}}\" data-persist__session>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html lang=\"se\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><meta charset=\"UTF-8\"><link href=\"https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined\" rel=\"stylesheet\"><link rel=\"icon\" type=\"image/png\" href=\"/public/favicon.ico\"><link rel=\"stylesheet\" href=\"/dist/style.css\"><title>Vaev</title></head><body><div id=\"app\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

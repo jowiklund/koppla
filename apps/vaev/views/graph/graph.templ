@@ -6,15 +6,11 @@ templ Main(app *pocketbase.PocketBase, project_id string) {
 	{{node_types := GetNodeTypes(app)}}
 	{{edge_types := GetEdgeTypes(app)}}
 	<div id="workspace" 
-		data-signals-node-types={templ.JSONString(node_types)}
-		data-signals-driver="null"
-		data-signals-edge-types="null"
-		data-signals="{driver: null, edgeTypes: []}"
-		data-on-load="$driver = window.canvas_gui;"
 		class="workspace"
 	>
 		<div id="canvas-container" class="canvas-container"></div>
 		<div id="control-panel" class="control-panel">
+			@header()
 			@ControlPanelSection("Sorting") {
 				<div class="control-panel__button-group">
 					<button koppla-click="sort" title="Fruchterman-Reingold esque sorting">
@@ -48,14 +44,6 @@ templ Main(app *pocketbase.PocketBase, project_id string) {
 		</div>
 		<dialog
 			id="create-edge-dialog"
-			data-ref="edge-form"
-			data-signals-edges="[]"
-			data-on-load="
-				$driver.on('create:connections', (e) => {
-					$edges = e
-					$edge-form.showModal()
-				});
-			"
 		>
 			<p>Choose connection type</p>
 			<form id="create-edge-form" method="dialog" koppla-submit="createEdge">
@@ -127,6 +115,12 @@ templ Footer() {
 		<button data-on-click='$tooltips.showModal()' koppla-click="openToolTips">
 		<span class="material-symbols-outlined">question_mark</span>
 		</button>
+	</div>
+}
+
+templ header() {
+	<div class="control-panel__section control-panel__section--header">
+		<div id="user-card" data-on-load="@get('/auth/user')"></div>
 	</div>
 }
 

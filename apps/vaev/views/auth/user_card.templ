@@ -1,0 +1,32 @@
+package auth
+
+func getFirstLetter(user *User) string {
+	runes := []rune(user.Name)
+	return string(runes[0])
+}
+
+templ UserCard(user *User) {
+	@card() {
+		@userAvatar(getFirstLetter(user))
+		{user.Name}
+	}
+}
+
+templ GuestCard() {
+	@card() {
+		@userAvatar("G")
+		Guest
+	}
+}
+
+templ card() {
+	<div id="user-card" class="user-card">
+		{children...}
+	</div>
+}
+
+templ userAvatar(letter string) {
+	<div class="user-card__avatar">
+		{letter}
+	</div>
+}

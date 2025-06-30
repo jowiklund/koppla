@@ -331,6 +331,24 @@ hr {
 	background-color: var(--text-secondary);
 }
 
+.user-card {
+	display: flex;
+	gap: var(--gap-2);
+	align-items: center;
+}
+
+.user-card__avatar {
+	border-radius: 100px;
+	width: var(--gap-7);
+	height: var(--gap-7);
+	background-color: var(--accent-color);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	font-weight: bold;
+	text-transform: uppercase;
+}
+
 @keyframes slide-up {
 from {
 	opacity: 0;

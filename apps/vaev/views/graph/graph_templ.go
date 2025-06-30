@@ -164,7 +164,7 @@ func Footer() templ.Component {
 			templ_7745c5c3_Var7 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<div class=\"control-panel__section control-panel__section--footer\"><dialog data-ref=\"tooltips\"><div class=\"tooltips\"><div><span>ctrl</span> + <span>drag</span>: pan</div><div><span>shift</span> + <span>drag</span>: connect</div><div><span>del</span>: delete selected</div><div><span>backspace</span>: delete selected connections</div><div><span>scroll</span>: zoom</div></div></dialog> <button data-on-click=\"$tooltips.showModal()\" koppla-click=\"openToolTips\"><span class=\"material-symbols-outlined\">question_mark</span></button></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<div class=\"control-panel__section control-panel__section--footer\"><dialog data-ref=\"tooltips\"><div class=\"tooltips\"><div><span>ctrl</span> + <span>drag</span>: pan</div><div><span>shift</span> + <span>drag</span>: connect</div><div><span>del</span>: delete selected</div><div><span>backspace</span>: delete selected connections</div><div><span>scroll</span>: zoom</div></div></dialog><div class=\"control-panel__button-group\"><button data-on-click=\"$tooltips.showModal()\" koppla-click=\"openToolTips\"><span class=\"material-symbols-outlined\">question_mark</span></button></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -229,7 +229,7 @@ func ControlPanelSection(title string) templ.Component {
 		var templ_7745c5c3_Var10 string
 		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 129, Col: 11}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 131, Col: 11}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 		if templ_7745c5c3_Err != nil {
@@ -285,7 +285,7 @@ func NodeTypeSelect(app *pocketbase.PocketBase) templ.Component {
 			var templ_7745c5c3_Var12 string
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(n.Id)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 138, Col: 21}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 140, Col: 21}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 			if templ_7745c5c3_Err != nil {
@@ -298,7 +298,7 @@ func NodeTypeSelect(app *pocketbase.PocketBase) templ.Component {
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(n.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 138, Col: 30}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 140, Col: 30}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {

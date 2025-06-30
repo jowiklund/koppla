@@ -174,6 +174,7 @@ select {
 .tooltips span {
 	display: inline-block;
 	padding: .125rem .25rem;
+	line-height: 1;
 	border-radius: var(--border-radius-small);
 	color: var(--background-primary);
 	border: 1px solid var(--text-secondary);
@@ -218,7 +219,7 @@ select {
 	border-left: var(--small-border);
 }
 
-.control-panel button {
+.control-panel__button-group button {
 	height: 1.8rem;
 	width: 1.8rem;
 	display: flex;
@@ -232,17 +233,17 @@ select {
 	border-radius: var(--border-radius-small);
 }
 
-.control-panel button span {
+.control-panel__button-group button span {
 	font-size: 1.2rem;
 }
 
-.control-panel button:disabled {
+.control-panel__button-group button:disabled {
 	color: var(--text-secondary);
 	background-color: var(--background-accent);
 	cursor: default;
 }
 
-.control-panel button:hover {
+.control-panel__button-group button:hover {
 	background-color: var(--background-accent);
 }
 
@@ -255,12 +256,6 @@ select {
 	border-top: var(--small-border);
 	margin-top: auto;
 	border-bottom: none;
-	display: flex;
-	align-items: center;
-}
-
-.control-panel__section--footer button {
-	margin-left: auto;
 }
 
 .control-panel__section p {
@@ -332,9 +327,15 @@ hr {
 }
 
 .user-card {
+	position: relative;
 	display: flex;
 	gap: var(--gap-2);
 	align-items: center;
+	width: 100%;
+	background-color: var(--background-secondary);
+	padding: 0;
+	color: var(--text-primary);
+	border: none;
 }
 
 .user-card__avatar {
@@ -347,6 +348,53 @@ hr {
 	align-items: center;
 	font-weight: bold;
 	text-transform: uppercase;
+}
+
+.user-card__options {
+	position: absolute;
+	display: flex;
+	flex-direction: column;
+	gap: var(--gap-2);
+	top: calc(100% + var(--gap-2));
+	right: 0;
+	left: 0;
+	background-color: var(--background-primary);
+	box-sizing: border-box;
+	border: var(--small-border);
+	padding: var(--gap-2);
+	border-radius: var(--border-radius-small);
+	text-align: left;
+	padding: var(--gap-2);
+}
+
+.user-card__options button,
+.user-card__options a {
+	display: inline-block;
+	color: var(--text-primary);
+	text-decoration: none;
+	text-align: left;
+	padding: var(--gap-2);
+	border-radius: var(--small-border);
+	background-color: transparent;
+	border: none;
+}
+
+.user-card__options button:hover,
+.user-card__options a:hover {
+	background-color: var(--background-secondary);
+	border-radius: var(--small-border);
+}
+
+.user-card__opts-toggle {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	color: var(--text-primary);
+	background-color: transparent;
+	border: none;
+}
+.user-card__opts-toggle:hover {
+	background-color: var(--background-primary);
 }
 
 @keyframes slide-up {

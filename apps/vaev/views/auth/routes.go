@@ -3,10 +3,12 @@ package auth
 import (
 	"context"
 	"fmt"
+	"koppla/apps/vaev/routing"
 	"koppla/apps/vaev/views/layout"
 	"koppla/apps/vaev/views/toaster"
 	"log"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/a-h/templ"
@@ -18,9 +20,10 @@ import (
 )
 
 const (
-	R_LOGIN    = "/login"
-	R_VALIDATE = "/auth/validate"
-	R_USER     = "/auth/user"
+	R_LOGIN      = "/login"
+	R_VALIDATE   = "/auth/validate"
+	R_INVALIDATE = "/auth/logout"
+	R_USER       = "/auth/user"
 )
 
 const CTX_AUTH = "vaev-auth"
@@ -45,25 +48,23 @@ func AuthRoutes(app *pocketbase.PocketBase, r *chi.Mux) {
 	})
 
 	r.Get(R_LOGIN, func(w http.ResponseWriter, r *http.Request) {
-		r.URL.Query().Get("next")
+		next := r.URL.Query().Get("next")
+		next_parsed, err := url.QueryUnescape(next)
+		if err != nil {
+			log.Fatalf("Unable to parse next: %s", next)
+		}
 		if cookie, err := r.Cookie(COOKIE_AUTH); err == nil {
 			_, err := app.FindAuthRecordByToken(cookie.Value)
 			if err == nil {
-				http.Redirect(w, r, "/project/asdas", http.StatusTemporaryRedirect)
+				routing.BounceBack(w, r)
 				return
 			}
 
-			http.SetCookie(w, &http.Cookie{
-				Name:     COOKIE_AUTH,
-				Value:    "",
-				MaxAge:   -1,
-				Path:     "/",
-				HttpOnly: true,
-			})
+			routing.DestroyCookie(w, COOKIE_AUTH)
 		}
 
 		templ.Handler(layout.Doc(func() templ.Component {
-			return Login()
+			return Login(next_parsed)
 		})).ServeHTTP(w, r)
 	})
 
@@ -80,13 +81,9 @@ func AuthRoutes(app *pocketbase.PocketBase, r *chi.Mux) {
 
 		defer r.Body.Close()
 		r.ParseMultipartForm(1024)
-		fmt.Printf("\n%s", r.FormValue("username"))
-		fmt.Printf("\n%s\n", r.FormValue("password"))
 
 		data.Username = r.FormValue("username")
 		data.Password = r.FormValue("password")
-
-		fmt.Printf("%+v", *data)
 
 		auth, err := app.FindAuthRecordByEmail(users, data.Username)
 		if err != nil {
@@ -113,14 +110,19 @@ func AuthRoutes(app *pocketbase.PocketBase, r *chi.Mux) {
 				Path:     "/",
 			})
 
-			w.Header().Set("X-Redirect-Origin", "test")
-			http.Redirect(w, r, "/project/asdas", http.StatusTemporaryRedirect)
+			log.Println("Bouncing back")
+			routing.BounceBackSSE(w, r)
 			return
 		}
 
 		sse := datastar.NewSSE(w, r)
 		toaster.SendErrorMessage(sse, "Invalid credentials")
 		sse.ExecuteScript(`document.getElementById("login-form").reset();`)
+	})
+
+	r.Post(R_INVALIDATE, func(w http.ResponseWriter, r *http.Request) {
+		routing.DestroyCookie(w, COOKIE_AUTH)
+		routing.RedirectToSSE(w, r, R_LOGIN, false)
 	})
 }
 
@@ -168,9 +170,10 @@ func WithUserCTX(app *pocketbase.PocketBase) func(next http.Handler) http.Handle
 func WithAuthGuard(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context().Value(CTX_AUTH)
+
 		if ctx == nil {
 			r.Header.Add("Location", "/")
-			http.Redirect(w, r, R_LOGIN, http.StatusTemporaryRedirect)
+			routing.RedirectTo(w, r, R_LOGIN, true)
 			return
 		}
 		next.ServeHTTP(w, r)

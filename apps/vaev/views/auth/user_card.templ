@@ -9,6 +9,8 @@ templ UserCard(user *User) {
 	@card() {
 		@userAvatar(getFirstLetter(user))
 		{user.Name}
+		@openUserOptsBtn()
+		@userCardOptions()
 	}
 }
 
@@ -16,11 +18,18 @@ templ GuestCard() {
 	@card() {
 		@userAvatar("G")
 		Guest
+		@openUserOptsBtn()
+		@guestCardOptions()
 	}
 }
 
 templ card() {
-	<div id="user-card" class="user-card">
+	<div
+		id="user-card"
+		class="user-card"
+		data-signals="{showOptions: false}"
+		data-on-click__outside="$showOptions ? $showOptions = false : null"
+	>
 		{children...}
 	</div>
 }
@@ -29,4 +38,31 @@ templ userAvatar(letter string) {
 	<div class="user-card__avatar">
 		{letter}
 	</div>
+}
+
+templ userCardOptions() {
+	@options(){
+		<button data-on-click="@post('/auth/logout')">Log out</button>
+	}
+}
+
+templ guestCardOptions() {
+	@options(){
+		<a href="/login" >Log in</a>
+	}
+}
+
+templ options() {
+	<div
+		class="user-card__options"
+		data-show="$showOptions"
+	>
+		{children...}
+	</div>
+}
+
+templ openUserOptsBtn() {
+	<button data-on-click="$showOptions = !$showOptions" class="user-card__opts-toggle">
+		<span class="material-symbols-outlined">arrow_drop_down</span>
+	</button>
 }

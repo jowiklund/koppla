@@ -21,6 +21,9 @@ import (
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/plugins/migratecmd"
+
+	_ "koppla/apps/vaev/migrations"
 )
 
 type JsonError struct {
@@ -31,6 +34,10 @@ type JsonError struct {
 func main() {
 	is_dev := os.Getenv("APP_ENV") == "development"
 	app := pocketbase.New()
+
+	migratecmd.MustRegister(app, app.RootCmd, migratecmd.Config{
+		Automigrate: is_dev,
+	})
 
 	r := chi.NewMux()
 	r.Use(middleware.Logger)

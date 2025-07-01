@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "copy-wasm": "cp ../../packages/engine/public/main.wasm ./public/main.wasm",
+    "migrate": "go run . migrate create \"./migrations/pb_migration\"",
     "copy-css": "cp ./frontend/css/style.css ./public/style.css",
     "dev": "vite",
     "build": "vite build"

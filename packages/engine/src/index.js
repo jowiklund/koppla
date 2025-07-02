@@ -329,7 +329,7 @@ export class GraphEditor extends EventEmitter {
    * @returns {EdgeType | undefined}
    */
   getEdgeType(id) {
-    const type = this.edge_types.get(id);
+    const type = this._store.getEdgeType(id);
     if (!type) return this.edge_types.get("-1");
     return type;
   }
@@ -476,6 +476,13 @@ export class GraphEditor extends EventEmitter {
     this._wasm.setNodePosition(handle, x, y);
     this.emit("node:update");
     this.emit("world:update");
+  }
+
+  doNodeUpdate() {
+    const nodes = this.getNodes()
+    for (const node of nodes) {
+      this._store.setNode(node.handle, node);
+    }
   }
 
   /**

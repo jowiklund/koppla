@@ -123,7 +123,7 @@ func Main(app *pocketbase.PocketBase, project_id string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</div><dialog id=\"create-edge-dialog\"><p>Choose connection type</p><form id=\"create-edge-form\" method=\"dialog\" koppla-submit=\"createEdge\"><label>Type:  <select name=\"type\" koppla-value=\"edge_type_signal\" id=\"edge-type-select\"></select></label><div class=\"btn-container\"><button id=\"close\">Create</button></div></form></dialog><script type=\"module\">\n\t\t\timport {PBStore, driver} from \"/dist/graph.js\";\n\t\t\tconst store = new PBStore(")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</div><dialog id=\"create-edge-dialog\"><p>Choose connection type</p><form id=\"create-edge-form\" method=\"dialog\" koppla-submit=\"createEdge\"><label>Type:  <select name=\"type\" koppla-value=\"edge_type_signal\" id=\"edge-type-select\"></select></label><div class=\"btn-container\"><button id=\"close\">Create</button></div></form></dialog><script type=\"module\">\n\t\t\timport {PBStore, driver, throttle} from \"/dist/graph.js\";\n\t\t\tconst store = new PBStore(")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -135,7 +135,7 @@ func Main(app *pocketbase.PocketBase, project_id string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, ")\n\t\t\tconsole.log(store)\n\t\t\tdriver.run(store)\n\t\t</script></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, ")\n\t\t\tdriver.run(store).then(graph => {\n\t\t\t\tconst save = throttle(graph.doNodeUpdate, 2000).bind(graph)\n\t\t\t\tgraph.on(\"world:update\", save)\n\t\t\t})\n\t\t</script></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -229,7 +229,7 @@ func ControlPanelSection(title string) templ.Component {
 		var templ_7745c5c3_Var10 string
 		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 106, Col: 11}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 108, Col: 11}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 		if templ_7745c5c3_Err != nil {
@@ -285,7 +285,7 @@ func NodeTypeSelect(app *pocketbase.PocketBase) templ.Component {
 			var templ_7745c5c3_Var12 string
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(n.Id)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 115, Col: 21}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 117, Col: 21}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 			if templ_7745c5c3_Err != nil {
@@ -298,7 +298,7 @@ func NodeTypeSelect(app *pocketbase.PocketBase) templ.Component {
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(n.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 115, Col: 30}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 117, Col: 30}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {

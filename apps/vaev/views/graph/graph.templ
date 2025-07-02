@@ -68,10 +68,12 @@ templ Main(app *pocketbase.PocketBase, project_id string) {
 			</form>
 		</dialog>
 		<script type="module">
-			import {PBStore, driver} from "/dist/graph.js";
+			import {PBStore, driver, throttle} from "/dist/graph.js";
 			const store = new PBStore({{project_id}})
-			console.log(store)
-			driver.run(store)
+			driver.run(store).then(graph => {
+				const save = throttle(graph.doNodeUpdate, 2000).bind(graph)
+				graph.on("world:update", save)
+			})
 		</script>
 	</div>
 }

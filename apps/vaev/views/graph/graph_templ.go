@@ -135,7 +135,7 @@ func Main(app *pocketbase.PocketBase, project_id string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, ")\n\t\t\tdriver.run(store).then(graph => {\n\t\t\t\tconst save = throttle(graph.doNodeUpdate, 2000).bind(graph)\n\t\t\t\tgraph.on(\"world:update\", save)\n\t\t\t})\n\t\t</script></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, ")\n\t\t\tdriver.run(store).then(graph => {\n\t\t\t\tconst save = throttle(graph.persistGraphState, 5000).bind(graph)\n\t\t\t\tgraph.on(\"node:update\", save)\n\t\t\t})\n\t\t</script></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

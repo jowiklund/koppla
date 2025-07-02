@@ -474,15 +474,16 @@ export class GraphEditor extends EventEmitter {
    */
   setNodePosition(handle, x, y) {
     this._wasm.setNodePosition(handle, x, y);
-    this.emit("node:update");
+    const node = this._store.getNodeByHandle(handle)
+    if (node != undefined) {
+      this._store.setNode(handle, {...node, x, y});
+    }
+    this.emit("node:update", handle);
     this.emit("world:update");
   }
 
-  doNodeUpdate() {
-    const nodes = this.getNodes()
-    for (const node of nodes) {
-      this._store.setNode(node.handle, node);
-    }
+  persistGraphState() {
+    this._store.persistGraphState()
   }
 
   /**

@@ -16,6 +16,9 @@ export class PBStore extends IGraphStore {
     /** @type {Map<string, number>} */
     id_to_handle = new Map()
 
+    /** @type {Map<string, import("@kpla/engine").NodeBase>} */
+    node_updates = new Map()
+
     /**
    * @param {string} base_url 
    */
@@ -86,10 +89,7 @@ export class PBStore extends IGraphStore {
      */
     async setNode(node_handle, node_data) {
         if (node_data.id != undefined) {
-            fetch(this.base_url + "/update-node", {
-                method: "PUT",
-                body: JSON.stringify(node_data)
-            })
+            this.node_updates.set(node_data.id, node_data)
             this.id_to_handle.set(node_data.id, node_handle);
             this.node_cache.set(node_handle, node_data);
             return
@@ -103,6 +103,18 @@ export class PBStore extends IGraphStore {
 
         this.id_to_handle.set(new_node.id, node_handle);
         this.node_cache.set(node_handle, new_node);
+    }
+
+    async persistGraphState() {
+        const nodes_to_update = Array.from(this.node_updates.values())
+        console.log(nodes_to_update)
+        this.node_updates.clear()
+        for (const node of nodes_to_update) {
+            fetch(this.base_url + "/update-node", {
+                method: "PUT",
+                body: JSON.stringify(node)
+            })
+        }
     }
 
     /**
@@ -164,7 +176,7 @@ export class PBStore extends IGraphStore {
         const handle = this.id_to_handle.get(edge_id);
         if (!handle) return undefined;
 
-        return this.node_cache.get(handle);
+        return this.edge_cache.get(handle);
     }
 
     /**
@@ -209,6 +221,8 @@ export const driver = new CanvasGUIDriver({
  * Creates a throttled function that only invokes the provided function `func`
  * at most once per every `delay` milliseconds.
  *
+ * This version of throttle does not fire on the leading edge.
+ *
  * The throttled function comes with a `cancel` method to cancel delayed
  * `func` invocations and a `flush` method to immediately invoke them.
  *
@@ -226,7 +240,7 @@ export function throttle(func, delay) {
   /** @type {any} Stores the result of the last `func` invocation. */
   let result;
   /** @type {number} Timestamp of the last time `func` was invoked. */
-  let last_call_time = 0;
+  let last_call_time = 0; // Keep track of the last time a timeout was set for trailing
 
   /**
    * The core throttled function that manages the invocation of the original function.
@@ -236,34 +250,23 @@ export function throttle(func, delay) {
    */
   function throttled(...args) {
     const now = Date.now();
-    const remaining = delay - (now - last_call_time);
     last_args = args;
     last_this = this;
 
-    // If the time window has passed, execute the function immediately.
-    if (remaining <= 0 || remaining > delay) {
-      if (timeout_id) {
-        clearTimeout(timeout_id);
-        timeout_id = null;
-      }
-      last_call_time = now;
-      result = func.apply(last_this, last_args);
-      // Clear args and this if there's no pending timeout.
-      if (!timeout_id) {
-        last_args = last_this = null;
-      }
-    } else if (!timeout_id) {
-      // If we're still within the time window, set a timeout to execute after the remaining time.
-      // This is the "trailing" edge invocation.
+    if (!timeout_id) {
+      // If there's no active timeout, set one for the trailing edge.
       timeout_id = setTimeout(() => {
         last_call_time = Date.now();
         timeout_id = null;
         result = func.apply(last_this, last_args);
-        if (!timeout_id) {
+        // Clear args and this if there's no pending timeout.
+        if (!timeout_id) { // Check again in case func triggered another throttle
           last_args = last_this = null;
         }
-      }, remaining);
+      }, delay);
     }
+    // The result from the previous invocation is returned immediately.
+    // If it's the first call, result will be undefined until the timeout fires.
     return result;
   }
 
@@ -272,10 +275,12 @@ export function throttle(func, delay) {
    * Any trailing edge call that has been scheduled will be cancelled.
    */
   throttled.cancel = function() {
-    assert_is_not_null(timeout_id);
-    clearTimeout(timeout_id);
+    if (timeout_id) {
+      clearTimeout(timeout_id);
+      timeout_id = null;
+    }
     last_call_time = 0;
-    timeout_id = last_args = last_this = null;
+    last_args = last_this = null;
   };
 
   /**
@@ -287,15 +292,14 @@ export function throttle(func, delay) {
     if (!timeout_id) {
       return result;
     }
-    
     // Effectively a trailing edge invocation, but executed immediately.
-    last_call_time = Date.now();
     clearTimeout(timeout_id);
     timeout_id = null;
+    last_call_time = Date.now();
 
     result = func.apply(last_this, last_args);
-    if (!timeout_id) {
-        last_args = last_this = null;
+    if (!timeout_id) { // Check again in case func triggered another throttle
+      last_args = last_this = null;
     }
     return result;
   };

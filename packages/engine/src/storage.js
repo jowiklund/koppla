@@ -105,4 +105,16 @@ export class IGraphStore {
     getEdgeType(id) {
         throw new Error("Method 'getNodeType' is not implemented")
     }
+
+    /**
+     * Instructs the store to make the current graph state, or any pending modifications
+     * (creations, updates, deletions of nodes and edges), durable according to its underlying
+     * persistence mechanism. Implementations without an external backend may fulfill this
+     * contract by performing no operation, updating an internal cache, or saving to a
+     * temporary store. This method orchestrates the 'upstream' flow of 
+     * data for long-term storage.
+     */
+    persistGraphState() {
+        throw new Error("Method 'persistGraphState' is not implemented")
+    }
 }

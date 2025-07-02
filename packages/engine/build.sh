@@ -21,7 +21,6 @@ zig build-exe src/main.zig\
     --export=getEdgeCount \
     --export=getEdgeStartNodeHandle \
     --export=getEdgeEndNodeHandle \
-    --export=getEdgeType \
     --export=deleteEdge \
     --export=sortNodes \
     --export=alloc \

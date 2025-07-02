@@ -9,6 +9,7 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import "github.com/pocketbase/pocketbase"
+import "fmt"
 
 func Main(app *pocketbase.PocketBase, project_id string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
@@ -31,35 +32,24 @@ func Main(app *pocketbase.PocketBase, project_id string) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		node_types := GetNodeTypes(app)
-		edge_types := GetEdgeTypes(app)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"workspace\" class=\"workspace\"><div id=\"canvas-container\" class=\"canvas-container\"></div><div id=\"control-panel\" class=\"control-panel\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"workspace\" class=\"workspace\" data-ref=\"workspace\" data-signals=\"{\n\t\t\tloaded: false,\n\t\t\tproject: {\n\t\t\t\tname: '',\n\t\t\t\tid: '',\n\t\t\t\tpermissions: 0\n\t\t\t},\n\t\t\tnodeTypes: [],\n\t\t\tedgeTypes: [],\n\t\t\tnodes: [],\n\t\t\tedges: []\n\t\t}\" data-on-load=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var2 string
+		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("@get('/sse/project/%s')", project_id))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 20, Col: 66}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"><div id=\"canvas-container\" class=\"canvas-container\"></div><div id=\"control-panel\" class=\"control-panel\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		templ_7745c5c3_Err = header().Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Var2 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
-			templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
-			templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
-			if !templ_7745c5c3_IsBuffer {
-				defer func() {
-					templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
-					if templ_7745c5c3_Err == nil {
-						templ_7745c5c3_Err = templ_7745c5c3_BufErr
-					}
-				}()
-			}
-			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"control-panel__button-group\"><button koppla-click=\"sort\" title=\"Fruchterman-Reingold esque sorting\"><span class=\"material-symbols-outlined\">graph_3</span></button> <button koppla-click=\"sort\" title=\"Hierarchy based sorting\" disabled><span class=\"material-symbols-outlined\">graph_1</span></button></div>")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			return nil
-		})
-		templ_7745c5c3_Err = ControlPanelSection("Sorting").Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -75,17 +65,39 @@ func Main(app *pocketbase.PocketBase, project_id string) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"control-panel__button-group\"><button koppla-click=\"alignVert\"><span class=\"material-symbols-outlined\">align_justify_space_even</span></button> <button koppla-click=\"alignHoriz\"><span class=\"material-symbols-outlined\">align_space_even</span></button> <button koppla-click=\"evenHoriz\"><span class=\"material-symbols-outlined\">horizontal_distribute</span></button> <button data-on-click=\"$driver.graph.evenVert($driver.selected_node_handles)\"><span class=\"material-symbols-outlined\">vertical_distribute</span></button></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"control-panel__button-group\"><button title=\"Fruchterman-Reingold esque sorting\"><span class=\"material-symbols-outlined\">graph_3</span></button> <button title=\"Hierarchy based sorting\" disabled><span class=\"material-symbols-outlined\">graph_1</span></button></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = ControlPanelSection("Position").Render(templ.WithChildren(ctx, templ_7745c5c3_Var3), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = ControlPanelSection("Sorting").Render(templ.WithChildren(ctx, templ_7745c5c3_Var3), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		templ_7745c5c3_Var4 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+			templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+			templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+			if !templ_7745c5c3_IsBuffer {
+				defer func() {
+					templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+					if templ_7745c5c3_Err == nil {
+						templ_7745c5c3_Err = templ_7745c5c3_BufErr
+					}
+				}()
+			}
+			ctx = templ.InitializeContext(ctx)
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div class=\"control-panel__button-group\"><button koppla-click=\"alignVert\"><span class=\"material-symbols-outlined\">align_justify_space_even</span></button> <button koppla-click=\"alignHoriz\"><span class=\"material-symbols-outlined\">align_space_even</span></button> <button koppla-click=\"evenHoriz\"><span class=\"material-symbols-outlined\">horizontal_distribute</span></button> <button data-on-click=\"$driver.graph.evenVert($driver.selected_node_handles)\"><span class=\"material-symbols-outlined\">vertical_distribute</span></button></div>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			return nil
+		})
+		templ_7745c5c3_Err = ControlPanelSection("Position").Render(templ.WithChildren(ctx, templ_7745c5c3_Var4), templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Var5 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 			templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 			templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 			if !templ_7745c5c3_IsBuffer {
@@ -103,7 +115,7 @@ func Main(app *pocketbase.PocketBase, project_id string) templ.Component {
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = ControlPanelSection("Select").Render(templ.WithChildren(ctx, templ_7745c5c3_Var4), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = ControlPanelSection("Select").Render(templ.WithChildren(ctx, templ_7745c5c3_Var5), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -111,31 +123,19 @@ func Main(app *pocketbase.PocketBase, project_id string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div><dialog id=\"create-edge-dialog\"><p>Choose connection type</p><form id=\"create-edge-form\" method=\"dialog\" koppla-submit=\"createEdge\"><label>Type:  <select name=\"type\" koppla-value=\"edge_type_signal\" id=\"edge-type-select\"></select></label><div class=\"btn-container\"><button id=\"close\">Create</button></div></form></dialog><script type=\"module\">\n\t\t\timport {CanvasGUIDriver, wasm_url, throttle} from \"/dist/index.js\";\n\n\t\t\tconst node_types = JSON.parse(")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</div><dialog id=\"create-edge-dialog\"><p>Choose connection type</p><form id=\"create-edge-form\" method=\"dialog\" koppla-submit=\"createEdge\"><label>Type:  <select name=\"type\" koppla-value=\"edge_type_signal\" id=\"edge-type-select\"></select></label><div class=\"btn-container\"><button id=\"close\">Create</button></div></form></dialog><script type=\"module\">\n\t\t\timport {PBStore, driver} from \"/dist/graph.js\";\n\t\t\tconst store = new PBStore(")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Var5, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(templ.JSONString(node_types))
+		templ_7745c5c3_Var6, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(project_id)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 62, Col: 63}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, ");\n\t\t\tconst edge_types = JSON.parse(")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Var6, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(templ.JSONString(edge_types))
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 63, Col: 63}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 72, Col: 41}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, ");\n\n\t\t\tconsole.log(node_types, edge_types)\n\n\t\t\twindow.canvas_gui = new CanvasGUIDriver({\n\t\t\t\tcontainer_id: \"canvas-container\",\n\t\t\t\tcontrol_panel_id: \"control-panel\",\n\t\t\t\twasm_url\n\t\t\t})\n\n\t\t\twindow.canvas_gui.run({\n\t\t\t\tedge_types,\n\t\t\t\tnode_types\n\t\t\t}, [\n\t\t\t\t{\n\t\t\t\t\tname: \"Product owners\",\n\t\t\t\t\ttype: \"qgo5vvmzgdmdhs3\",\n\t\t\t\t\tedges_outgoing: [],\n\t\t\t\t\tedges_incoming: [],\n\t\t\t\t\tmetadata: '{\"id\": \"po\"}'\n\t\t\t\t},\n\t\t\t\t{\n\t\t\t\t\tname: \"Developers\",\n\t\t\t\t\ttype: \"qgo5vvmzgdmdhs3\",\n\t\t\t\t\tedges_outgoing: [],\n\t\t\t\t\tedges_incoming: [],\n\t\t\t\t\tmetadata: '{\"id\": \"devs\"}'\n\t\t\t\t},\n\t\t\t]).then((graph) => {\n\t\t\t\tconst log_save = throttle(() => {\n\t\t\t\t\tconsole.log({\n\t\t\t\t\t\tnodes: graph.getNodes(),\n\t\t\t\t\t\tedges: graph.getEdges()\n\t\t\t\t\t})\n\t\t\t\t}, 2000)\n\t\t\t\tgraph.on(\"world:update\", log_save)\n\t\t\t})\n\t\t</script></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, ")\n\t\t\tconsole.log(store)\n\t\t\tdriver.run(store)\n\t\t</script></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -229,7 +229,7 @@ func ControlPanelSection(title string) templ.Component {
 		var templ_7745c5c3_Var10 string
 		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 131, Col: 11}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 106, Col: 11}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 		if templ_7745c5c3_Err != nil {
@@ -285,7 +285,7 @@ func NodeTypeSelect(app *pocketbase.PocketBase) templ.Component {
 			var templ_7745c5c3_Var12 string
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(n.Id)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 140, Col: 21}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 115, Col: 21}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 			if templ_7745c5c3_Err != nil {
@@ -298,7 +298,7 @@ func NodeTypeSelect(app *pocketbase.PocketBase) templ.Component {
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(n.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 140, Col: 30}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 115, Col: 30}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {

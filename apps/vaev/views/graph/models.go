@@ -2,14 +2,71 @@ package graph
 
 import "github.com/pocketbase/pocketbase"
 
+type Node struct {
+	Id      string `db:"id" json:"id"`
+	Name    string `db:"name" json:"name"`
+	Project string `db:"project" json:"project"`
+	Type    string `db:"type" json:"type"`
+	Created string `db:"created" json:"created"`
+	Updated string `db:"updated" json:"updated"`
+	X       int    `db:"x" json:"x"`
+	Y       int    `db:"y" json:"y"`
+}
+
 type NodeType struct {
-	StrokeWidth uint8  `db:"stroke_width" json:"stroke_width"`
-	Shape       uint8  `db:"shape" json:"shape"`
 	Id          string `db:"id" json:"id"`
 	Name        string `db:"name" json:"name"`
+	Project     string `db:"project" json:"project"`
 	FillColor   string `db:"fill_color" json:"fill_color"`
 	StrokeColor string `db:"stroke_color" json:"stroke_color"`
 	Metadata    string `db:"metadata" json:"metadata"`
+	StrokeWidth uint8  `db:"stroke_width" json:"stroke_width"`
+	Shape       uint8  `db:"shape" json:"shape"`
+}
+
+type Edge struct {
+	Start   string `db:"start" json:"start"`
+	End     string `db:"end" json:"end"`
+	Type    string `db:"type" json:"type"`
+	Created string `db:"created" json:"created"`
+	Updated string `db:"updated" json:"updated"`
+}
+
+type EdgeType struct {
+	Id          string `db:"id" json:"id"`
+	Name        string `db:"name" json:"name"`
+	Project     string `db:"project" json:"project"`
+	StrokeColor string `db:"stroke_color" json:"stroke_color"`
+	LineDash    string `db:"line_dash" json:"line_dash"`
+	Metadata    string `db:"metadata" json:"metadata"`
+	StrokeWidth uint8  `db:"stroke_width" json:"stroke_width"`
+}
+
+type Permission uint8
+
+const (
+	P_EDIT_CONNECTION Permission = 1 << iota
+	P_EDIT_NODES
+	P_MANAGE_PROJECT
+)
+
+func HasPermission(conf uint8, flag uint8) bool {
+	return conf&flag != 0
+}
+
+type PermissionConfig struct {
+	EditConnection bool `db:"edit_connection" json:"edit_connection"`
+	EditNodes      bool `db:"edit_nodes" json:"edit_nodes"`
+	ManageProject  bool `db:"manage_project" json:"manage_project"`
+}
+
+type Project struct {
+	Permissions Permission `db:"permissions" json:"permissions"`
+	Id          string     `db:"id" json:"id"`
+	Owner       string     `db:"owner" json:"owner"`
+	Name        string     `db:"name" json:"name"`
+	Updated     string     `db:"updated" json:"updated"`
+	Created     string     `db:"created" json:"created"`
 }
 
 func GetNodeTypes(app *pocketbase.PocketBase) *[]NodeType {
@@ -23,15 +80,6 @@ func GetNodeTypes(app *pocketbase.PocketBase) *[]NodeType {
 	return &node_types
 }
 
-type EdgeType struct {
-	StrokeWidth uint8  `db:"stroke_width" json:"stroke_width"`
-	Id          string `db:"id" json:"id"`
-	Name        string `db:"name" json:"name"`
-	StrokeColor string `db:"stroke_color" json:"stroke_color"`
-	LineDash    string `db:"line_dash" json:"line_dash"`
-	Metadata    string `db:"metadata" json:"metadata"`
-}
-
 func GetEdgeTypes(app *pocketbase.PocketBase) *[]EdgeType {
 	edge_types := []EdgeType{}
 
@@ -41,12 +89,4 @@ func GetEdgeTypes(app *pocketbase.PocketBase) *[]EdgeType {
 		All(&edge_types)
 
 	return &edge_types
-}
-
-type Project struct {
-	Id      string `db:"id" json:"id"`
-	Owner   string `db:"owner" json:"owner"`
-	Name    string `db:"name" json:"name"`
-	Updated string `db:"updated" json:"updated"`
-	Created string `db:"created" json:"created"`
 }

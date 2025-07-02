@@ -12,12 +12,18 @@ export default defineConfig(() => {
     plugins: [
     ],
     build: {
+      minify: "terser",
+      terserOptions: {
+        keep_classnames: true,
+        keep_fnames: true
+      },
       outDir: resolve(__dirname, 'dist'),
       emptyOutDir: !isWatchMode,
       watch: isWatchMode ? { clearScreen: false } : null,
       rollupOptions: {
         input: {
             index: resolve(__dirname, 'frontend/js/index.js'),
+            graph: resolve(__dirname, 'frontend/js/graph.js'),
             style: resolve(__dirname, 'frontend/css/style.css'),
             intro: resolve(__dirname, 'frontend/css/intro.css'),
             projects: resolve(__dirname, 'frontend/css/dashboard.css'),

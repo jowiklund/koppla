@@ -6,9 +6,9 @@
   "scripts": {
     "dev": "pnpm --filter demo-app... --parallel dev",
     "vaev:dev:backend": "cd apps/vaev && cross-env APP_ENV=development go tool templ generate --watch --cmd=\"go run . serve --dir=./pb_data\"",
-    "vaev:build:backend": "pnpm --filter vaev build && cd apps/vaev && go tool templ generate && go build -tags production -o ../../build/vaev-server .",
     "watch:vaev-stack": "pnpm --filter \"{./apps/vaev}...\" --parallel dev",
     "vaev:dev": "concurrently \"pnpm run watch:vaev-stack\" \"pnpm run vaev:dev:backend\"",
+    "vaev:build": "pnpm --filter vaev build && cd apps/vaev && go tool templ generate && go build -tags production -o ../../build/vaev-server .",
     "build": "pnpm -r --filter \"./packages/**\" build",
     "build:watch": "pnpm -r --parallel --filter \"./packages/**\" build --watch",
     "publish:all": "pnpm -r publish"
@@ -17,6 +17,7 @@
     "concurrently": "^9.2.0",
     "cross-env": "^7.0.3",
     "pnpm": "^8.0.0",
+    "terser": "^5.43.1",
     "vite": "^5.0.0",
     "vite-plugin-dts": "^4.5.4",
     "vite-plugin-static-copy": "^3.1.0"

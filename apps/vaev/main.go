@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	mw "koppla/apps/vaev/middleware"
 	"koppla/apps/vaev/routing"
+	"koppla/apps/vaev/vapi"
 	"koppla/apps/vaev/views/auth"
 	"koppla/apps/vaev/views/dashboard"
 	"koppla/apps/vaev/views/graph"
@@ -44,21 +46,17 @@ func main() {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Compress(5))
-	r.Use(auth.WithUserCTX(app))
+	r.Use(mw.WithUserCTX(app))
 
 	r.Group(func(r chi.Router) {
-		r.Use(auth.WithAuthGuard)
-		r.Get("/hello", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("You fine"))
-		})
-
+		r.Use(mw.WithAuthRedirectGuard(auth.R_LOGIN))
 		r.Route("/dashboard", func(r chi.Router) {
 			r.Get("/projects", func(w http.ResponseWriter, r *http.Request) {
 				projects := []graph.Project{}
 
 				user, err := auth.GetSignedInUser(app, r)
 				if err != nil {
-					log.Fatal("User was nil when saving project")
+					log.Fatal("")
 				}
 
 				app.DB().
@@ -75,61 +73,103 @@ func main() {
 				}, dasboard_styles).ServeHTTP(w, r)
 			})
 		})
+		r.Get("/project/{id}", func(w http.ResponseWriter, r *http.Request) {
+			project_id := chi.URLParam(r, "id")
+			var project *graph.Project
 
-		r.Route("/project", func(r chi.Router) {
-			r.Post("/{id}/save", func(w http.ResponseWriter, r *http.Request) {
-				project_id := chi.URLParam(r, "id")
-				project := graph.Project{}
+			user, err := auth.GetSignedInUser(app, r)
+			if err != nil {
+				log.Print(err)
+				templ.Handler(layout.Doc(func() templ.Component {
+					return graph.Main(app, project_id)
+				})).ServeHTTP(w, r)
+				return
+			}
 
-				user, err := auth.GetSignedInUser(app, r)
-				if err != nil {
-					log.Fatal("User was nil when saving project")
-				}
+			app.DB().
+				Select("*").
+				From("projects").
+				Where(dbx.NewExp("id = {:id}", dbx.Params{"id": project_id})).
+				AndWhere(dbx.NewExp("owner = {:owner}", dbx.Params{"owner": user.Id})).
+				One(&project)
 
-				app.DB().
-					Select("*").
-					From("projects").
-					Where(dbx.NewExp("id = {:id}", dbx.Params{"id": project_id})).
-					AndWhere(dbx.NewExp("owner = {:owner}", dbx.Params{"owner": user.Id})).
-					One(&project)
+			if project == nil {
+				routing.RedirectTo(w, r, "/", false)
+			}
 
-				fmt.Printf("\nProject: %+v\n", project)
-			})
-			r.Post("/{id}/load", func(w http.ResponseWriter, r *http.Request) {
-			})
+			doc(
+				func() templ.Component {
+					return graph.Main(app, project_id)
+				},
+				layout.NewScript("/dist/graph.js"),
+			).ServeHTTP(w, r)
 		})
-
 	})
 
-	r.Get("/project/{id}", func(w http.ResponseWriter, r *http.Request) {
-		project_id := chi.URLParam(r, "id")
-		var project *graph.Project
+	r.Route("/sse", func(r chi.Router) {
+		r.Get("/project/{id}", func(w http.ResponseWriter, r *http.Request) {
+			is_owner := dashboard.ValidateProjectOwner(app, w, r)
+			if !is_owner {
+				mw.WriteJSONUnauthorized(w)
+				return
+			}
 
-		user, err := auth.GetSignedInUser(app, r)
-		if err != nil {
-			log.Print(err)
-			templ.Handler(layout.Doc(func() templ.Component {
-				return graph.Main(app, project_id)
-			})).ServeHTTP(w, r)
-			return
-		}
+			project_id := chi.URLParam(r, "id")
 
-		app.DB().
-			Select("*").
-			From("projects").
-			Where(dbx.NewExp("id = {:id}", dbx.Params{"id": project_id})).
-			AndWhere(dbx.NewExp("owner = {:owner}", dbx.Params{"owner": user.Id})).
-			One(&project)
+			node_types := []graph.NodeType{}
+			app.DB().
+				Select("*").
+				From("node_types").
+				Where(
+					dbx.NewExp(
+						"project = {:project_id}",
+						dbx.Params{"project_id": project_id}),
+				).
+				All(&node_types)
 
-		if project == nil {
-			routing.RedirectTo(w, r, "/", false)
-		}
+			edge_types := &[]graph.EdgeType{}
+			app.DB().
+				Select("*").
+				From("edge_types").
+				Where(
+					dbx.NewExp(
+						"project = {:project_id}",
+						dbx.Params{"project_id": project_id}),
+				).
+				All(edge_types)
 
-		fmt.Printf("\nProject: %+v\n", project)
+			app.DB().
+				Select("*").
+				From("default_edge_types").
+				Where(
+					dbx.NewExp(
+						"project = {:project_id}",
+						dbx.Params{"project_id": project_id}),
+				).
+				All(edge_types)
 
-		templ.Handler(layout.Doc(func() templ.Component {
-			return graph.Main(app, project_id)
-		})).ServeHTTP(w, r)
+			nodes := &[]graph.Node{}
+			app.DB().
+				Select("*").
+				From("nodes").
+				Where(
+					dbx.NewExp(
+						"project = {:project_id}",
+						dbx.Params{"project_id": project_id}),
+				).
+				All(nodes)
+
+			edges := &[]graph.Edge{}
+			app.DB().
+				Select("*").
+				From("edges").
+				Where(
+					dbx.NewExp(
+						"project = {:project_id}",
+						dbx.Params{"project_id": project_id}),
+				).
+				All(edges)
+		})
 	})
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
@@ -150,6 +190,7 @@ func main() {
 	})
 
 	auth.AuthRoutes(app, r)
+	vapi.RegisterVAPI(app, r)
 
 	if is_dev {
 		log.Println("Development mode: proxying to Vite server on http://localhost:5173")
@@ -158,6 +199,8 @@ func main() {
 			switch r.URL.Path {
 			case "/dist/index.js":
 				r.URL.Path = "/frontend/js/index.js"
+			case "/dist/graph.js":
+				r.URL.Path = "/frontend/js/graph.js"
 			case "/dist/style.css":
 				r.URL.Path = "/frontend/css/style.css"
 			case "/dist/intro.css":

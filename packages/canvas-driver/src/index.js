@@ -1,14 +1,8 @@
 import { assert_is_not_null } from "@kpla/assert";
-import { getEngine, GraphEditor, NodeShape } from "@kpla/engine";
+import { getEngine, GraphEditor, IGraphStore, NodeShape } from "@kpla/engine";
 import { DocumentParser } from "@kpla/signals";
 import { EventEmitter } from "./event-emitter.js";
 import { EventName, State, StateMachine } from "./state-machine.js";
-
-/**
- * @typedef RunConfig
- * @property {Array<import("@kpla/engine").EdgeType>} edge_types
- * @property {Array<import("@kpla/engine").NodeType>} node_types
- */
 
 /** 
  * @typedef {Object} NodeData
@@ -166,28 +160,17 @@ export class CanvasGUIDriver extends EventEmitter {
   }
 
   /**
- * @param {RunConfig} config 
- * @param {Array<import("@kpla/engine").NodeBase>} graph_data 
+ * @param {IGraphStore} store 
  * @returns {Promise<GraphEditor>}
  */
-  async run(config, graph_data) {
-    this.graph = await getEngine(this.config.wasm_url, this.config.grid_size);
+  async run(store) {
+    this.graph = await getEngine(this.config.wasm_url, this.config.grid_size, store);
     assert_is_not_null(this.graph);
     this.graph.coordinate_rounder = this._snapToGrid.bind(this);
-
-    for (let type of config.edge_types) {
-      this.graph.setEdgeType(type, Colors);
-    }
-
-    for (let type of config.node_types) {
-      this.graph.setNodeType(type, Colors);
-    }
 
     this._registerControls();
 
     this._drawInteractions()
-
-    this.graph.loadGraph(graph_data);
 
     assert_is_not_null(this.dom);
     this.dom.parse();

@@ -7,7 +7,6 @@ pub export var js_string_buffer: [256]u8 = undefined;
 
 const NodeHandle = usize;
 const EdgeHandle = usize;
-const EdgeType = u8;
 
 export fn alloc(size: usize) usize {
     const ptr = (fba.allocator().alloc(u8, size) catch @panic("OOM: js alloc")).ptr;
@@ -23,7 +22,6 @@ export fn free(ptr: usize, len: usize) void {
 pub const Edge = struct {
     start_node: NodeHandle,
     end_node: NodeHandle,
-    type: EdgeType
 };
 
 pub const Node = struct {
@@ -70,10 +68,9 @@ export fn createNode(x: f32, y: f32) NodeHandle {
     return @intFromPtr(node);
 }
 
-export fn createEdge(start_handle: usize, end_handle: usize, edge_type: EdgeType) void {
+export fn createEdge(start_handle: usize, end_handle: usize) void {
     const edge = fba.allocator().create(Edge) catch @panic("OOM: Edge");
     edge.* = .{
-        .type = edge_type,
         .start_node = start_handle,
         .end_node = end_handle
     };
@@ -105,11 +102,6 @@ export fn getEdgeEndNodeHandle(handle: EdgeHandle) EdgeHandle {
     const edge_ptr: *Edge = @ptrFromInt(handle);
     return edge_ptr.end_node;
 } 
-
-export fn getEdgeType(handle: EdgeHandle) EdgeType {
-    const edge_ptr: *Edge = @ptrFromInt(handle);
-    return edge_ptr.type;
-}
 
 export fn deleteEdge(handle: EdgeHandle) void {
     const edge_to_delete: *Edge = @ptrFromInt(handle);

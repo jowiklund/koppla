@@ -6,6 +6,9 @@
 
 import { assert, assert_is_not_null } from "@kpla/assert";
 import { EventEmitter } from "./event-emitter.js";
+import { IGraphStore } from "./storage.js";
+
+export { IGraphStore } from "./storage.js";
 
 /** @typedef {number} NodeHandle */
 /** @typedef {number} EdgeHandle */
@@ -20,27 +23,40 @@ import { EventEmitter } from "./event-emitter.js";
 /**
  * @typedef {Object} NodeBase
  * @property {string} name - A human readable name displayed underneath the node
+ * @property {string} [id] - A human readable name displayed underneath the node
  * @property {NodeTypeId} type - The name of a predefined node style
+ * @property {number} x
+ * @property {number} y
  * @property {string} metadata
- * @property {Array<EdgeHandle>} edges_outgoing
- * @property {Array<EdgeHandle>} edges_incoming
  */
 
 /**
- * @typedef {Object} NodeTypeData
+ * @typedef {Object} NodeWasmData
+ * @property {Array<EdgeHandle>} edges_outgoing
+ * @property {Array<EdgeHandle>} edges_incoming
  * @property {number} x
  * @property {number} y
  * @property {NodeHandle} handle
  *
- * @typedef {NodeBase & NodeTypeData} Node
+ * @typedef {NodeBase & NodeWasmData} Node
  */
 
 /**
- * @typedef {Object} Edge
- * @property {EdgeHandle} handle
- * @property {NodeHandle} start_handle
- * @property {NodeHandle} end_handle
+ * @typedef {Object} EdgeBase
+ * @property {string} [id]
  * @property {EdgeTypeId} type
+ * @property {string} start_id
+ * @property {string} end_id
+ */
+
+/**
+ * @typedef {Object} EdgeWasmData
+ * @property {EdgeHandle} handle
+ * @property {EdgeHandle} start_handle
+ * @property {EdgeHandle} end_handle
+ * @property {EdgeTypeId} type
+ *
+ * @typedef {EdgeBase & EdgeWasmData} Edge
  */
 
 /**
@@ -103,6 +119,8 @@ export class GraphEditor extends EventEmitter {
   coordinate_rounder = (val) => val;
   /** @type {Map<NodeHandle, NodeBase>} */
   node_data = new Map();
+  /** @type {Map<EdgeHandle, EdgeBase>} */
+  edge_data = new Map();
   /** @type {Map<NodeTypeId, NodeType>} */
   node_types = new Map();
   /** @type {Map<EdgeTypeId, EdgeType>} */
@@ -111,16 +129,23 @@ export class GraphEditor extends EventEmitter {
   /** @private */
   _wasm;
 
+  /** @type {IGraphStore} */
+  _store;
+
   /**
    * @param {any} wasm_instance 
    * @param {number} grid_size 
+   * @param {IGraphStore} store_instance 
    */
-  constructor(wasm_instance, grid_size) {
+  constructor(wasm_instance, grid_size, store_instance) {
     super();
     this._wasm = wasm_instance.exports;
     this._memory = this._wasm.memory;
     this._string_buffer_ptr = this._wasm.js_string_buffer.value;
     this._wasm.init(grid_size);
+
+    this._store = store_instance
+    store_instance.init(this);
 
     this.edge_types.set("-1", {
       stroke_width: 2,
@@ -133,22 +158,12 @@ export class GraphEditor extends EventEmitter {
   }
 
   /**
-   * @param {Array<NodeBase>} nodes
-   * @deprecated
-   */
-  loadGraph(nodes) {
-    for (let i = 0; i < nodes.length; i++) {
-      this.createNode(nodes[i], 100, 100 + (80 * i + 1));
-    }
-  }
-
-  /**
    * @param {Array<Node>} nodes 
    * @param {Array<Edge>} edges 
    */
   load(nodes, edges) {
     for (const node of nodes) {
-      this.createNode(node, node.x, node.y);
+      this.createNode(node);
     }
     for (const edge of edges) {
       this.createEdge(edge.end_handle, edge.end_handle, edge.type);
@@ -231,15 +246,14 @@ export class GraphEditor extends EventEmitter {
   }
 
   /**
-   * @param {number} x 
-   * @param {number} y
    * @param {NodeBase} data 
    * @returns {NodeHandle}
    */
-  createNode(data, x, y) {
+  createNode(data) {
+    const {x, y} = data;
     const {x: w_x, y: w_y} = this.screenToWorld({x, y})
     const node_handle = this._wasm.createNode(w_x, w_y);
-    this.node_data.set(node_handle, data);
+    this._store.setNode(node_handle, data)
     this.emit("node:create", { node_handle })
     this.emit("world:update")
     return node_handle;
@@ -295,7 +309,7 @@ export class GraphEditor extends EventEmitter {
    * @returns {NodeType | undefined}
    */
   getNodeType(id) {
-    return this.node_types.get(id);
+    return this._store.getNodeType(id);
   }
 
   /**
@@ -373,13 +387,14 @@ export class GraphEditor extends EventEmitter {
    * @returns {Node | null}
    */
   getNode(handle) {
-    const data = this.node_data.get(handle);
+    const data = this._store.getNodeByHandle(handle);
     if (!data) {
       return null;
     }
     /** @type {Node} */
     const node = {
       handle,
+      id: data.id,
       x: this._wasm.getNodeX(handle),
       y: this._wasm.getNodeY(handle),
       name: data.name,
@@ -425,7 +440,7 @@ export class GraphEditor extends EventEmitter {
   }
 
   /**
-   * @returns {Array<Edge>}
+   * @returns {Array<EdgeWasmData>}
    */
   getEdges() {
     const edge_count = this._wasm.getEdgeCount();
@@ -439,7 +454,7 @@ export class GraphEditor extends EventEmitter {
 
   /**
    * @param {EdgeHandle} handle 
-   * @returns {Edge}
+   * @returns {EdgeWasmData}
    */
   getEdge(handle) {
     return {
@@ -494,13 +509,13 @@ export class GraphEditor extends EventEmitter {
 
   /**
    * @callback FilterCallback
-   * @param {Edge} edge
+   * @param {EdgeWasmData} edge
    * @returns {boolean}
    */
 
   /**
    * @param {FilterCallback} [filter_callback] 
-   * @returns {Map<string, Array<Edge>>}
+   * @returns {Map<string, Array<EdgeWasmData>>}
    */
   getEdgeBundles(filter_callback) {
     let edges = this.getEdges();
@@ -508,7 +523,7 @@ export class GraphEditor extends EventEmitter {
       edges = edges.filter(filter_callback)
     }
 
-    /** @type {Map<string, Array<Edge>>} */
+    /** @type {Map<string, Array<EdgeWasmData>>} */
     const bundles = new Map();
     for (let i = 0; i < edges.length; i++) {
       const edge = edges[i];
@@ -547,9 +562,10 @@ function print(data) {
 /**
  * @param {string} wasm_url
  * @param {number} grid_size
+ * @param {IGraphStore} store
  * @returns {Promise<GraphEditor | null>}
  */
-export async function getEngine(wasm_url, grid_size) {
+export async function getEngine(wasm_url, grid_size, store) {
   try {
     const wasm_source = await fetch(wasm_url);
     const wasm_buffer = await wasm_source.arrayBuffer();
@@ -559,7 +575,7 @@ export async function getEngine(wasm_url, grid_size) {
       }
     })
 
-    return new GraphEditor(wasm.instance, grid_size);
+    return new GraphEditor(wasm.instance, grid_size, store);
   } catch (err) {
     console.error(err)
     return null

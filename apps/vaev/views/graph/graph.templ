@@ -1,22 +1,33 @@
 package graph
 
 import "github.com/pocketbase/pocketbase"
+import "fmt"
 
 templ Main(app *pocketbase.PocketBase, project_id string) {
-	{{node_types := GetNodeTypes(app)}}
-	{{edge_types := GetEdgeTypes(app)}}
-	<div id="workspace" 
-		class="workspace"
-	>
+	<div id="workspace" class="workspace" data-ref="workspace"
+		data-signals="{
+			loaded: false,
+			project: {
+				name: '',
+				id: '',
+				permissions: 0
+			},
+			nodeTypes: [],
+			edgeTypes: [],
+			nodes: [],
+			edges: []
+		}"
+		data-on-load={fmt.Sprintf("@get('/sse/project/%s')", project_id)}
+		>
 		<div id="canvas-container" class="canvas-container"></div>
 		<div id="control-panel" class="control-panel">
 			@header()
 			@ControlPanelSection("Sorting") {
 				<div class="control-panel__button-group">
-					<button koppla-click="sort" title="Fruchterman-Reingold esque sorting">
+					<button title="Fruchterman-Reingold esque sorting">
 						<span class="material-symbols-outlined">graph_3</span>
 					</button>
-					<button koppla-click="sort" title="Hierarchy based sorting" disabled>
+					<button title="Hierarchy based sorting" disabled>
 						<span class="material-symbols-outlined">graph_1</span>
 					</button>
 				</div>
@@ -57,46 +68,10 @@ templ Main(app *pocketbase.PocketBase, project_id string) {
 			</form>
 		</dialog>
 		<script type="module">
-			import {CanvasGUIDriver, wasm_url, throttle} from "/dist/index.js";
-
-			const node_types = JSON.parse({{templ.JSONString(node_types)}});
-			const edge_types = JSON.parse({{templ.JSONString(edge_types)}});
-
-			console.log(node_types, edge_types)
-
-			window.canvas_gui = new CanvasGUIDriver({
-				container_id: "canvas-container",
-				control_panel_id: "control-panel",
-				wasm_url
-			})
-
-			window.canvas_gui.run({
-				edge_types,
-				node_types
-			}, [
-				{
-					name: "Product owners",
-					type: "qgo5vvmzgdmdhs3",
-					edges_outgoing: [],
-					edges_incoming: [],
-					metadata: '{"id": "po"}'
-				},
-				{
-					name: "Developers",
-					type: "qgo5vvmzgdmdhs3",
-					edges_outgoing: [],
-					edges_incoming: [],
-					metadata: '{"id": "devs"}'
-				},
-			]).then((graph) => {
-				const log_save = throttle(() => {
-					console.log({
-						nodes: graph.getNodes(),
-						edges: graph.getEdges()
-					})
-				}, 2000)
-				graph.on("world:update", log_save)
-			})
+			import {PBStore, driver} from "/dist/graph.js";
+			const store = new PBStore({{project_id}})
+			console.log(store)
+			driver.run(store)
 		</script>
 	</div>
 }

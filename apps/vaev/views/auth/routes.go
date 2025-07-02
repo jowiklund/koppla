@@ -1,8 +1,8 @@
 package auth
 
 import (
-	"context"
 	"fmt"
+	"koppla/apps/vaev/constants"
 	"koppla/apps/vaev/routing"
 	"koppla/apps/vaev/views/layout"
 	"koppla/apps/vaev/views/toaster"
@@ -25,9 +25,6 @@ const (
 	R_INVALIDATE = "/auth/logout"
 	R_USER       = "/auth/user"
 )
-
-const CTX_AUTH = "vaev-auth"
-const COOKIE_AUTH = "vaev-auth"
 
 func AuthRoutes(app *pocketbase.PocketBase, r *chi.Mux) {
 	r.Get(R_USER, func(w http.ResponseWriter, r *http.Request) {
@@ -53,14 +50,14 @@ func AuthRoutes(app *pocketbase.PocketBase, r *chi.Mux) {
 		if err != nil {
 			log.Fatalf("Unable to parse next: %s", next)
 		}
-		if cookie, err := r.Cookie(COOKIE_AUTH); err == nil {
+		if cookie, err := r.Cookie(constants.COOKIE_AUTH); err == nil {
 			_, err := app.FindAuthRecordByToken(cookie.Value)
 			if err == nil {
 				routing.BounceBack(w, r)
 				return
 			}
 
-			routing.DestroyCookie(w, COOKIE_AUTH)
+			routing.DestroyCookie(w, constants.COOKIE_AUTH)
 		}
 
 		templ.Handler(layout.Doc(func() templ.Component {
@@ -101,7 +98,7 @@ func AuthRoutes(app *pocketbase.PocketBase, r *chi.Mux) {
 			}
 
 			http.SetCookie(w, &http.Cookie{
-				Name:     COOKIE_AUTH,
+				Name:     constants.COOKIE_AUTH,
 				Value:    token,
 				Expires:  time.Now().Add(time.Hour * (24 * 365)),
 				Secure:   true,
@@ -121,13 +118,13 @@ func AuthRoutes(app *pocketbase.PocketBase, r *chi.Mux) {
 	})
 
 	r.Post(R_INVALIDATE, func(w http.ResponseWriter, r *http.Request) {
-		routing.DestroyCookie(w, COOKIE_AUTH)
+		routing.DestroyCookie(w, constants.COOKIE_AUTH)
 		routing.RedirectToSSE(w, r, R_LOGIN, false)
 	})
 }
 
 func GetSignedInUser(app *pocketbase.PocketBase, r *http.Request) (*User, error) {
-	auth := r.Context().Value(CTX_AUTH)
+	auth := r.Context().Value(constants.CTX_AUTH)
 	switch auth := auth.(type) {
 	case *core.Record:
 		user := User{}
@@ -143,41 +140,4 @@ func GetSignedInUser(app *pocketbase.PocketBase, r *http.Request) (*User, error)
 		return nil, fmt.Errorf("No signed in user")
 	}
 
-}
-
-func WithUserCTX(app *pocketbase.PocketBase) func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		fn := func(w http.ResponseWriter, r *http.Request) {
-			cookie, err := r.Cookie(COOKIE_AUTH)
-			if err != nil {
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			user, err := app.FindAuthRecordByToken(cookie.Value, "auth")
-			if err != nil {
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			new_ctx := context.WithValue(r.Context(), CTX_AUTH, user)
-			next.ServeHTTP(w, r.WithContext(new_ctx))
-		}
-		return http.HandlerFunc(fn)
-	}
-}
-
-func WithAuthGuard(next http.Handler) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context().Value(CTX_AUTH)
-
-		if ctx == nil {
-			r.Header.Add("Location", "/")
-			routing.RedirectTo(w, r, R_LOGIN, true)
-			return
-		}
-		next.ServeHTTP(w, r)
-	}
-
-	return http.HandlerFunc(fn)
 }

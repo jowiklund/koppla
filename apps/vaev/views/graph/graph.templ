@@ -15,41 +15,46 @@ templ Main(app *pocketbase.PocketBase, project_id string) {
 			nodeTypes: [],
 			edgeTypes: [],
 			nodes: [],
-			edges: []
+			edges: [],
+			selectedTool: 0
 		}"
 		data-on-load={fmt.Sprintf("@get('/sse/project/%s')", project_id)}
+		data-on-signal-change-selected-tool="console.log($selectedTool)"
 		>
-		<div id="canvas-container" class="canvas-container"></div>
+		@toolbar()
+		<div
+			id="canvas-container"
+			class="canvas-container"
+			data-on-kpla-click="console.log(evt.detail, window.driver)"
+		>
+		</div>
 		<div id="control-panel" class="control-panel">
 			@header()
 			@ControlPanelSection("Sorting") {
 				<div class="control-panel__button-group">
 					<button title="Fruchterman-Reingold esque sorting">
-						<span class="material-symbols-outlined">graph_3</span>
+						<span class="material-symbols">graph_3</span>
 					</button>
 					<button title="Hierarchy based sorting" disabled>
-						<span class="material-symbols-outlined">graph_1</span>
+						<span class="material-symbols">graph_1</span>
 					</button>
 				</div>
 			}
 			@ControlPanelSection("Position") {
 				<div class="control-panel__button-group">
 					<button koppla-click="alignVert">
-						<span class="material-symbols-outlined">align_justify_space_even</span>
+						<span class="material-symbols">align_justify_space_even</span>
 					</button>
 					<button koppla-click="alignHoriz">
-						<span class="material-symbols-outlined">align_space_even</span>
+						<span class="material-symbols">align_space_even</span>
 					</button>
 					<button koppla-click="evenHoriz">
-						<span class="material-symbols-outlined">horizontal_distribute</span>
+						<span class="material-symbols">horizontal_distribute</span>
 					</button>
 					<button data-on-click="$driver.graph.evenVert($driver.selected_node_handles)">
-						<span class="material-symbols-outlined">vertical_distribute</span>
+						<span class="material-symbols">vertical_distribute</span>
 					</button>
 				</div>
-			}
-			@ControlPanelSection("Select") {
-				@NodeTypeSelect(app)
 			}
 			@Footer()
 		</div>
@@ -73,6 +78,7 @@ templ Main(app *pocketbase.PocketBase, project_id string) {
 			driver.run(store).then(graph => {
 				const save = throttle(graph.persistGraphState, 5000).bind(graph)
 				graph.on("node:update", save)
+				window.driver = driver
 			})
 		</script>
 	</div>
@@ -91,7 +97,7 @@ templ Footer() {
 		</dialog>
 		<div class="control-panel__button-group">
 			<button data-on-click='$tooltips.showModal()' koppla-click="openToolTips">
-				<span class="material-symbols-outlined">question_mark</span>
+				<span class="material-symbols">question_mark</span>
 			</button>
 		</div>
 	</div>
@@ -110,11 +116,19 @@ templ ControlPanelSection(title string) {
 	</div>
 }
 
-templ NodeTypeSelect(app *pocketbase.PocketBase) {
-	{{nodetypes := *GetNodeTypes(app)}}
-	<select>
-	for _, n := range nodetypes {
-		<option value={n.Id}>{n.Name}</option>
-	}
-	</select>
+templ toolbar() {
+	<div class="toolbar">
+		<label data-class-active="$selectedTool == 0">
+			<input data-on-click="evt.stopPropagation(); console.log($selectedTool)" checked="checked" type="radio" data-bind-selected-tool value="0" />
+			<span class="material-symbols fill">arrow_selector_tool</span>
+		</label>
+		<label data-class-active="$selectedTool == 1">
+			<input type="radio" data-bind-selected-tool value="1" />
+			<span class="material-symbols fill">mediation</span>
+		</label>
+		<label data-class-active="$selectedTool == 2">
+			<input type="radio" data-bind-selected-tool value="2" />
+			<span class="material-symbols fill">control_point_duplicate</span>
+		</label>
+	</div>
 }

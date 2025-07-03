@@ -25,6 +25,9 @@ export class PBStore extends IGraphStore {
     constructor(project_id) {
         super();
         this.base_url = `/v-api/project/${project_id}`;
+        window.addEventListener("beforeunload", async () => {
+            await this.persistGraphState()
+        });
     }
 
     /**

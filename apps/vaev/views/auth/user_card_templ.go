@@ -260,7 +260,7 @@ func userCardOptions() templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<a href=\"/dashboard/projects\"><span class=\"material-symbols-outlined\">cases</span>Projects</a> <button data-on-click=\"@post('/auth/logout')\"><span class=\"material-symbols-outlined text-red\">logout</span>Log out</button>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<a href=\"/dashboard/projects\"><span class=\"material-symbols\">cases</span>Projects</a> <button data-on-click=\"@post('/auth/logout')\"><span class=\"material-symbols text-red\">logout</span>Log out</button>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -379,7 +379,7 @@ func openUserOptsBtn() templ.Component {
 			templ_7745c5c3_Var14 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<button data-on-click=\"$showOptions = !$showOptions\" class=\"user-card__opts-toggle\"><span class=\"material-symbols-outlined\">arrow_drop_down</span></button>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<button data-on-click=\"$showOptions = !$showOptions\" class=\"user-card__opts-toggle\"><span class=\"material-symbols\">arrow_drop_down</span></button>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

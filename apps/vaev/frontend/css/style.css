@@ -4,8 +4,12 @@
 	--background-primary: #ffffff;
 	--background-secondary: #ebebeb;
 	--background-accent: #efefef;
-	--accent-color: #089fff;
-	--accent-color-op: #089fff10;
+
+	--accent-color: #F05951;
+	--accent-color-op: #F0595110;
+
+	--accent-color-secondary: #51A4F0;
+	--accent-color-tertiary: #D9E63C;
 
 	--border-radius: 10px;
 	--border-radius-small: 5px;
@@ -38,6 +42,11 @@
 	--gap-8: 2rem;
 
 	--sidebar-width: 250px;
+
+	--layer-1: 100;
+	--layer-2: 200;
+	--layer-3: 300;
+	--layer-4: 400;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -47,11 +56,44 @@
 		--background-primary: #1e2024;
 		--background-secondary: #2f3238;
 		--background-accent: #4e535c;
-
-		--accent-color: #126396;
-		--accent-color-op: #12639610;
 	}
 }
+
+@font-face {
+	font-family: "Material Symbols";
+	font-style: normal;
+	font-weight: 400;
+	src: url("/MaterialSymbolsOutlined[FILL,GRAD,opsz,wght].ttf");
+}
+
+.material-symbols {
+	font-family: "Material Symbols";
+	font-weight: normal;
+	font-style: normal;
+	display: inline-block;
+	line-height: 1;
+	text-transform: none;
+	letter-spacing: normal;
+	word-wrap: normal;
+	white-space: nowrap;
+	direction: ltr;
+	font-size: 1.5em;
+	font-variation-settings: "GRAD" 100;
+}
+
+.fill {
+	font-variation-settings: "FILL" 1;
+}
+
+@keyframes fill {
+from {
+	font-variation-settings: "FILL" 0;
+}
+to {
+	font-variation-settings: "FILL" 1;
+}
+}
+
 
 body {
 	font-family: var(--font-family-body);
@@ -274,6 +316,55 @@ select {
 	gap: .5rem;
 }
 
+.toolbar {
+	position: absolute;
+	top: 1rem;
+	left: 1rem;
+	display: flex;
+	flex-direction: column;
+	z-index: var(--layer-4);
+}
+
+.toolbar label:hover {
+	background-color: var(--background-primary);
+}
+
+.toolbar label:first-child {
+	border-top-left-radius: var(--border-radius-small);
+	border-top-right-radius: var(--border-radius-small);
+	border-bottom: none;
+}
+.toolbar label:last-child {
+	border-bottom-left-radius: var(--border-radius-small);
+	border-bottom-right-radius: var(--border-radius-small);
+	border-top: none;
+}
+
+.toolbar label.active {
+  background-color: var(--accent-color);
+}
+
+.toolbar input {
+	position: absolute;
+	opacity: 0;
+	cursor: pointer;
+}
+
+.toolbar label {
+	cursor: pointer;
+	position: relative;
+	box-sizing: border-box;
+	background-color:var(--background-secondary);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	padding: var(--gap-3);
+	font-size: .8rem;
+	border: var(--small-border);
+	color: var(--text-primary);
+	transition: all .1s;
+}
+
 .node-draggable {
 	padding: 1rem;
 	display: flex;
@@ -426,30 +517,30 @@ hr {
 }
 
 a.clickover:before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1000;
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: 1000;
 }
 
 @keyframes slide-up {
-	from {
-		opacity: 0;
-		transform: translateY(20px);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0px);
-	}
+from {
+	opacity: 0;
+	transform: translateY(20px);
+}
+to {
+	opacity: 1;
+	transform: translateY(0px);
+}
 }
 
 @keyframes slide-down {
-	from {
-		opacity: 0;
-		transform: translateY(-20px);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0px);
-	}
+from {
+	opacity: 0;
+	transform: translateY(-20px);
+}
+to {
+	opacity: 1;
+	transform: translateY(0px);
+}
 }

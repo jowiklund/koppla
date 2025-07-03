@@ -114,7 +114,6 @@ export class CanvasGUIDriver extends EventEmitter {
     this._createLayer("objects");
     this._createLayer("interactions");
 
-
     const control_panel = document.getElementById(opts.control_panel_id);
     assert_is_not_null(control_panel);
     this.control_panel = control_panel;
@@ -213,6 +212,10 @@ export class CanvasGUIDriver extends EventEmitter {
   _emitDoubleClick(e) {
     const pos = this._getPositionData({x: e.clientX, y: e.clientY});
     this.emit("dblclick", pos);
+    const evt = new CustomEvent("kpla-dblclick", {
+      detail: this.state.ctx.pos,
+    });
+    this.container.dispatchEvent(evt);
   }
 
   /**
@@ -233,10 +236,10 @@ export class CanvasGUIDriver extends EventEmitter {
     this.graph.createNode({
       type: this.node_data.type,
       name: this.node_data.data.name,
-      edges_incoming: [],
-      edges_outgoing: [],
-      metadata: ""
-    }, this.drop_x, this.drop_y)
+      metadata: "",
+      x: this.drop_x,
+      y: this.drop_y
+    })
   }
 
   /**
@@ -384,6 +387,10 @@ export class CanvasGUIDriver extends EventEmitter {
       event: e
     })
 
+    const evt = new CustomEvent("kpla-click", {
+      detail: this.state.ctx,
+    });
+    this.container.dispatchEvent(evt);
     this.emit("click", this.state.ctx.pos);
 
     if (this.state.is(State.PANNING)) {

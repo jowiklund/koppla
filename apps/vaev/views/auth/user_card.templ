@@ -43,10 +43,10 @@ templ userAvatar(letter string) {
 templ userCardOptions() {
 	@options(){
 		<a href="/dashboard/projects">
-			<span class="material-symbols-outlined">cases</span>Projects
+			<span class="material-symbols">cases</span>Projects
 		</a>
 		<button data-on-click="@post('/auth/logout')">
-			<span class="material-symbols-outlined text-red">logout</span>Log out
+			<span class="material-symbols text-red">logout</span>Log out
 		</button>
 	}
 }
@@ -68,6 +68,6 @@ templ options() {
 
 templ openUserOptsBtn() {
 	<button data-on-click="$showOptions = !$showOptions" class="user-card__opts-toggle">
-		<span class="material-symbols-outlined">arrow_drop_down</span>
+		<span class="material-symbols">arrow_drop_down</span>
 	</button>
 }

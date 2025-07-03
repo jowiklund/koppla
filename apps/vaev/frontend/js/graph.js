@@ -110,7 +110,6 @@ export class PBStore extends IGraphStore {
 
     async persistGraphState() {
         const nodes_to_update = Array.from(this.node_updates.values())
-        console.log(nodes_to_update)
         this.node_updates.clear()
         for (const node of nodes_to_update) {
             fetch(this.base_url + "/update-node", {

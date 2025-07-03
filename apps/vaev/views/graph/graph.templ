@@ -70,16 +70,16 @@ templ Main(app *pocketbase.PocketBase, project_id string) {
 			}
 			@ControlPanelSection("Position") {
 				<div class="control-panel__button-group">
-					<button koppla-click="alignVert">
+					<button data-on-click="window.driver.graph.evenHoriz(window.driver.selected_node_handles)">
 						<span class="material-symbols">align_justify_space_even</span>
 					</button>
-					<button koppla-click="alignHoriz">
+					<button data-on-click="window.driver.graph.evenVert(window.driver.selected_node_handles)">
 						<span class="material-symbols">align_space_even</span>
 					</button>
-					<button koppla-click="evenHoriz">
+					<button data-on-click="window.driver.graph.alignVert(window.driver.selected_node_handles)">
 						<span class="material-symbols">horizontal_distribute</span>
 					</button>
-					<button data-on-click="$driver.graph.evenVert($driver.selected_node_handles)">
+					<button data-on-click="window.driver.graph.alignHoriz(window.driver.selected_node_handles)">
 						<span class="material-symbols">vertical_distribute</span>
 					</button>
 				</div>
@@ -104,9 +104,9 @@ templ Main(app *pocketbase.PocketBase, project_id string) {
 			import {PBStore, driver, throttle} from "/dist/graph.js";
 			const store = new PBStore({{project_id}})
 			driver.run(store).then(graph => {
+				window.driver = driver
 				const save = throttle(graph.persistGraphState, 5000).bind(graph)
 				graph.on("node:update", save)
-				window.driver = driver
 			})
 		</script>
 	</div>
@@ -174,7 +174,6 @@ templ NodeSelector(node_types []NodeType) {
 			<select
 				data-signals-selected-node-type={fmt.Sprintf("'%s'", node_types[0].Id)}
 				data-bind-selected-node-type
-				data-on-click="console.log($selectedNodeType)"
 			>
 				for _, t := range node_types {
 					<option value={t.Id}>{t.Name}</option>
@@ -182,7 +181,6 @@ templ NodeSelector(node_types []NodeType) {
 			</select>
 		</label>
 		<div class="btn-container" data-on-click="
-			console.log(parseInt($currentPos.x));
 			window.driver.graph.createNode({
 				type: $selectedNodeType,
 				name: $nodeName,

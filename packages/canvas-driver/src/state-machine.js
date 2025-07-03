@@ -113,7 +113,6 @@ export class StateMachine {
    * @param {Context} new_context 
    */
   dispatch(event_name, new_context) {
-    console.log(new_context.event)
     this.ctx = new_context;
     const current_transitions = this.transitions.get(this.current);
     if (!current_transitions) {

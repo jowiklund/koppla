@@ -173,6 +173,9 @@ export class GraphEditor extends EventEmitter {
 
   sortNodes() {
     this._wasm.sortNodes(10, 0.01, 1000.0, 200.0, 0.9);
+    for (const node of this.getNodes()) {
+      this._store.setNode(node.handle, node)
+    }
     this.emit("world:update");
   }
 
@@ -184,6 +187,12 @@ export class GraphEditor extends EventEmitter {
     const [ptr, byte_len] = this._setSelected(node_handles);
 
     this._wasm.alignHoriz(ptr, node_handles.length);
+
+    for (const h of node_handles) {
+      const node = this.getNode(h)
+      if (node == undefined) continue;
+      this._store.setNode(h, node);
+    }
 
     this._wasm.free(ptr, byte_len);
     this.emit("world:update");
@@ -198,6 +207,12 @@ export class GraphEditor extends EventEmitter {
 
     this._wasm.alignVert(ptr, node_handles.length);
 
+    for (const h of node_handles) {
+      const node = this.getNode(h)
+      if (node == undefined) continue;
+      this._store.setNode(h, node);
+    }
+
     this._wasm.free(ptr, byte_len);
     this.emit("world:update");
   }
@@ -211,6 +226,12 @@ export class GraphEditor extends EventEmitter {
 
     this._wasm.evenHoriz(ptr, node_handles.length);
 
+    for (const h of node_handles) {
+      const node = this.getNode(h)
+      if (node == undefined) continue;
+      this._store.setNode(h, node);
+    }
+
     this._wasm.free(ptr, byte_len);
     this.emit("world:update");
   }
@@ -223,6 +244,12 @@ export class GraphEditor extends EventEmitter {
     const [ptr, byte_len] = this._setSelected(node_handles);
 
     this._wasm.evenVert(ptr, node_handles.length);
+
+    for (const h of node_handles) {
+      const node = this.getNode(h)
+      if (node == undefined) continue;
+      this._store.setNode(h, node);
+    }
 
     this._wasm.free(ptr, byte_len);
     this.emit("world:update");

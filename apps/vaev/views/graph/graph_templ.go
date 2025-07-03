@@ -95,7 +95,7 @@ func Main(app *pocketbase.PocketBase, project_id string) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div class=\"control-panel__button-group\"><button koppla-click=\"alignVert\"><span class=\"material-symbols\">align_justify_space_even</span></button> <button koppla-click=\"alignHoriz\"><span class=\"material-symbols\">align_space_even</span></button> <button koppla-click=\"evenHoriz\"><span class=\"material-symbols\">horizontal_distribute</span></button> <button data-on-click=\"$driver.graph.evenVert($driver.selected_node_handles)\"><span class=\"material-symbols\">vertical_distribute</span></button></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div class=\"control-panel__button-group\"><button data-on-click=\"window.driver.graph.evenHoriz(window.driver.selected_node_handles)\"><span class=\"material-symbols\">align_justify_space_even</span></button> <button data-on-click=\"window.driver.graph.evenVert(window.driver.selected_node_handles)\"><span class=\"material-symbols\">align_space_even</span></button> <button data-on-click=\"window.driver.graph.alignVert(window.driver.selected_node_handles)\"><span class=\"material-symbols\">horizontal_distribute</span></button> <button data-on-click=\"window.driver.graph.alignHoriz(window.driver.selected_node_handles)\"><span class=\"material-symbols\">vertical_distribute</span></button></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -121,7 +121,7 @@ func Main(app *pocketbase.PocketBase, project_id string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, ")\n\t\t\tdriver.run(store).then(graph => {\n\t\t\t\tconst save = throttle(graph.persistGraphState, 5000).bind(graph)\n\t\t\t\tgraph.on(\"node:update\", save)\n\t\t\t\twindow.driver = driver\n\t\t\t})\n\t\t</script></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, ")\n\t\t\tdriver.run(store).then(graph => {\n\t\t\t\twindow.driver = driver\n\t\t\t\tconst save = throttle(graph.persistGraphState, 5000).bind(graph)\n\t\t\t\tgraph.on(\"node:update\", save)\n\t\t\t})\n\t\t</script></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -300,7 +300,7 @@ func NodeSelector(node_types []NodeType) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" data-bind-selected-node-type data-on-click=\"console.log($selectedNodeType)\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" data-bind-selected-node-type>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -312,7 +312,7 @@ func NodeSelector(node_types []NodeType) templ.Component {
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(t.Id)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 180, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 179, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {
@@ -325,7 +325,7 @@ func NodeSelector(node_types []NodeType) templ.Component {
 			var templ_7745c5c3_Var14 string
 			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(t.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 180, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 179, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 			if templ_7745c5c3_Err != nil {
@@ -336,7 +336,7 @@ func NodeSelector(node_types []NodeType) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</select></label><div class=\"btn-container\" data-on-click=\"\n\t\t\tconsole.log(parseInt($currentPos.x));\n\t\t\twindow.driver.graph.createNode({\n\t\t\t\ttype: $selectedNodeType,\n\t\t\t\tname: $nodeName,\n\t\t\t\tmetadata: '',\n\t\t\t\t...$currentPos,\n\t\t\t});\n\t\t\t$showNodeTypeSelect = false;\n\t\t\"><button class=\"btn\" id=\"close\">Create</button></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</select></label><div class=\"btn-container\" data-on-click=\"\n\t\t\twindow.driver.graph.createNode({\n\t\t\t\ttype: $selectedNodeType,\n\t\t\t\tname: $nodeName,\n\t\t\t\tmetadata: '',\n\t\t\t\t...$currentPos,\n\t\t\t});\n\t\t\t$showNodeTypeSelect = false;\n\t\t\"><button class=\"btn\" id=\"close\">Create</button></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

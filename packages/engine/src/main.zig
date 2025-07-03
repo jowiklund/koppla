@@ -554,8 +554,8 @@ export fn sortNodes(
         }
     }
     for (node_list.items) |node_ptr| {
-        node_ptr.x = node_ptr.x;
-        node_ptr.y = node_ptr.y;
+        node_ptr.x = snapToGrid(node_ptr.x);
+        node_ptr.y = snapToGrid(node_ptr.y);
     }
 }
 

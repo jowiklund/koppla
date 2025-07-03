@@ -150,8 +150,22 @@ export class PBStore extends IGraphStore {
     /**
      * @param {import("@kpla/engine").NodeHandle} node_handle 
      */
-    deleteNode(node_handle) {
-        throw new Error("Method 'deleteNode' is not implemented")
+    async deleteNode(node_handle) {
+        const node = this.getNodeByHandle(node_handle)
+        if (node == undefined) return;
+        if (node.id != undefined) {
+            try {
+                await fetch(this.base_url + "/delete-node/" + node.id, {
+                    method: "DELETE"
+                })
+            } catch (e) {
+                console.error(e)
+            }
+        }
+
+        if (this.node_cache.has(node_handle)) {
+            this.node_cache.delete(node_handle)
+        }
     }
 
     /**

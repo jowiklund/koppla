@@ -74,7 +74,7 @@ export class StateMachine {
     );
     this._addTransition(
       State.IDLE, EventName.MOUSE_DOWN, State.DRAGGING,
-      (ctx) => ctx.pos.node !== null
+      (ctx) => ctx.pos.node !== null && ctx.tool == Tool.CURSOR
     );
 
     this._addTransition(

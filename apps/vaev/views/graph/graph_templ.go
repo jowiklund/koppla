@@ -53,7 +53,7 @@ func Main(app *pocketbase.PocketBase, project_id string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div id=\"canvas-container\" class=\"canvas-container\" data-on-kpla-click=\"\n\t\t\t\t$selectedTool == 2 ? $showNodeTypeSelect = true : null;\n\t\t\t\t$currentPos = evt.detail.pos.mouse;\n\t\t\t\"></div><div id=\"control-panel\" class=\"control-panel\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div id=\"canvas-container\" class=\"canvas-container\" data-on-kpla-click=\"\n\t\t\t\t$selectedTool == 2 ? $showNodeTypeSelect = true : null;\n\t\t\t\t$currentPos = evt.detail.pos.screen;\n\t\t\t\"></div><div id=\"control-panel\" class=\"control-panel\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

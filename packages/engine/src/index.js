@@ -253,9 +253,11 @@ export class GraphEditor extends EventEmitter {
     const {x, y} = data;
     const {x: w_x, y: w_y} = this.screenToWorld({x, y})
     const node_handle = this._wasm.createNode(w_x, w_y);
-    await this._store.setNode(node_handle, data)
-    this.emit("node:create", { node_handle })
-    this.emit("world:update")
+    data.x = this._wasm.getNodeX(node_handle);
+    data.y = this._wasm.getNodeY(node_handle);
+    await this._store.setNode(node_handle, data);
+    this.emit("node:create", { node_handle });
+    this.emit("world:update");
     return node_handle;
   }
 
@@ -493,7 +495,7 @@ export class GraphEditor extends EventEmitter {
    */
   deleteNode(handle) {
     this._wasm.deleteNode(handle);
-    this.node_data.delete(handle);
+    this._store.deleteNode(handle);
     this.emit("node:delete", {node_handle: handle});
     this.emit("world:update");
   }

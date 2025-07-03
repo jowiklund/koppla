@@ -52,7 +52,7 @@ templ Main(app *pocketbase.PocketBase, project_id string) {
 			class="canvas-container"
 			data-on-kpla-click="
 				$selectedTool == 2 ? $showNodeTypeSelect = true : null;
-				$currentPos = evt.detail.pos.mouse;
+				$currentPos = evt.detail.pos.screen;
 			"
 		>
 		</div>

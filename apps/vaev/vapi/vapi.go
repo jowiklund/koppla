@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"koppla/apps/vaev/middleware"
-	"koppla/apps/vaev/views/auth"
 	"koppla/apps/vaev/views/dashboard"
 	"koppla/apps/vaev/views/graph"
 	"log"
@@ -29,20 +28,15 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 		r.Use(middleware.WithAuthJSONGuard(app))
 		r.Route("/v-api/project", func(r chi.Router) {
 			r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
-				project := dashboard.GetProject(app, r)
-				if project == nil {
-					middleware.WriteJSONNotFound(w)
-					return
-				}
-
-				user, err := auth.GetSignedInUser(app, r)
-				if err != nil {
-					log.Fatal("v-api")
-				}
-
-				if project.Owner != user.Id {
+				is_owner := dashboard.ValidateProjectOwner(app, w, r)
+				if !is_owner {
 					middleware.WriteJSONUnauthorized(w)
 					return
+				}
+
+				project := dashboard.GetProject(app, r)
+				if project == nil {
+					log.Fatal("Project was nil")
 				}
 
 				data, err := json.Marshal(*project)
@@ -53,14 +47,8 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 				w.Write(data)
 			})
 			r.Post("/{id}/save", func(w http.ResponseWriter, r *http.Request) {
-				project := dashboard.GetProject(app, r)
-
-				user, err := auth.GetSignedInUser(app, r)
-				if err != nil {
-					log.Fatal("No user when saving")
-				}
-
-				if project.Owner != user.Id {
+				is_owner := dashboard.ValidateProjectOwner(app, w, r)
+				if !is_owner {
 					middleware.WriteJSONUnauthorized(w)
 					return
 				}
@@ -187,14 +175,8 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 				w.Write(data)
 			})
 			r.Put("/{id}/update-node", func(w http.ResponseWriter, r *http.Request) {
-				project := dashboard.GetProject(app, r)
-
-				user, err := auth.GetSignedInUser(app, r)
-				if err != nil {
-					log.Fatal("No user when saving")
-				}
-
-				if project.Owner != user.Id {
+				is_owner := dashboard.ValidateProjectOwner(app, w, r)
+				if !is_owner {
 					middleware.WriteJSONUnauthorized(w)
 					return
 				}
@@ -219,18 +201,37 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 					}).
 					Execute()
 			})
+			r.Delete(
+				"/{id}/delete-node/{node_id}",
+				func(w http.ResponseWriter, r *http.Request) {
+					fmt.Printf("")
+					is_owner := dashboard.ValidateProjectOwner(app, w, r)
+					if !is_owner {
+						middleware.WriteJSONUnauthorized(w)
+						return
+					}
+					node_id := chi.URLParam(r, "node_id")
+
+					_, err := app.DB().
+						Delete("nodes", dbx.NewExp("id = {:id}", dbx.Params{
+							"id": node_id,
+						})).
+						Execute()
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					w.Write(fmt.Appendf(nil, `{"message": "Deteted node %s"}`, node_id))
+				},
+			)
 			r.Post("/{id}/create-node", func(w http.ResponseWriter, r *http.Request) {
-				project := dashboard.GetProject(app, r)
-
-				user, err := auth.GetSignedInUser(app, r)
-				if err != nil {
-					log.Fatal("No user when saving")
-				}
-
-				if project.Owner != user.Id {
+				is_owner := dashboard.ValidateProjectOwner(app, w, r)
+				if !is_owner {
 					middleware.WriteJSONUnauthorized(w)
 					return
 				}
+
+				project := dashboard.GetProject(app, r)
 
 				body, err := io.ReadAll(r.Body)
 				if err != nil {

@@ -41,6 +41,17 @@ const Colors = {
   accent_color_op: styles.getPropertyValue("--accent-color-op"),
 }
 
+/**
+ * @enum {number}
+ * @readonly
+ */
+export const Tool = {
+  CURSOR: 0,
+  CONNECTOR: 1,
+  ADD_NODE: 2,
+  PAN: 3
+}
+
 export class CanvasGUIDriver extends EventEmitter {
   /** @type {HTMLElement} */
   container;
@@ -89,6 +100,9 @@ export class CanvasGUIDriver extends EventEmitter {
 
   /** @type {StateMachine} state */
   state;
+
+  /** @type {Tool} */
+  current_tool = Tool.CURSOR;
 
   /**
    * @param {CanvasDriverOptions} opts
@@ -306,7 +320,8 @@ export class CanvasGUIDriver extends EventEmitter {
         screen: {x: 0, y: 0},
         mouse: {x: 0, y: 0}
       }, 
-      event: e
+      event: e,
+      tool: this.current_tool
     })
   }
 
@@ -384,7 +399,8 @@ export class CanvasGUIDriver extends EventEmitter {
         x: e.clientX,
         y: e.clientY
       }),
-      event: e
+      event: e,
+      tool: this.current_tool
     })
 
     const evt = new CustomEvent("kpla-click", {

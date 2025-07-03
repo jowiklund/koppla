@@ -16,10 +16,21 @@ templ Main(app *pocketbase.PocketBase, project_id string) {
 			edgeTypes: [],
 			nodes: [],
 			edges: [],
-			selectedTool: 0
+			selectedTool: 0,
+			prevTool: 0,
 		}"
 		data-on-load={fmt.Sprintf("@get('/sse/project/%s')", project_id)}
-		data-on-signal-change-selected-tool="console.log($selectedTool)"
+		data-on-signal-change-selected-tool="window.driver.current_tool = $selectedTool;"
+		data-on-keydown__window="
+			$prevTool = $selectedTool;
+			evt.key == 'Shift' ? $selectedTool = 1 : null;
+			evt.key == '1' ? $selectedTool = 0 : null;
+			evt.key == '2' ? $selectedTool = 1 : null;
+			evt.key == '3' ? $selectedTool = 2 : null;
+		"
+		data-on-keyup__window="
+			evt.key == 'Shift' ? $selectedTool = $prevTool : null;
+		"
 		>
 		@toolbar()
 		<div

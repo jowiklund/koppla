@@ -1,6 +1,12 @@
-/** @typedef {{pos: import(".").PositionData, event: MouseEvent | null}} Context*/
+/**
+ * @typedef {Object} Context
+ * @property {import(".").PositionData} pos
+ * @property {MouseEvent | null} event
+ * @property {Tool} tool
+ */
 
 import { assert_is_not_null } from "@kpla/assert";
+import { Tool } from ".";
 
 /**
  * @enum {number}
@@ -45,7 +51,8 @@ export class StateMachine {
       mouse: {x: 0,y: 0},
       node: null
     },
-    event: null
+    event: null,
+    tool: Tool.CURSOR
   };
   /** @type {State} */
   current = State.IDLE;
@@ -59,7 +66,7 @@ export class StateMachine {
   _setupTransitions() {
     this._addTransition(
       State.IDLE, EventName.MOUSE_DOWN, State.CONNECTING,
-      (ctx) => !!ctx.event?.shiftKey && ctx.pos.node !== null
+      (ctx) => ctx.tool == Tool.CONNECTOR && ctx.pos.node !== null
     );
     this._addTransition(
       State.IDLE, EventName.MOUSE_DOWN, State.PANNING,
@@ -102,6 +109,7 @@ export class StateMachine {
    * @param {Context} new_context 
    */
   dispatch(event_name, new_context) {
+    console.log(new_context.event)
     this.ctx = new_context;
     const current_transitions = this.transitions.get(this.current);
     if (!current_transitions) {

@@ -38,6 +38,8 @@ const Colors = {
   text_primary: styles.getPropertyValue("--text-primary"),
   text_secondary: styles.getPropertyValue("--text-primary"),
   accent_color: styles.getPropertyValue("--accent-color"),
+  accent_color_secondary: styles.getPropertyValue("--accent-color-secondary"),
+  accent_color_tertiary: styles.getPropertyValue("--accent-color-tertiary"),
   accent_color_op: styles.getPropertyValue("--accent-color-op"),
 }
 
@@ -81,8 +83,6 @@ export class CanvasGUIDriver extends EventEmitter {
   moving_nodes = new Set();
   /** @type {Set<import("@kpla/engine").EdgeHandle>} */
   moving_edges = new Set();
-
-  selection_color = Colors.accent_color;
 
   drag_offsets = new Map();
 
@@ -589,8 +589,8 @@ export class CanvasGUIDriver extends EventEmitter {
     if (this.state.is(State.SELECTING)) {
       const {mouse} = this.state.ctx.pos;
       layer.ctx.beginPath(); //#089fff
-      layer.ctx.strokeStyle = Colors.accent_color;
-      layer.ctx.fillStyle = Colors.accent_color_op;
+      layer.ctx.strokeStyle = Colors.accent_color_secondary;
+      layer.ctx.fillStyle = Colors.accent_color_secondary + "10";
       layer.ctx.moveTo(this.selection_start_x, this.selection_start_y);
       layer.ctx.lineTo(this.selection_start_x, mouse.y);
       layer.ctx.lineTo(mouse.x, mouse.y);
@@ -713,7 +713,7 @@ export class CanvasGUIDriver extends EventEmitter {
   /**
    * @private
    * @param {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} layer 
-   * @param {Array<import("@kpla/engine").Edge>} bundle 
+   * @param {Array<import("@kpla/engine").EdgeWasmData>} bundle 
    */
   _drawEdgeBundle(bundle, layer) {
     layer.ctx.strokeStyle = Colors.text_primary;
@@ -790,8 +790,8 @@ export class CanvasGUIDriver extends EventEmitter {
     layer.ctx.fillStyle = type.fill_color;
     layer.ctx.fill();
     if (this.selected_node_handles.includes(node.handle)) {
-      layer.ctx.strokeStyle = this.selection_color;
-      layer.ctx.lineWidth = 4;
+      layer.ctx.strokeStyle = Colors.accent_color_secondary;
+      layer.ctx.lineWidth = 2;
     } else {
       layer.ctx.lineWidth = type.stroke_width;
       layer.ctx.strokeStyle = type.stroke_color;

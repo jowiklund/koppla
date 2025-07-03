@@ -258,7 +258,7 @@ func toolbar() templ.Component {
 			templ_7745c5c3_Var10 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<div class=\"toolbar\"><label data-class-active=\"$selectedTool == 0\"><input data-on-click=\"evt.stopPropagation(); console.log($selectedTool)\" checked=\"checked\" type=\"radio\" data-bind-selected-tool value=\"0\"> <span class=\"material-symbols fill\">arrow_selector_tool</span></label> <label data-class-active=\"$selectedTool == 1\"><input type=\"radio\" data-bind-selected-tool value=\"1\"> <span class=\"material-symbols fill\">mediation</span></label> <label data-class-active=\"$selectedTool == 2\"><input type=\"radio\" data-bind-selected-tool value=\"2\"> <span class=\"material-symbols fill\">control_point_duplicate</span></label></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<div class=\"toolbar\"><label data-class-active=\"$selectedTool == 0\" title=\"Cursor\"><input data-on-click=\"evt.stopPropagation(); console.log($selectedTool)\" checked=\"checked\" type=\"radio\" data-bind-selected-tool value=\"0\"> <span class=\"material-symbols fill\">arrow_selector_tool</span></label> <label data-class-active=\"$selectedTool == 1\" title=\"Connect nodes\"><input type=\"radio\" data-bind-selected-tool value=\"1\"> <span class=\"material-symbols fill\">mediation</span></label> <label data-class-active=\"$selectedTool == 2\" title=\"Create nodes\"><input type=\"radio\" data-bind-selected-tool value=\"2\"> <span class=\"material-symbols fill\">control_point_duplicate</span></label></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

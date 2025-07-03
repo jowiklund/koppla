@@ -129,15 +129,15 @@ templ ControlPanelSection(title string) {
 
 templ toolbar() {
 	<div class="toolbar">
-		<label data-class-active="$selectedTool == 0">
+		<label data-class-active="$selectedTool == 0" title="Cursor">
 			<input data-on-click="evt.stopPropagation(); console.log($selectedTool)" checked="checked" type="radio" data-bind-selected-tool value="0" />
 			<span class="material-symbols fill">arrow_selector_tool</span>
 		</label>
-		<label data-class-active="$selectedTool == 1">
+		<label data-class-active="$selectedTool == 1" title="Connect nodes">
 			<input type="radio" data-bind-selected-tool value="1" />
 			<span class="material-symbols fill">mediation</span>
 		</label>
-		<label data-class-active="$selectedTool == 2">
+		<label data-class-active="$selectedTool == 2" title="Create nodes">
 			<input type="radio" data-bind-selected-tool value="2" />
 			<span class="material-symbols fill">control_point_duplicate</span>
 		</label>

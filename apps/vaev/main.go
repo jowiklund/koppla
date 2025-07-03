@@ -24,6 +24,7 @@ import (
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
+	datastar "github.com/starfederation/datastar/sdk/go"
 
 	_ "koppla/apps/vaev/migrations"
 )
@@ -107,7 +108,7 @@ func main() {
 	})
 
 	r.Route("/sse", func(r chi.Router) {
-		r.Get("/project/{id}", func(w http.ResponseWriter, r *http.Request) {
+		r.Get("/project/{id}/node-select", func(w http.ResponseWriter, r *http.Request) {
 			is_owner := dashboard.ValidateProjectOwner(app, w, r)
 			if !is_owner {
 				mw.WriteJSONUnauthorized(w)
@@ -115,6 +116,7 @@ func main() {
 			}
 
 			project_id := chi.URLParam(r, "id")
+			sse := datastar.NewSSE(w, r)
 
 			node_types := []graph.NodeType{}
 			app.DB().
@@ -127,7 +129,34 @@ func main() {
 				).
 				All(&node_types)
 
-			edge_types := &[]graph.EdgeType{}
+			sse.MergeFragmentTempl(
+				graph.NodeSelector(node_types),
+			)
+		})
+		r.Get("/project/{id}", func(w http.ResponseWriter, r *http.Request) {
+			is_owner := dashboard.ValidateProjectOwner(app, w, r)
+			if !is_owner {
+				mw.WriteJSONUnauthorized(w)
+				return
+			}
+
+			project_id := chi.URLParam(r, "id")
+			project := dashboard.GetProject(app, r)
+
+			sse := datastar.NewSSE(w, r)
+
+			node_types := []graph.NodeType{}
+			app.DB().
+				Select("*").
+				From("node_types").
+				Where(
+					dbx.NewExp(
+						"project = {:project_id}",
+						dbx.Params{"project_id": project_id}),
+				).
+				All(&node_types)
+
+			edge_types := []graph.EdgeType{}
 			app.DB().
 				Select("*").
 				From("edge_types").
@@ -136,19 +165,9 @@ func main() {
 						"project = {:project_id}",
 						dbx.Params{"project_id": project_id}),
 				).
-				All(edge_types)
+				All(&edge_types)
 
-			app.DB().
-				Select("*").
-				From("default_edge_types").
-				Where(
-					dbx.NewExp(
-						"project = {:project_id}",
-						dbx.Params{"project_id": project_id}),
-				).
-				All(edge_types)
-
-			nodes := &[]graph.Node{}
+			nodes := []graph.Node{}
 			app.DB().
 				Select("*").
 				From("nodes").
@@ -157,9 +176,9 @@ func main() {
 						"project = {:project_id}",
 						dbx.Params{"project_id": project_id}),
 				).
-				All(nodes)
+				All(&nodes)
 
-			edges := &[]graph.Edge{}
+			edges := []graph.Edge{}
 			app.DB().
 				Select("*").
 				From("edges").
@@ -168,7 +187,17 @@ func main() {
 						"project = {:project_id}",
 						dbx.Params{"project_id": project_id}),
 				).
-				All(edges)
+				All(&edges)
+
+			signals := vapi.GraphSignals{
+				Project:   *project,
+				Nodes:     nodes,
+				NodeTypes: node_types,
+				EdgeTypes: edge_types,
+				Edges:     edges,
+			}
+
+			sse.MarshalAndMergeSignals(signals)
 		})
 	})
 

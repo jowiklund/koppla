@@ -70,17 +70,21 @@ export class StateMachine {
     );
     this._addTransition(
       State.IDLE, EventName.MOUSE_DOWN, State.PANNING,
-      (ctx) => !!ctx.event?.ctrlKey
+      (ctx) => ctx.tool == Tool.PAN
     );
     this._addTransition(
       State.IDLE, EventName.MOUSE_DOWN, State.DRAGGING,
       (ctx) => ctx.pos.node !== null
     );
 
+    this._addTransition(
+      State.IDLE, EventName.MOUSE_DOWN, State.SELECTING,
+      (ctx) => ctx.tool == Tool.CURSOR
+    );
+
     this._addTransition(State.CONNECTING, EventName.MOUSE_UP, State.IDLE);
     this._addTransition(State.PANNING, EventName.MOUSE_UP, State.IDLE);
     this._addTransition(State.DRAGGING, EventName.MOUSE_UP, State.IDLE);
-    this._addTransition(State.IDLE, EventName.MOUSE_DOWN, State.SELECTING);
     this._addTransition(State.SELECTING, EventName.MOUSE_UP, State.IDLE);
   }
   /**

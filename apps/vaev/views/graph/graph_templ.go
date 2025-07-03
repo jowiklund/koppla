@@ -32,20 +32,20 @@ func Main(app *pocketbase.PocketBase, project_id string) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"workspace\" class=\"workspace\" data-ref=\"workspace\" data-signals=\"{\n\t\t\tloaded: false,\n\t\t\tproject: {\n\t\t\t\tname: '',\n\t\t\t\tid: '',\n\t\t\t\tpermissions: 0\n\t\t\t},\n\t\t\tnodeTypes: [],\n\t\t\tedgeTypes: [],\n\t\t\tnodes: [],\n\t\t\tedges: [],\n\t\t\tselectedTool: 0,\n\t\t\tprevTool: 0,\n\t\t}\" data-on-load=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"node-type-select\" class=\"node-type-select\" data-on-load=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
-		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("@get('/sse/project/%s')", project_id))
+		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("@get('/sse/project/%s/node-select')", project_id))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 22, Col: 66}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 11, Col: 65}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" data-on-signal-change-selected-tool=\"window.driver.current_tool = $selectedTool;\" data-on-keydown__window=\"\n\t\t\t$prevTool = $selectedTool;\n\t\t\tevt.key == 'Shift' ? $selectedTool = 1 : null;\n\t\t\tevt.key == '1' ? $selectedTool = 0 : null;\n\t\t\tevt.key == '2' ? $selectedTool = 1 : null;\n\t\t\tevt.key == '3' ? $selectedTool = 2 : null;\n\t\t\" data-on-keyup__window=\"\n\t\t\tevt.key == 'Shift' ? $selectedTool = $prevTool : null;\n\t\t\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"></div><div id=\"workspace\" class=\"workspace\" data-ref=\"workspace\" data-signals=\"{\n\t\t\tloaded: false,\n\t\t\tproject: {\n\t\t\t\tname: '',\n\t\t\t\tid: '',\n\t\t\t\tpermissions: 0\n\t\t\t},\n\t\t\tnodeTypes: [],\n\t\t\tedgeTypes: [],\n\t\t\tnodes: [],\n\t\t\tedges: [],\n\t\t\tselectedTool: 0,\n\t\t\tprevTool: 0,\n\t\t\tshowNodeTypeSelect: false,\n\t\t\tcurrentPos: {\n\t\t\t\tx: 0,\n\t\t\t\ty: 0\n\t\t\t}\n\t\t}\" data-on-signal-change-selected-tool=\"window.driver.current_tool = $selectedTool;\" data-on-keydown__window=\"\n\t\t\t$prevTool = $selectedTool;\n\t\t\tevt.key == 'Shift' ? $selectedTool = 1 : null;\n\t\t\tevt.key == 'Control' ? $selectedTool = 3 : null;\n\t\t\tevt.key == '1' ? $selectedTool = 0 : null;\n\t\t\tevt.key == '2' ? $selectedTool = 1 : null;\n\t\t\tevt.key == '3' ? $selectedTool = 2 : null;\n\t\t\tevt.key == '4' ? $selectedTool = 3 : null;\n\t\t\" data-on-keyup__window=\"\n\t\t\tevt.key == 'Shift' ? $selectedTool = $prevTool : null;\n\t\t\tevt.key == 'Control' ? $selectedTool = $prevTool : null;\n\t\t\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -53,7 +53,7 @@ func Main(app *pocketbase.PocketBase, project_id string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div id=\"canvas-container\" class=\"canvas-container\" data-on-kpla-click=\"console.log(evt.detail, window.driver)\"></div><div id=\"control-panel\" class=\"control-panel\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div id=\"canvas-container\" class=\"canvas-container\" data-on-kpla-click=\"\n\t\t\t\t$selectedTool == 2 ? $showNodeTypeSelect = true : null;\n\t\t\t\t$currentPos = evt.detail.pos.mouse;\n\t\t\t\"></div><div id=\"control-panel\" class=\"control-panel\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -73,7 +73,7 @@ func Main(app *pocketbase.PocketBase, project_id string) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div class=\"control-panel__button-group\"><button title=\"Fruchterman-Reingold esque sorting\"><span class=\"material-symbols\">graph_3</span></button> <button title=\"Hierarchy based sorting\" disabled><span class=\"material-symbols\">graph_1</span></button></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div class=\"control-panel__button-group\"><button data-on-click=\"window.driver.graph.sortNodes()\" title=\"Fruchterman-Reingold esque sorting\"><span class=\"material-symbols\">graph_3</span></button> <button title=\"Hierarchy based sorting\" disabled><span class=\"material-symbols\">graph_1</span></button></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -115,7 +115,7 @@ func Main(app *pocketbase.PocketBase, project_id string) templ.Component {
 		}
 		templ_7745c5c3_Var5, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(project_id)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 88, Col: 41}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 105, Col: 41}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 		if templ_7745c5c3_Err != nil {
@@ -150,7 +150,7 @@ func Footer() templ.Component {
 			templ_7745c5c3_Var6 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<div class=\"control-panel__section control-panel__section--footer\"><dialog data-ref=\"tooltips\"><div class=\"tooltips\"><div><span>ctrl</span> + <span>drag</span>: pan</div><div><span>shift</span> + <span>drag</span>: connect</div><div><span>del</span>: delete selected</div><div><span>backspace</span>: delete selected connections</div><div><span>scroll</span>: zoom</div></div></dialog><div class=\"control-panel__button-group\"><button data-on-click=\"$tooltips.showModal()\" koppla-click=\"openToolTips\"><span class=\"material-symbols\">question_mark</span></button></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<div class=\"control-panel__section control-panel__section--footer\"><dialog data-ref=\"tooltips\"><div class=\"tooltips\"><div><span>ctrl</span> + <span>drag</span>: pan</div><div><span>shift</span> + <span>drag</span>: connect</div><div><span>del</span>: delete selected</div><div><span>backspace</span>: delete selected connections</div><div><span>scroll</span>: zoom</div></div></dialog><div class=\"control-panel__button-group\"><button data-on-click=\"$tooltips.showModal()\"><span class=\"material-symbols\">question_mark</span></button></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -215,7 +215,7 @@ func ControlPanelSection(title string) templ.Component {
 		var templ_7745c5c3_Var9 string
 		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 125, Col: 11}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 142, Col: 11}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 		if templ_7745c5c3_Err != nil {
@@ -258,7 +258,85 @@ func toolbar() templ.Component {
 			templ_7745c5c3_Var10 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<div class=\"toolbar\"><label data-class-active=\"$selectedTool == 0\" title=\"Cursor\"><input data-on-click=\"evt.stopPropagation(); console.log($selectedTool)\" checked=\"checked\" type=\"radio\" data-bind-selected-tool value=\"0\"> <span class=\"material-symbols fill\">arrow_selector_tool</span></label> <label data-class-active=\"$selectedTool == 1\" title=\"Connect nodes\"><input type=\"radio\" data-bind-selected-tool value=\"1\"> <span class=\"material-symbols fill\">mediation</span></label> <label data-class-active=\"$selectedTool == 2\" title=\"Create nodes\"><input type=\"radio\" data-bind-selected-tool value=\"2\"> <span class=\"material-symbols fill\">control_point_duplicate</span></label></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<div class=\"toolbar\"><label data-class-active=\"$selectedTool == 0\" title=\"(1) : Cursor\"><input checked=\"checked\" type=\"radio\" data-bind-selected-tool value=\"0\"> <span class=\"material-symbols fill\">arrow_selector_tool</span></label> <label data-class-active=\"$selectedTool == 1\" title=\"(2 / shift) : Connect nodes\"><input type=\"radio\" data-bind-selected-tool value=\"1\"> <span class=\"material-symbols fill\">mediation</span></label> <label data-class-active=\"$selectedTool == 2\" title=\"(3) : Create nodes\"><input type=\"radio\" data-bind-selected-tool value=\"2\"> <span class=\"material-symbols fill\">control_point_duplicate</span></label> <label data-class-active=\"$selectedTool == 3\" title=\"(4 / ctrl) : Pan\"><input type=\"radio\" data-bind-selected-tool value=\"3\"> <span class=\"material-symbols fill\">drag_pan</span></label></div>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func NodeSelector(node_types []NodeType) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var11 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var11 == nil {
+			templ_7745c5c3_Var11 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<div id=\"node-type-select\" class=\"node-type-select\" data-show=\"$showNodeTypeSelect\"><label>Name: <input type=\"text\" data-bind-node-name></label> <label>Type:  <select data-signals-selected-node-type=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var12 string
+		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("'%s'", node_types[0].Id))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 175, Col: 74}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" data-bind-selected-node-type data-on-click=\"console.log($selectedNodeType)\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		for _, t := range node_types {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<option value=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var13 string
+			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(t.Id)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 180, Col: 24}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var14 string
+			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(t.Name)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 180, Col: 33}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</option>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</select></label><div class=\"btn-container\" data-on-click=\"\n\t\t\tconsole.log(parseInt($currentPos.x));\n\t\t\twindow.driver.graph.createNode({\n\t\t\t\ttype: $selectedNodeType,\n\t\t\t\tname: $nodeName,\n\t\t\t\tmetadata: '',\n\t\t\t\t...$currentPos,\n\t\t\t});\n\t\t\t$showNodeTypeSelect = false;\n\t\t\"><button class=\"btn\" id=\"close\">Create</button></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

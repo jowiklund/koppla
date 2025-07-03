@@ -36,6 +36,7 @@
 	border-bottom-left-radius: var(--border-radius);
 	border-bottom-right-radius: var(--border-radius);
 	border: var(--small-border);
+	background-color: var(--background-secondary);
 }
 
 .project-item p {

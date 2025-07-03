@@ -219,6 +219,58 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 					}).
 					Execute()
 			})
+			r.Post("/{id}/create-node", func(w http.ResponseWriter, r *http.Request) {
+				project := dashboard.GetProject(app, r)
+
+				user, err := auth.GetSignedInUser(app, r)
+				if err != nil {
+					log.Fatal("No user when saving")
+				}
+
+				if project.Owner != user.Id {
+					middleware.WriteJSONUnauthorized(w)
+					return
+				}
+
+				body, err := io.ReadAll(r.Body)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				node := graph.Node{}
+				if err := json.Unmarshal(body, &node); err != nil {
+					log.Fatal(err)
+				}
+
+				query := `
+				INSERT INTO nodes (x, y, name, project, type)
+				VALUES ({:x}, {:y}, {:name}, {:project}, {:type})
+				RETURNING id 
+				`
+
+				var id string
+				if err := app.DB().
+					NewQuery(query).Bind(dbx.Params{
+					"x":       node.X,
+					"y":       node.Y,
+					"name":    node.Name,
+					"project": project.Id,
+					"type":    node.Type,
+				}).Row(&id); err != nil {
+					log.Fatal(err)
+				}
+
+				node.Id = id
+
+				fmt.Printf("\n%+v\n", node)
+
+				bytes, err := json.Marshal(&node)
+				fmt.Print(string(bytes))
+				if err != nil {
+					log.Fatal(err)
+				}
+				w.Write(bytes)
+			})
 		})
 	})
 }

@@ -16,7 +16,7 @@ export class IGraphStore {
      * @param {import(".").NodeHandle} node_handle 
      * @param {import(".").NodeBase} node_data
      */
-    setNode(node_handle, node_data) {
+    async setNode(node_handle, node_data) {
         throw new Error("Method 'setNode' is not implemented")
     }
 
@@ -55,7 +55,7 @@ export class IGraphStore {
      * @param {import(".").EdgeHandle} edge_handle 
      * @param {import(".").EdgeBase} edge_data
      */
-    setEdge(edge_handle, edge_data) {
+    async setEdge(edge_handle, edge_data) {
         throw new Error("Method 'setEdge' is not implemented")
     }
 

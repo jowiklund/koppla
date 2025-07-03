@@ -247,13 +247,13 @@ export class GraphEditor extends EventEmitter {
 
   /**
    * @param {NodeBase} data 
-   * @returns {NodeHandle}
+   * @returns {Promise<NodeHandle>}
    */
-  createNode(data) {
+  async createNode(data) {
     const {x, y} = data;
     const {x: w_x, y: w_y} = this.screenToWorld({x, y})
     const node_handle = this._wasm.createNode(w_x, w_y);
-    this._store.setNode(node_handle, data)
+    await this._store.setNode(node_handle, data)
     this.emit("node:create", { node_handle })
     this.emit("world:update")
     return node_handle;

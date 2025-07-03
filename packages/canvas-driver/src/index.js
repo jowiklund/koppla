@@ -227,7 +227,7 @@ export class CanvasGUIDriver extends EventEmitter {
     const pos = this._getPositionData({x: e.clientX, y: e.clientY});
     this.emit("dblclick", pos);
     const evt = new CustomEvent("kpla-dblclick", {
-      detail: this.state.ctx.pos,
+      detail: this.state.ctx,
     });
     this.container.dispatchEvent(evt);
   }

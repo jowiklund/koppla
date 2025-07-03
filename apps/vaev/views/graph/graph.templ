@@ -4,6 +4,13 @@ import "github.com/pocketbase/pocketbase"
 import "fmt"
 
 templ Main(app *pocketbase.PocketBase, project_id string) {
+	<div
+		id="node-type-select"
+		class="node-type-select"
+		data-on-load={
+			fmt.Sprintf("@get('/sse/project/%s/node-select')", project_id)
+		}
+	></div>
 	<div id="workspace" class="workspace" data-ref="workspace"
 		data-signals="{
 			loaded: false,
@@ -18,32 +25,42 @@ templ Main(app *pocketbase.PocketBase, project_id string) {
 			edges: [],
 			selectedTool: 0,
 			prevTool: 0,
+			showNodeTypeSelect: false,
+			currentPos: {
+				x: 0,
+				y: 0
+			}
 		}"
-		data-on-load={fmt.Sprintf("@get('/sse/project/%s')", project_id)}
 		data-on-signal-change-selected-tool="window.driver.current_tool = $selectedTool;"
 		data-on-keydown__window="
 			$prevTool = $selectedTool;
 			evt.key == 'Shift' ? $selectedTool = 1 : null;
+			evt.key == 'Control' ? $selectedTool = 3 : null;
 			evt.key == '1' ? $selectedTool = 0 : null;
 			evt.key == '2' ? $selectedTool = 1 : null;
 			evt.key == '3' ? $selectedTool = 2 : null;
+			evt.key == '4' ? $selectedTool = 3 : null;
 		"
 		data-on-keyup__window="
 			evt.key == 'Shift' ? $selectedTool = $prevTool : null;
+			evt.key == 'Control' ? $selectedTool = $prevTool : null;
 		"
 		>
 		@toolbar()
 		<div
 			id="canvas-container"
 			class="canvas-container"
-			data-on-kpla-click="console.log(evt.detail, window.driver)"
+			data-on-kpla-click="
+				$selectedTool == 2 ? $showNodeTypeSelect = true : null;
+				$currentPos = evt.detail.pos.mouse;
+			"
 		>
 		</div>
 		<div id="control-panel" class="control-panel">
 			@header()
 			@ControlPanelSection("Sorting") {
 				<div class="control-panel__button-group">
-					<button title="Fruchterman-Reingold esque sorting">
+					<button data-on-click="window.driver.graph.sortNodes()" title="Fruchterman-Reingold esque sorting">
 						<span class="material-symbols">graph_3</span>
 					</button>
 					<button title="Hierarchy based sorting" disabled>
@@ -107,7 +124,7 @@ templ Footer() {
 			</div>
 		</dialog>
 		<div class="control-panel__button-group">
-			<button data-on-click='$tooltips.showModal()' koppla-click="openToolTips">
+			<button data-on-click='$tooltips.showModal()'>
 				<span class="material-symbols">question_mark</span>
 			</button>
 		</div>
@@ -129,17 +146,52 @@ templ ControlPanelSection(title string) {
 
 templ toolbar() {
 	<div class="toolbar">
-		<label data-class-active="$selectedTool == 0" title="Cursor">
-			<input data-on-click="evt.stopPropagation(); console.log($selectedTool)" checked="checked" type="radio" data-bind-selected-tool value="0" />
+		<label data-class-active="$selectedTool == 0" title="(1) : Cursor">
+			<input checked="checked" type="radio" data-bind-selected-tool value="0" />
 			<span class="material-symbols fill">arrow_selector_tool</span>
 		</label>
-		<label data-class-active="$selectedTool == 1" title="Connect nodes">
+		<label data-class-active="$selectedTool == 1" title="(2 / shift) : Connect nodes">
 			<input type="radio" data-bind-selected-tool value="1" />
 			<span class="material-symbols fill">mediation</span>
 		</label>
-		<label data-class-active="$selectedTool == 2" title="Create nodes">
+		<label data-class-active="$selectedTool == 2" title="(3) : Create nodes">
 			<input type="radio" data-bind-selected-tool value="2" />
 			<span class="material-symbols fill">control_point_duplicate</span>
 		</label>
+		<label data-class-active="$selectedTool == 3" title="(4 / ctrl) : Pan">
+			<input type="radio" data-bind-selected-tool value="3" />
+			<span class="material-symbols fill">drag_pan</span>
+		</label>
+	</div>
+}
+
+templ NodeSelector(node_types []NodeType) {
+	<div id="node-type-select" class="node-type-select" data-show="$showNodeTypeSelect">
+		<label> Name:
+		<input type="text" data-bind-node-name />
+		</label>
+		<label> Type: 
+			<select
+				data-signals-selected-node-type={fmt.Sprintf("'%s'", node_types[0].Id)}
+				data-bind-selected-node-type
+				data-on-click="console.log($selectedNodeType)"
+			>
+				for _, t := range node_types {
+					<option value={t.Id}>{t.Name}</option>
+				}
+			</select>
+		</label>
+		<div class="btn-container" data-on-click="
+			console.log(parseInt($currentPos.x));
+			window.driver.graph.createNode({
+				type: $selectedNodeType,
+				name: $nodeName,
+				metadata: '',
+				...$currentPos,
+			});
+			$showNodeTypeSelect = false;
+		">
+			<button class="btn" id="close">Create</button>
+		</div>
 	</div>
 }

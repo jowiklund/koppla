@@ -101,7 +101,7 @@ export class PBStore extends IGraphStore {
         /** @type {import("@kpla/engine").NodeBase} */
         const new_node = await fetch(this.base_url + "/create-node", {
             method: "POST",
-            body: node_data
+            body: JSON.stringify(node_data)
         }).then(res => res.json())
 
         this.id_to_handle.set(new_node.id, node_handle);

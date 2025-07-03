@@ -376,6 +376,17 @@ select {
 	cursor: grab;
 }
 
+.node-type-select {
+	position: fixed;
+	background-color: var(--background-secondary);
+	border: var(--small-border);
+	border-radius: var(--border-radius);
+	padding: var(--gap-4);
+	z-index: var(--layer-4);
+	top: 50%;
+	left: 50%;
+}
+
 dialog:focus {
 	outline: 0;
 }

@@ -476,21 +476,25 @@ export class GraphEditor extends EventEmitter {
     const edges = [];
     for (let i = 0; i < edge_count; i++) {
       const handle = this._wasm.getEdgeHandleByIndex(i);
-      edges.push(this.getEdge(handle))
+      const edge = this.getEdge(handle)
+      if (edge == null) continue;
+      edges.push(edge)
     }
     return edges;
   }
 
   /**
    * @param {EdgeHandle} handle 
-   * @returns {EdgeWasmData}
+   * @returns {EdgeWasmData | null}
    */
   getEdge(handle) {
+    const e = this._store.getEdgeByHandle(handle)
+    if (e == undefined) return null;
     return {
       handle,
       start_handle: this._wasm.getEdgeStartNodeHandle(handle),
       end_handle: this._wasm.getEdgeEndNodeHandle(handle),
-      type: this._wasm.getEdgeType(handle),
+      type: e.type
     }
   }
 
@@ -577,15 +581,24 @@ export class GraphEditor extends EventEmitter {
   }
 
   /**
-   * @param {NodeHandle} start_handle 
-   * @param {NodeHandle} end_handle 
-   * @param {NodeHandle} end_handle 
-   * @param {EdgeTypeId} type
+   * @param {EdgeBase} edge_data 
    */
-  createEdge(start_handle, end_handle, type) {
-    this._wasm.createEdge(start_handle, end_handle, type);
-    this.emit("edge:create", {start_handle, end_handle, type});
+  async createEdge(edge_data) {
+    const start_handle = this._store.getNodeHandleById(edge_data.start_id);
+    const end_handle = this._store.getNodeHandleById(edge_data.end_id);
+    const edge_handle = this._wasm.createEdge(start_handle, end_handle);
+    await this._store.setEdge(edge_handle, edge_data)
+    this.emit("edge:create", edge_data);
     this.emit("world:update");
+  }
+
+  /**
+   * @param {EdgeBase[]} edges 
+   */
+  async createEdges(edges) {
+    for (const edge of edges) {
+      await this.createEdge(edge)
+    }
   }
 }
 

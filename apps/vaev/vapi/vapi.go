@@ -272,6 +272,53 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 				}
 				w.Write(bytes)
 			})
+			r.Post("/{id}/create-edge", func(w http.ResponseWriter, r *http.Request) {
+				is_owner := dashboard.ValidateProjectOwner(app, w, r)
+				if !is_owner {
+					middleware.WriteJSONUnauthorized(w)
+					return
+				}
+
+				project := dashboard.GetProject(app, r)
+
+				body, err := io.ReadAll(r.Body)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				edge := graph.Edge{}
+				if err := json.Unmarshal(body, &edge); err != nil {
+					log.Fatal(err)
+				}
+
+				query := `
+				INSERT INTO edges (start_id, end_id, type, project)
+				VALUES ({:start_id}, {:end_id}, {:type}, {:project})
+				RETURNING id 
+				`
+
+				var id string
+				if err := app.DB().
+					NewQuery(query).Bind(dbx.Params{
+					"start_id": edge.StartId,
+					"end_id":   edge.EndId,
+					"type":     edge.Type,
+					"project":  project.Id,
+				}).Row(&id); err != nil {
+					log.Fatal(err)
+				}
+
+				edge.Id = id
+
+				fmt.Printf("\n%+v\n", edge)
+
+				bytes, err := json.Marshal(&edge)
+				fmt.Print(string(bytes))
+				if err != nil {
+					log.Fatal(err)
+				}
+				w.Write(bytes)
+			})
 		})
 	})
 }

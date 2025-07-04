@@ -68,7 +68,7 @@ export fn createNode(x: f32, y: f32) NodeHandle {
     return @intFromPtr(node);
 }
 
-export fn createEdge(start_handle: usize, end_handle: usize) void {
+export fn createEdge(start_handle: usize, end_handle: usize) EdgeHandle {
     const edge = fba.allocator().create(Edge) catch @panic("OOM: Edge");
     edge.* = .{
         .start_node = start_handle,
@@ -82,6 +82,7 @@ export fn createEdge(start_handle: usize, end_handle: usize) void {
 
     start_node.edges_outgoing.append(@intFromPtr(edge)) catch @panic("OOM: Node outgoing");
     end_node.edges_incoming.append(@intFromPtr(edge)) catch @panic("OOM: Node incoming");
+    return @intFromPtr(edge);
 }
 
 export fn getEdgeHandleByIndex(index: usize) EdgeHandle {

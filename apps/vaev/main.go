@@ -133,6 +133,31 @@ func main() {
 				graph.NodeSelector(node_types),
 			)
 		})
+		r.Get("/project/{id}/edge-select", func(w http.ResponseWriter, r *http.Request) {
+			is_owner := dashboard.ValidateProjectOwner(app, w, r)
+			if !is_owner {
+				mw.WriteJSONUnauthorized(w)
+				return
+			}
+
+			project_id := chi.URLParam(r, "id")
+			sse := datastar.NewSSE(w, r)
+
+			edge_types := []graph.EdgeType{}
+			app.DB().
+				Select("*").
+				From("edge_types").
+				Where(
+					dbx.NewExp(
+						"project = {:project_id}",
+						dbx.Params{"project_id": project_id}),
+				).
+				All(&edge_types)
+
+			sse.MergeFragmentTempl(
+				graph.EdgeSelector(edge_types),
+			)
+		})
 		r.Get("/project/{id}", func(w http.ResponseWriter, r *http.Request) {
 			is_owner := dashboard.ValidateProjectOwner(app, w, r)
 			if !is_owner {

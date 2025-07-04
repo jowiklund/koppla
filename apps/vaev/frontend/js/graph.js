@@ -18,6 +18,8 @@ export class PBStore extends IGraphStore {
 
     /** @type {Map<string, import("@kpla/engine").NodeBase>} */
     node_updates = new Map()
+    /** @type {Map<string, import("@kpla/engine").EdgeBase>} */
+    edge_updates = new Map()
 
     /**
    * @param {string} base_url 
@@ -76,9 +78,7 @@ export class PBStore extends IGraphStore {
             const edges = await fetch(this.base_url + "/edges").
                 then(res => res.json());
             for (const e of edges) {
-                const start_handle = this.getNodeHandleById(e.start_id);
-                const end_handle = this.getNodeHandleById(e.end_id);
-                graph.createEdge(start_handle, end_handle, e.type)
+                graph.createEdge(e)
             }
 
         } catch (e) {
@@ -171,9 +171,22 @@ export class PBStore extends IGraphStore {
      * @param {import("@kpla/engine").EdgeHandle} edge_handle 
      * @param {import("@kpla/engine").EdgeBase} edge_data
      */
-    setEdge(edge_handle, edge_data) {
-        this.edge_cache.set(edge_handle, edge_data);
-        this.id_to_handle.set(edge_data.id, edge_handle);
+    async setEdge(edge_handle, edge_data) {
+        if (edge_data.id != undefined) {
+            this.edge_updates.set(edge_data.id, edge_data)
+            this.id_to_handle.set(edge_data.id, edge_handle);
+            this.edge_cache.set(edge_handle, edge_data);
+            return
+        }
+
+        /** @type {import("@kpla/engine").EdgeBase} */
+        const new_edge = await fetch(this.base_url + "/create-edge", {
+            method: "POST",
+            body: JSON.stringify(edge_data)
+        }).then(res => res.json());
+
+        this.id_to_handle.set(new_edge.id, edge_handle);
+        this.edge_cache.set(edge_handle, new_edge);
     }
 
     /**

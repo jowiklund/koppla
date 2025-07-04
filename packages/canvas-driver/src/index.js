@@ -92,7 +92,7 @@ export class CanvasGUIDriver extends EventEmitter {
   pan_start_x = 0;
   pan_start_y = 0;
 
-  /** @type {Array<{start_handle: number, end_handle: number}>} */
+  /** @type {import("@kpla/engine").EdgeBase[]} */
   new_edges = [];
 
   /** @type {Array<import("@kpla/engine").NodeHandle>} */
@@ -272,6 +272,7 @@ export class CanvasGUIDriver extends EventEmitter {
       const mouse_y = world_coords.y;
 
       const nodes = this.graph.getNodes();
+      console.log(nodes)
 
       for (let handle of this.selected_node_handles) {
         for (let node of nodes) {
@@ -282,15 +283,24 @@ export class CanvasGUIDriver extends EventEmitter {
           const dy = Math.abs(mouse_y - node.y);
 
           if (dx <= this.config.node_radius && dy <= this.config.node_radius) {
-            this.new_edges.push({
-              start_handle: handle,
-              end_handle 
-            })
+            /** @type {import("@kpla/engine").EdgeBase} */
+            const edge = {
+              type: "",
+              start_id: "",
+              end_id: ""
+            }
+            this.new_edges.push()
             break;
           }
         }
       }
-      this.emit("create:connections", this.new_edges)
+
+      const evt = new CustomEvent("kpla-new-edges", {
+        detail: this.new_edges
+      });
+      this.container.dispatchEvent(evt);
+      this.emit("create:edges", this.new_edges);
+      this.new_edges = []
     }
 
     this.container.style.cursor = "default";
@@ -665,6 +675,7 @@ export class CanvasGUIDriver extends EventEmitter {
     .filter(n => this._isInView({x: n.x, y: n.y}, world_corners));
 
     const visible_handles = new Set(visible_nodes.map(n => n.handle));
+
 
     const edge_bundles = this.graph.getEdgeBundles((edge) => {
       return !this.moving_edges.has(edge.handle) &&

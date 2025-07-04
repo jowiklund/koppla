@@ -11,6 +11,13 @@ templ Main(app *pocketbase.PocketBase, project_id string) {
 			fmt.Sprintf("@get('/sse/project/%s/node-select')", project_id)
 		}
 	></div>
+	<div
+		id="edge-type-select"
+		class="edge-type-select"
+		data-on-load={
+			fmt.Sprintf("@get('/sse/project/%s/edge-select')", project_id)
+		}
+	></div>
 	<div id="workspace" class="workspace" data-ref="workspace"
 		data-signals="{
 			loaded: false,
@@ -26,6 +33,7 @@ templ Main(app *pocketbase.PocketBase, project_id string) {
 			selectedTool: 0,
 			prevTool: 0,
 			showNodeTypeSelect: false,
+			showEdgeTypeSelect: false,
 			currentPos: {
 				x: 0,
 				y: 0
@@ -53,6 +61,9 @@ templ Main(app *pocketbase.PocketBase, project_id string) {
 			data-on-kpla-click="
 				$selectedTool == 2 ? $showNodeTypeSelect = true : null;
 				$currentPos = evt.detail.pos.screen;
+			"
+			data-on-kpla-new-edges="
+				window.driver.graph.createEdges(evt.detail)
 			"
 		>
 		</div>
@@ -166,7 +177,7 @@ templ toolbar() {
 }
 
 templ NodeSelector(node_types []NodeType) {
-	<div id="node-type-select" class="node-type-select" data-show="$showNodeTypeSelect">
+	<div id="node-type-select" class="type-select" data-show="$showNodeTypeSelect">
 		<label> Name:
 		<input type="text" data-bind-node-name />
 		</label>
@@ -188,6 +199,34 @@ templ NodeSelector(node_types []NodeType) {
 				...$currentPos,
 			});
 			$showNodeTypeSelect = false;
+		">
+			<button class="btn" id="close">Create</button>
+		</div>
+	</div>
+}
+
+templ EdgeSelector(edge_types []EdgeType) {
+	<div id="edge-type-select" class="type-select" data-show="$showEdgeTypeSelect">
+		<label> Name:
+		<input type="text" data-bind-node-name />
+		</label>
+		<label> Type: 
+			<select
+				data-signals-selected-node-type={fmt.Sprintf("'%s'", edge_types[0].Id)}
+				data-bind-selected-node-type
+			>
+				for _, t := range edge_types {
+					<option value={t.Id}>{t.Name}</option>
+				}
+			</select>
+		</label>
+		<div class="btn-container" data-on-click="
+			window.driver.graph.createEdge({
+				type: $selectedEdgeType,
+				metadata: '',
+				...$currentPos,
+			});
+			$showEdgeTypeSelect = false;
 		">
 			<button class="btn" id="close">Create</button>
 		</div>

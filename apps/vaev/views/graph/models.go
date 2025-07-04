@@ -25,8 +25,9 @@ type NodeType struct {
 }
 
 type Edge struct {
-	Start   string `db:"start" json:"start"`
-	End     string `db:"end" json:"end"`
+	Id      string `db:"id" json:"id"`
+	StartId string `db:"start_id" json:"start_id"`
+	EndId   string `db:"end_id" json:"end_id"`
 	Type    string `db:"type" json:"type"`
 	Created string `db:"created" json:"created"`
 	Updated string `db:"updated" json:"updated"`

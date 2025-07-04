@@ -376,7 +376,7 @@ select {
 	cursor: grab;
 }
 
-.node-type-select {
+.type-select {
 	position: fixed;
 	background-color: var(--background-secondary);
 	border: var(--small-border);

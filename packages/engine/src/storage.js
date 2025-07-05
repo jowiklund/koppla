@@ -6,115 +6,143 @@ import { GraphEditor } from ".";
  */
 export class IGraphStore {
     /**
-     * @param {GraphEditor} graph_editor 
+     * Initializes the store, loading types, nodes, and edges from the backend
+     * and populating the WASM graph editor.
+     * @param {GraphEditor} graph_editor
      */
     async init(graph_editor) {
-        throw new Error("Method 'init' is not implemented")
+        throw new Error("Method 'init' is not implemented");
     }
 
     /**
-     * @param {import(".").NodeHandle} node_handle 
-     * @param {import(".").NodeBase} node_data
+     * Stores or updates a node's full data (including WASM-derived properties).
+     * If `node.id` is undefined, the store should assign a temporary ID and
+     * queue it for creation. Otherwise, it queues for update.
+     * This method primarily updates the local cache and queues changes for batch persistence.
+     * @param {import(".").NodeHandle} node_handle - The WASM handle of the node.
+     * @param {import(".").Node} node_data - The complete node data, including its ID (if known) and WASM properties.
      */
     async setNode(node_handle, node_data) {
-        throw new Error("Method 'setNode' is not implemented")
+        throw new Error("Method 'setNode' is not implemented");
     }
 
     /**
-     * @param {import(".").NodeHandle} node_handle 
-     * @returns {import(".").NodeBase | undefined}
+     * Retrieves the complete node data by its WASM handle from the store's cache.
+     * @param {import(".").NodeHandle} node_handle
+     * @returns {import(".").Node | undefined}
      */
     getNodeByHandle(node_handle) {
-        throw new Error("Method 'getNodeByHandle' is not implemented")
+        throw new Error("Method 'getNodeByHandle' is not implemented");
     }
 
     /**
-     * @param {string} node_id 
-     * @returns {import(".").NodeBase | undefined}
+     * Retrieves the complete node data by its foreign ID from the store's cache.
+     * This method is useful for correlating data using database IDs.
+     * @param {string} node_id
+     * @returns {import(".").Node | undefined}
      */
     getNodeById(node_id) {
-        throw new Error("Method 'getNodeById' is not implemented")
+        throw new Error("Method 'getNodeById' is not implemented");
     }
 
     /**
-     * @param {string} node_id 
+     * Retrieves the WASM handle for a node given its foreign ID.
+     * @param {string} node_id
      * @returns {import(".").NodeHandle | undefined}
      */
     getNodeHandleById(node_id) {
-        throw new Error("Method 'getHandleById' is not implemented")
+        throw new Error("Method 'getHandleById' is not implemented");
     }
 
     /**
-     * @param {import(".").NodeHandle} node_handle 
+     * Deletes a node from the store's cache and queues it for deletion from the backend.
+     * @param {import(".").NodeHandle} node_handle
      */
     deleteNode(node_handle) {
-        throw new Error("Method 'deleteNode' is not implemented")
+        throw new Error("Method 'deleteNode' is not implemented");
     }
 
     /**
-     * @param {import(".").EdgeHandle} edge_handle 
-     * @param {import(".").EdgeBase} edge_data
+     * Stores or updates an edge's full data (including WASM-derived properties).
+     * If `edge.id` is undefined, the store should assign a temporary ID and
+     * queue it for creation. Otherwise, it queues for update.
+     * This method primarily updates the local cache and queues changes for batch persistence.
+     * @param {import(".").EdgeHandle} edge_handle - The WASM handle of the edge.
+     * @param {import(".").Edge} edge_data - The complete edge data, including its ID (if known) and WASM properties.
      */
     async setEdge(edge_handle, edge_data) {
-        throw new Error("Method 'setEdge' is not implemented")
+        throw new Error("Method 'setEdge' is not implemented");
     }
 
     /**
-     * @param {import(".").EdgeHandle} edge_handle 
-     * @returns {import(".").EdgeBase | undefined}
+     * Retrieves the complete edge data by its WASM handle from the store's cache.
+     * @param {import(".").EdgeHandle} edge_handle
+     * @returns {import(".").Edge | undefined}
      */
     getEdgeByHandle(edge_handle) {
-        throw new Error("Method 'getEdgeByHandle' is not implemented")
+        throw new Error("Method 'getEdgeByHandle' is not implemented");
     }
 
     /**
-     * @param {string} edge_id 
-     * @returns {import(".").EdgeBase | undefined}
+     * Retrieves the complete edge data by its foreign ID from the store's cache.
+     * @param {string} edge_id
+     * @returns {import(".").Edge | undefined}
      */
     getEdgeById(edge_id) {
-        throw new Error("Method 'getEdgeById' is not implemented")
+        throw new Error("Method 'getEdgeById' is not implemented");
     }
 
     /**
-     * @param {string} edge_id 
+     * Retrieves the WASM handle for an edge given its foreign ID.
+     * @param {string} edge_id
      * @returns {import(".").EdgeHandle | undefined}
      */
     getEdgeHandleById(edge_id) {
-        throw new Error("Method 'getEdgeHandleById' is not implemented")
+        throw new Error("Method 'getEdgeHandleById' is not implemented");
     }
 
     /**
-     * @param {import(".").EdgeHandle} edge_handle 
+     * Deletes an edge from the store's cache and queues it for deletion from the backend.
+     * @param {import(".").EdgeHandle} edge_handle
      */
     deleteEdge(edge_handle) {
-        throw new Error("Method 'deleteEdge' is not implemented")
+        throw new Error("Method 'deleteEdge' is not implemented");
     }
 
     /**
-     * @param {import(".").NodeTypeId} id 
-     * @returns {import(".").NodeType}
+     * Retrieves a node type definition.
+     * @param {import(".").NodeTypeId} id
+     * @returns {import(".").NodeType | undefined}
      */
     getNodeType(id) {
-        throw new Error("Method 'getNodeType' is not implemented")
+        throw new Error("Method 'getNodeType' is not implemented");
     }
 
     /**
+     * Retrieves an edge type definition.
      * @param {import(".").EdgeTypeId} id
-     * @returns {import(".").EdgeType}
+     * @returns {import(".").EdgeType | undefined}
      */
     getEdgeType(id) {
-        throw new Error("Method 'getNodeType' is not implemented")
+        // Corrected method name from original, assuming intended 'getEdgeType'
+        throw new Error("Method 'getEdgeType' is not implemented");
     }
 
     /**
-     * Instructs the store to make the current graph state, or any pending modifications
-     * (creations, updates, deletions of nodes and edges), durable according to its underlying
-     * persistence mechanism. Implementations without an external backend may fulfill this
-     * contract by performing no operation, updating an internal cache, or saving to a
-     * temporary store. This method orchestrates the 'upstream' flow of 
-     * data for long-term storage.
+     * Instructs the store to trigger a persistence cycle, sending any pending modifications
+     * (creations, updates, deletions of nodes and edges) to the backend.
+     * This method typically initiates a throttled or debounced operation.
      */
     persistGraphState() {
-        throw new Error("Method 'persistGraphState' is not implemented")
+        throw new Error("Method 'persistGraphState' is not implemented");
+    }
+
+    /**
+     * Generates a temporary client-side ID for new nodes or edges that haven't been
+     * persisted to the backend yet. Implementations should ensure uniqueness.
+     * @returns {string} A unique temporary ID.
+     */
+    generateTempId() {
+        throw new Error("Method 'generateTempId' is not implemented");
     }
 }

@@ -1,16 +1,20 @@
 package graph
 
-import "github.com/pocketbase/pocketbase"
+import (
+	"github.com/pocketbase/pocketbase"
+)
 
 type Node struct {
-	Id      string `db:"id" json:"id"`
-	Name    string `db:"name" json:"name"`
-	Project string `db:"project" json:"project"`
-	Type    string `db:"type" json:"type"`
-	Created string `db:"created" json:"created"`
-	Updated string `db:"updated" json:"updated"`
-	X       int    `db:"x" json:"x"`
-	Y       int    `db:"y" json:"y"`
+	Id       string `db:"id" json:"id"`
+	Name     string `db:"name" json:"name"`
+	Project  string `db:"project" json:"project"`
+	Type     string `db:"type" json:"type"`
+	Created  string `db:"created" json:"created"`
+	Updated  string `db:"updated" json:"updated"`
+	Metadata []byte `db:"metadata" json:"metadata"`
+	TempId   string `json:"temp_id"`
+	X        int    `db:"x" json:"x"`
+	Y        int    `db:"y" json:"y"`
 }
 
 type NodeType struct {

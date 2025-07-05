@@ -132,8 +132,9 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 				}
 
 				project_id := chi.URLParam(r, "id")
+				fmt.Printf("\n%+v\n", project_id)
 				nodes := []graph.Node{}
-				app.DB().
+				err := app.DB().
 					Select("*").
 					From("nodes").
 					Where(
@@ -142,7 +143,11 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 							dbx.Params{"project_id": project_id}),
 					).
 					All(&nodes)
+				if err != nil {
+					log.Fatal(err)
+				}
 
+				fmt.Printf("\n%+v\n", nodes)
 				data, err := json.Marshal(&nodes)
 				if err != nil {
 					log.Fatal(err)
@@ -174,7 +179,7 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 				}
 				w.Write(data)
 			})
-			r.Put("/{id}/update-node", func(w http.ResponseWriter, r *http.Request) {
+			r.Put("/{id}/update-nodes", func(w http.ResponseWriter, r *http.Request) {
 				is_owner := dashboard.ValidateProjectOwner(app, w, r)
 				if !is_owner {
 					middleware.WriteJSONUnauthorized(w)
@@ -182,49 +187,63 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 				}
 
 				body, err := io.ReadAll(r.Body)
+				defer r.Body.Close()
 				if err != nil {
 					log.Fatal(err)
 				}
 
-				node := graph.Node{}
-				if err := json.Unmarshal(body, &node); err != nil {
+				nodes := []graph.Node{}
+				if err := json.Unmarshal(body, &nodes); err != nil {
 					log.Fatal(err)
 				}
 
-				fmt.Printf("\nBYTES: %s\n", string(body))
-				app.DB().
-					NewQuery("UPDATE nodes SET x = {:x}, y = {:y} WHERE id = {:id}").
-					Bind(dbx.Params{
-						"x":  node.X,
-						"y":  node.Y,
-						"id": node.Id,
-					}).
-					Execute()
+				for _, node := range nodes {
+					fmt.Printf("\nBYTES: %s\n", string(body))
+					app.DB().
+						NewQuery("UPDATE nodes SET x = {:x}, y = {:y} WHERE id = {:id}").
+						Bind(dbx.Params{
+							"x":  node.X,
+							"y":  node.Y,
+							"id": node.Id,
+						}).
+						Execute()
+				}
 			})
-			r.Delete(
-				"/{id}/delete-node/{node_id}",
-				func(w http.ResponseWriter, r *http.Request) {
-					fmt.Printf("")
-					is_owner := dashboard.ValidateProjectOwner(app, w, r)
-					if !is_owner {
-						middleware.WriteJSONUnauthorized(w)
-						return
-					}
-					node_id := chi.URLParam(r, "node_id")
+			r.Delete("/{id}/delete-nodes", func(w http.ResponseWriter, r *http.Request) {
+				fmt.Printf("")
+				is_owner := dashboard.ValidateProjectOwner(app, w, r)
+				if !is_owner {
+					middleware.WriteJSONUnauthorized(w)
+					return
+				}
 
+				body, err := io.ReadAll(r.Body)
+				defer r.Body.Close()
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				node_ids := []string{}
+				if err := json.Unmarshal(body, &node_ids); err != nil {
+					log.Fatal(err)
+				}
+
+				count := 0
+				for _, id := range node_ids {
 					_, err := app.DB().
 						Delete("nodes", dbx.NewExp("id = {:id}", dbx.Params{
-							"id": node_id,
+							"id": id,
 						})).
 						Execute()
 					if err != nil {
 						log.Fatal(err)
 					}
+					count += 1
+				}
 
-					w.Write(fmt.Appendf(nil, `{"message": "Deteted node %s"}`, node_id))
-				},
-			)
-			r.Post("/{id}/create-node", func(w http.ResponseWriter, r *http.Request) {
+				w.Write(fmt.Appendf(nil, `{"message": "Deteted %d nodes"}`, count))
+			})
+			r.Post("/{id}/create-nodes", func(w http.ResponseWriter, r *http.Request) {
 				is_owner := dashboard.ValidateProjectOwner(app, w, r)
 				if !is_owner {
 					middleware.WriteJSONUnauthorized(w)
@@ -238,34 +257,48 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 					log.Fatal(err)
 				}
 
-				node := graph.Node{}
-				if err := json.Unmarshal(body, &node); err != nil {
+				nodes := []graph.Node{}
+				if err := json.Unmarshal(body, &nodes); err != nil {
 					log.Fatal(err)
 				}
+
+				fmt.Printf("%+v", nodes)
 
 				query := `
-				INSERT INTO nodes (x, y, name, project, type)
-				VALUES ({:x}, {:y}, {:name}, {:project}, {:type})
-				RETURNING id 
+				INSERT INTO nodes (x, y, name, project, type, metadata)
+				VALUES ({:x}, {:y}, {:name}, {:project}, {:type}, {:metadata})
+				RETURNING x, y, name, type, id, metadata
 				`
 
-				var id string
-				if err := app.DB().
-					NewQuery(query).Bind(dbx.Params{
-					"x":       node.X,
-					"y":       node.Y,
-					"name":    node.Name,
-					"project": project.Id,
-					"type":    node.Type,
-				}).Row(&id); err != nil {
-					log.Fatal(err)
+				res_nodes := []graph.Node{}
+				var x, y int
+				var name, type_id, id string
+				var metadata []byte
+
+				for _, node := range nodes {
+					if err := app.DB().
+						NewQuery(query).Bind(dbx.Params{
+						"x":        node.X,
+						"y":        node.Y,
+						"name":     node.Name,
+						"metadata": node.Metadata,
+						"project":  project.Id,
+						"type":     node.Type,
+					}).Row(&x, &y, &name, &type_id, &id, &metadata); err != nil {
+						log.Fatal(err)
+					}
+					res_nodes = append(res_nodes, graph.Node{
+						X:        x,
+						Y:        y,
+						Id:       id,
+						Name:     name,
+						Type:     type_id,
+						Metadata: metadata,
+						TempId:   node.Id,
+					})
 				}
 
-				node.Id = id
-
-				fmt.Printf("\n%+v\n", node)
-
-				bytes, err := json.Marshal(&node)
+				bytes, err := json.Marshal(&res_nodes)
 				fmt.Print(string(bytes))
 				if err != nil {
 					log.Fatal(err)

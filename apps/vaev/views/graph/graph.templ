@@ -116,8 +116,6 @@ templ Main(app *pocketbase.PocketBase, project_id string) {
 			const store = new PBStore({{project_id}})
 			driver.run(store).then(graph => {
 				window.driver = driver
-				const save = throttle(graph.persistGraphState, 5000).bind(graph)
-				graph.on("node:update", save)
 			})
 		</script>
 	</div>

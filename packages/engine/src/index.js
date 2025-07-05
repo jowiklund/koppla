@@ -126,8 +126,8 @@ export class GraphEditor extends EventEmitter {
   /** @type {Map<EdgeTypeId, EdgeType>} */
   edge_types = new Map();
 
-  /** @private */
-  _wasm;
+  /** @type {any} */
+  wasm;
 
   /** @type {IGraphStore} */
   _store;
@@ -139,10 +139,10 @@ export class GraphEditor extends EventEmitter {
    */
   constructor(wasm_instance, grid_size, store_instance) {
     super();
-    this._wasm = wasm_instance.exports;
-    this._memory = this._wasm.memory;
-    this._string_buffer_ptr = this._wasm.js_string_buffer.value;
-    this._wasm.init(grid_size);
+    this.wasm = wasm_instance.exports;
+    this._memory = this.wasm.memory;
+    this._string_buffer_ptr = this.wasm.js_string_buffer.value;
+    this.wasm.init(grid_size);
 
     this._store = store_instance
     store_instance.init(this);
@@ -166,13 +166,13 @@ export class GraphEditor extends EventEmitter {
       this.createNode(node);
     }
     for (const edge of edges) {
-      this.createEdge(edge.end_handle, edge.end_handle, edge.type);
+      this.createEdge(edge);
     }
     this.emit("world:loaded");
   }
 
   sortNodes() {
-    this._wasm.sortNodes(10, 0.01, 1000.0, 200.0, 0.9);
+    this.wasm.sortNodes(10, 0.01, 1000.0, 200.0, 0.9);
     for (const node of this.getNodes()) {
       this._store.setNode(node.handle, node)
     }
@@ -186,7 +186,7 @@ export class GraphEditor extends EventEmitter {
     if (node_handles.length === 0) return;
     const [ptr, byte_len] = this._setSelected(node_handles);
 
-    this._wasm.alignHoriz(ptr, node_handles.length);
+    this.wasm.alignHoriz(ptr, node_handles.length);
 
     for (const h of node_handles) {
       const node = this.getNode(h)
@@ -194,7 +194,7 @@ export class GraphEditor extends EventEmitter {
       this._store.setNode(h, node);
     }
 
-    this._wasm.free(ptr, byte_len);
+    this.wasm.free(ptr, byte_len);
     this.emit("world:update");
   }
 
@@ -205,7 +205,7 @@ export class GraphEditor extends EventEmitter {
     if (node_handles.length === 0) return;
     const [ptr, byte_len] = this._setSelected(node_handles);
 
-    this._wasm.alignVert(ptr, node_handles.length);
+    this.wasm.alignVert(ptr, node_handles.length);
 
     for (const h of node_handles) {
       const node = this.getNode(h)
@@ -213,7 +213,7 @@ export class GraphEditor extends EventEmitter {
       this._store.setNode(h, node);
     }
 
-    this._wasm.free(ptr, byte_len);
+    this.wasm.free(ptr, byte_len);
     this.emit("world:update");
   }
 
@@ -224,7 +224,7 @@ export class GraphEditor extends EventEmitter {
     if (node_handles.length === 0) return;
     const [ptr, byte_len] = this._setSelected(node_handles);
 
-    this._wasm.evenHoriz(ptr, node_handles.length);
+    this.wasm.evenHoriz(ptr, node_handles.length);
 
     for (const h of node_handles) {
       const node = this.getNode(h)
@@ -232,7 +232,7 @@ export class GraphEditor extends EventEmitter {
       this._store.setNode(h, node);
     }
 
-    this._wasm.free(ptr, byte_len);
+    this.wasm.free(ptr, byte_len);
     this.emit("world:update");
   }
 
@@ -243,7 +243,7 @@ export class GraphEditor extends EventEmitter {
     if (node_handles.length === 0) return;
     const [ptr, byte_len] = this._setSelected(node_handles);
 
-    this._wasm.evenVert(ptr, node_handles.length);
+    this.wasm.evenVert(ptr, node_handles.length);
 
     for (const h of node_handles) {
       const node = this.getNode(h)
@@ -251,7 +251,7 @@ export class GraphEditor extends EventEmitter {
       this._store.setNode(h, node);
     }
 
-    this._wasm.free(ptr, byte_len);
+    this.wasm.free(ptr, byte_len);
     this.emit("world:update");
   }
 
@@ -260,11 +260,11 @@ export class GraphEditor extends EventEmitter {
    * @returns {[number, number]} - [ptr, len]
    */
   _setSelected(node_handles) {
-    const buffer = this._wasm.memory.buffer;
+    const buffer = this.wasm.memory.buffer;
     const handle_size = 4;
 
     const byte_len = node_handles.length * handle_size;
-    const ptr = this._wasm.alloc(byte_len);
+    const ptr = this.wasm.alloc(byte_len);
 
     const node_handles_view = new Uint32Array(buffer, ptr, node_handles.length);
 
@@ -273,16 +273,23 @@ export class GraphEditor extends EventEmitter {
   }
 
   /**
-   * @param {NodeBase} data 
+   * @param {Node} data 
    * @returns {Promise<NodeHandle>}
    */
   async createNode(data) {
     const {x, y} = data;
     const {x: w_x, y: w_y} = this.screenToWorld({x, y})
-    const node_handle = this._wasm.createNode(w_x, w_y);
-    data.x = this._wasm.getNodeX(node_handle);
-    data.y = this._wasm.getNodeY(node_handle);
-    await this._store.setNode(node_handle, data);
+
+    const node_handle = this.wasm.createNode(w_x, w_y);
+    const wasm_x = this.wasm.getNodeX(node_handle);
+    const wasm_y = this.wasm.getNodeY(node_handle);
+
+    await this._store.setNode(node_handle, {
+      ...data,
+      x: wasm_x,
+      y: wasm_y
+    });
+
     this.emit("node:create", { node_handle });
     this.emit("world:update");
     return node_handle;
@@ -417,15 +424,14 @@ export class GraphEditor extends EventEmitter {
    */
   getNode(handle) {
     const data = this._store.getNodeByHandle(handle);
-    if (!data) {
-      return null;
-    }
+    if (!data) return null;
+
     /** @type {Node} */
     const node = {
       handle,
       id: data.id,
-      x: this._wasm.getNodeX(handle),
-      y: this._wasm.getNodeY(handle),
+      x: this.wasm.getNodeX(handle),
+      y: this.wasm.getNodeY(handle),
       name: data.name,
       type: data.type,
       edges_outgoing: [],
@@ -433,15 +439,15 @@ export class GraphEditor extends EventEmitter {
       metadata: data.metadata
     }
 
-    const edges_out_len = this._wasm.getNodeOutgoingCount(handle);
+    const edges_out_len = this.wasm.getNodeOutgoingCount(handle);
     for (let i = 0; i < edges_out_len; i++) {
-      const edge_out = this._wasm.getNodeOutgoingHandleByIndex(handle, i);
+      const edge_out = this.wasm.getNodeOutgoingHandleByIndex(handle, i);
       node.edges_outgoing.push(edge_out);
     }
 
-    const edges_in_len = this._wasm.getNodeIncomingCount(handle);
+    const edges_in_len = this.wasm.getNodeIncomingCount(handle);
     for (let i = 0; i < edges_in_len; i++) {
-      const edge_in = this._wasm.getNodeIncomingHandleByIndex(handle, i);
+      const edge_in = this.wasm.getNodeIncomingHandleByIndex(handle, i);
       node.edges_incoming.push(edge_in);
     }
 
@@ -454,12 +460,12 @@ export class GraphEditor extends EventEmitter {
    * @returns {Array<Node>}
    */
   getNodes() {
-    const node_count = this._wasm.getNodeCount();
+    const node_count = this.wasm.getNodeCount();
 
     const nodes = [];
 
     for (let i = 0; i < node_count; i++) {
-      const handle = this._wasm.getNodeHandleByIndex(i);
+      const handle = this.wasm.getNodeHandleByIndex(i);
       const node = this.getNode(handle);
       if (node == null) continue;
       nodes.push(node);
@@ -472,10 +478,10 @@ export class GraphEditor extends EventEmitter {
    * @returns {Array<EdgeWasmData>}
    */
   getEdges() {
-    const edge_count = this._wasm.getEdgeCount();
+    const edge_count = this.wasm.getEdgeCount();
     const edges = [];
     for (let i = 0; i < edge_count; i++) {
-      const handle = this._wasm.getEdgeHandleByIndex(i);
+      const handle = this.wasm.getEdgeHandleByIndex(i);
       const edge = this.getEdge(handle)
       if (edge == null) continue;
       edges.push(edge)
@@ -492,8 +498,8 @@ export class GraphEditor extends EventEmitter {
     if (e == undefined) return null;
     return {
       handle,
-      start_handle: this._wasm.getEdgeStartNodeHandle(handle),
-      end_handle: this._wasm.getEdgeEndNodeHandle(handle),
+      start_handle: this.wasm.getEdgeStartNodeHandle(handle),
+      end_handle: this.wasm.getEdgeEndNodeHandle(handle),
       type: e.type
     }
   }
@@ -506,17 +512,19 @@ export class GraphEditor extends EventEmitter {
    * @param {NodeHandle} handle 
    */
   setNodePosition(handle, x, y) {
-    this._wasm.setNodePosition(handle, x, y);
-    const node = this._store.getNodeByHandle(handle)
-    if (node != undefined) {
-      this._store.setNode(handle, {...node, x, y});
+    this.wasm.setNodePosition(handle, x, y);
+
+    const node_data = this._store.getNodeByHandle(handle)
+    if (node_data != undefined) {
+      this._store.setNode(handle, {
+        ...node_data,
+        x: this.wasm.getNodeX(handle),
+        y: this.wasm.getNodeY(handle)
+      });
     }
+
     this.emit("node:update", handle);
     this.emit("world:update");
-  }
-
-  persistGraphState() {
-    this._store.persistGraphState()
   }
 
   /**
@@ -525,7 +533,7 @@ export class GraphEditor extends EventEmitter {
    * @param {NodeHandle} handle 
    */
   deleteNode(handle) {
-    this._wasm.deleteNode(handle);
+    this.wasm.deleteNode(handle);
     this._store.deleteNode(handle);
     this.emit("node:delete", {node_handle: handle});
     this.emit("world:update");
@@ -541,7 +549,7 @@ export class GraphEditor extends EventEmitter {
     if (node == null) return;
     if (node.edges_outgoing.length == 0) return;
     for (let i = 0; i < node.edges_outgoing.length; i++) {
-      this._wasm.deleteEdge(node.edges_outgoing[i]);
+      this.wasm.deleteEdge(node.edges_outgoing[i]);
     }
     this.emit("edge:delete", {edge_handle: handle});
     this.emit("world:update");
@@ -581,19 +589,19 @@ export class GraphEditor extends EventEmitter {
   }
 
   /**
-   * @param {EdgeBase} edge_data 
+   * @param {Edge} edge_data 
    */
   async createEdge(edge_data) {
     const start_handle = this._store.getNodeHandleById(edge_data.start_id);
     const end_handle = this._store.getNodeHandleById(edge_data.end_id);
-    const edge_handle = this._wasm.createEdge(start_handle, end_handle);
+    const edge_handle = this.wasm.createEdge(start_handle, end_handle);
     await this._store.setEdge(edge_handle, edge_data)
     this.emit("edge:create", edge_data);
     this.emit("world:update");
   }
 
   /**
-   * @param {EdgeBase[]} edges 
+   * @param {Edge[]} edges 
    */
   async createEdges(edges) {
     for (const edge of edges) {

@@ -1,6 +1,5 @@
 import { assert_is_not_null, assert_msg } from "@kpla/assert";
 import { getEngine, GraphEditor, IGraphStore, NodeShape } from "@kpla/engine";
-import { DocumentParser } from "@kpla/signals";
 import { EventEmitter } from "./event-emitter.js";
 import { EventName, State, StateMachine } from "./state-machine.js";
 
@@ -76,9 +75,6 @@ export class CanvasGUIDriver extends EventEmitter {
   /** @type {Map<string, {canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}>} */
   layers = new Map();
 
-  /** @type {DocumentParser | null} */
-  dom = null
-
   config = {
     grid_size: 20,
     node_radius: 20,
@@ -141,10 +137,6 @@ export class CanvasGUIDriver extends EventEmitter {
     const control_panel = document.getElementById(opts.control_panel_id);
     assert_is_not_null(control_panel);
     this.control_panel = control_panel;
-
-    this.dom = new DocumentParser(document.body, {
-      driver: this
-    })
   }
 
   /**
@@ -159,7 +151,6 @@ export class CanvasGUIDriver extends EventEmitter {
     this.container.appendChild(canvas);
 
     const rect = this.container.getBoundingClientRect();
-    console.log(rect.width)
     canvas.width = rect.width * this.dpr;
     canvas.height = rect.height * this.dpr;
 
@@ -237,9 +228,6 @@ export class CanvasGUIDriver extends EventEmitter {
     this._registerControls();
 
     this._drawInteractions()
-
-    assert_is_not_null(this.dom);
-    this.dom.parse();
 
     this._drawObjects();
     this.graph.on("world:update", this._drawObjects.bind(this));
@@ -476,13 +464,23 @@ export class CanvasGUIDriver extends EventEmitter {
     this.emit("click", this.state.ctx.pos);
 
     if (this.state.is(State.CREATE_NODE)) {
-      this.graph.createNode({
+      this.emit("node:create", {
         type: this.current_node_type,
-        name: "New node",
+        name: "",
         metadata: "",
         x: this.state.ctx.pos.screen.x,
         y: this.state.ctx.pos.screen.y,
       })
+      this.state.dispatch(EventName.MOUSE_UP, {
+        pos: {
+          node: null,
+          screen: {x: 0, y: 0},
+          mouse: {x: 0, y: 0}
+        }, 
+        event: e,
+        tool: this.current_tool
+      })
+      return;
     }
 
     if (this.state.is(State.PANNING)) {
@@ -1038,7 +1036,7 @@ function drawEdgeOrthogonal(
   ctx.strokeStyle = edge_type.stroke_color;
   ctx.lineWidth = edge_type.stroke_width;
 
-  if (edge_type.line_dash.length > 0) {
+  if (edge_type.line_dash) {
     ctx.setLineDash(edge_type.line_dash)
   }
 

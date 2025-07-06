@@ -47,6 +47,9 @@ importers:
       '@kpla/engine':
         specifier: workspace:^
         version: link:../../packages/engine
+      '@kpla/signals':
+        specifier: workspace:^
+        version: link:../../packages/signals
 
   packages/assert: {}
 

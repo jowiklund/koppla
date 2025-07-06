@@ -120,13 +120,13 @@ export class StateMachine {
     this.ctx = new_context;
     const current_transitions = this.transitions.get(this.current);
     if (!current_transitions) {
-      console.warn(`No transitions for current state: ${this.current}`);
+      console.warn(`No transitions for current state: ${this.current}`, this.ctx);
       return;
     }
 
     const transitions_for_event = current_transitions.get(event_name);
     if (!transitions_for_event) {
-      console.warn(`No transitions for event: ${event_name}`);
+      console.warn(`No transitions for event: ${event_name}`, this.current, this.ctx);
       return;
     }
 

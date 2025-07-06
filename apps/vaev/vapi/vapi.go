@@ -244,6 +244,40 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 
 				w.Write(fmt.Appendf(nil, `{"message": "Deteted %d nodes"}`, count))
 			})
+			r.Delete("/{id}/delete-edges", func(w http.ResponseWriter, r *http.Request) {
+				fmt.Printf("")
+				is_owner := dashboard.ValidateProjectOwner(app, w, r)
+				if !is_owner {
+					middleware.WriteJSONUnauthorized(w)
+					return
+				}
+
+				body, err := io.ReadAll(r.Body)
+				defer r.Body.Close()
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				edge_ids := []string{}
+				if err := json.Unmarshal(body, &edge_ids); err != nil {
+					log.Fatal(err)
+				}
+
+				count := 0
+				for _, id := range edge_ids {
+					_, err := app.DB().
+						Delete("edges", dbx.NewExp("id = {:id}", dbx.Params{
+							"id": id,
+						})).
+						Execute()
+					if err != nil {
+						log.Fatal(err)
+					}
+					count += 1
+				}
+
+				w.Write(fmt.Appendf(nil, `{"message": "Deteted %d edges"}`, count))
+			})
 			r.Post("/{id}/create-nodes", func(w http.ResponseWriter, r *http.Request) {
 				is_owner := dashboard.ValidateProjectOwner(app, w, r)
 				if !is_owner {

@@ -43,8 +43,8 @@ type EdgeType struct {
 	Name        string `db:"name" json:"name"`
 	Project     string `db:"project" json:"project"`
 	StrokeColor string `db:"stroke_color" json:"stroke_color"`
-	LineDash    string `db:"line_dash" json:"line_dash"`
-	Metadata    string `db:"metadata" json:"metadata"`
+	LineDash    []byte `db:"line_dash" json:"line_dash"`
+	Metadata    []byte `db:"metadata" json:"metadata"`
 	StrokeWidth uint8  `db:"stroke_width" json:"stroke_width"`
 }
 

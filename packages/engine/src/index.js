@@ -66,7 +66,7 @@ export { IGraphStore } from "./storage.js";
  * @property {EdgeTypeId} id - A numeric ID (u8)
  * @property {string} stroke_color
  * @property {number} stroke_width
- * @property {Array<number>} line_dash
+ * @property {number[]} line_dash
  */
 
 /**
@@ -541,9 +541,29 @@ export class GraphEditor extends EventEmitter {
    * @param {NodeHandle} handle 
    */
   deleteNode(handle) {
+    const node = this.getNode(handle);
+    if (node !== null) {
+      for (const e of node.edges_outgoing) {
+        this.deleteEdge(e)
+      }
+      for (const e of node.edges_incoming) {
+        this.deleteEdge(e)
+      }
+    }
     this.wasm.deleteNode(handle);
     this._store.deleteNode(handle);
     this.emit("node:delete", {node_handle: handle});
+    this.emit("world:update");
+  }
+
+  /**
+   * Delete an edge
+   *
+   * @param {NodeHandle} handle 
+   */
+  deleteEdge(handle) {
+    this.wasm.deleteEdge(handle);
+    this._store.deleteEdge(handle);
     this.emit("world:update");
   }
 
@@ -557,7 +577,7 @@ export class GraphEditor extends EventEmitter {
     if (node == null) return;
     if (node.edges_outgoing.length == 0) return;
     for (let i = 0; i < node.edges_outgoing.length; i++) {
-      this.wasm.deleteEdge(node.edges_outgoing[i]);
+      this.deleteEdge(node.edges_outgoing[i]);
     }
     this.emit("edge:delete", {edge_handle: handle});
     this.emit("world:update");
@@ -606,7 +626,6 @@ export class GraphEditor extends EventEmitter {
     if (end_handle === undefined || start_handle === undefined) {
       throw new Error("Node handles don't exist")
     }
-    console.log(edge_data)
     await this._store.setEdge(edge_handle, {
       ...edge_data,
       start_handle: start_handle,

@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@kpla/canvas-driver": "workspace:^",
-    "@kpla/engine": "workspace:^"
+    "@kpla/engine": "workspace:^",
+    "@kpla/signals": "workspace:^"
   }
 }
 

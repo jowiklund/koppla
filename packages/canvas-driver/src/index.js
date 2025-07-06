@@ -430,11 +430,11 @@ export class CanvasGUIDriver extends EventEmitter {
     const mouse_x = e.clientX - rect.left;
     const mouse_y = e.clientY - rect.top;
 
-    const world_before = this.graph.screenToWorld({x: mouse_x, y: mouse_y}, false);
+    const world_before = this.graph.screenToWorld({x: mouse_x, y: mouse_y});
 
     this.graph.zoom(zoom)
 
-    const world_after = this.graph.screenToWorld({x: mouse_x, y: mouse_y}, false);
+    const world_after = this.graph.screenToWorld({x: mouse_x, y: mouse_y});
 
     this.graph.pan(
       (world_after.x - world_before.x) * this.graph.scale,
@@ -556,7 +556,7 @@ export class CanvasGUIDriver extends EventEmitter {
     const screen_x = mouse_coords.x - rect.left;
     const screen_y = mouse_coords.y - rect.top;
 
-    const {x, y} = this.graph.screenToWorld({x: screen_x, y: screen_y}, false);
+    const {x, y} = this.graph.screenToWorld({x: screen_x, y: screen_y});
 
     const coords = {
       mouse: {x,y},

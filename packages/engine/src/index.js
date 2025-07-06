@@ -414,17 +414,10 @@ export class GraphEditor extends EventEmitter {
    * Translate coordinates to world coords
    *
    * @param {Coords} screen_coords 
-   * @param {boolean} round
    */
-  screenToWorld(screen_coords, round = true) {
+  screenToWorld(screen_coords) {
     const world_x = (screen_coords.x - this.pan_coords.x) / this.scale;
     const world_y = (screen_coords.y - this.pan_coords.y) / this.scale;
-    if (round) {
-      return {
-        x: world_x,
-        y: world_y
-      }
-    }
     return {
       x: world_x,
       y: world_y

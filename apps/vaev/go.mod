@@ -5,6 +5,7 @@ go 1.24.3
 require (
 	github.com/a-h/templ v0.3.906
 	github.com/go-chi/chi/v5 v5.2.2
+	github.com/pocketbase/dbx v1.11.0
 	github.com/pocketbase/pocketbase v0.28.4
 	github.com/starfederation/datastar v0.21.4
 )
@@ -33,7 +34,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/natefinch/atomic v1.0.1 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
-	github.com/pocketbase/dbx v1.11.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/samber/lo v1.47.0 // indirect
 	github.com/spf13/cast v1.9.2 // indirect

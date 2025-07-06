@@ -191,11 +191,9 @@ export class CanvasGUIDriver extends EventEmitter {
     switch(alignment) {
       case Alignment.HORIZONTAL:
         this.graph.alignHoriz(handles);
-        this.selected_nodes = []
         break;
       case Alignment.VERTICAL:
         this.graph.alignVert(handles);
-        this.selected_nodes = []
         break;
     }
   }
@@ -208,11 +206,9 @@ export class CanvasGUIDriver extends EventEmitter {
     switch(alignment) {
       case Alignment.HORIZONTAL:
         this.graph.evenHoriz(handles);
-        this.selected_nodes = []
         break;
       case Alignment.VERTICAL:
         this.graph.evenVert(handles);
-        this.selected_nodes = []
         break;
     }
   }

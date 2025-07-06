@@ -175,7 +175,7 @@ export class GraphEditor extends EventEmitter {
   }
 
   sortNodes() {
-    this.wasm.sortNodes(10, 0.01, 1000.0, 200.0, 0.9);
+    this.wasm.sortNodes(500, 0.01, 1000.0, 200.0, 0.9);
     for (const node of this.getNodes()) {
       this._store.setNode(node.handle, node)
     }
@@ -606,6 +606,7 @@ export class GraphEditor extends EventEmitter {
     if (end_handle === undefined || start_handle === undefined) {
       throw new Error("Node handles don't exist")
     }
+    console.log(edge_data)
     await this._store.setEdge(edge_handle, {
       ...edge_data,
       start_handle: start_handle,

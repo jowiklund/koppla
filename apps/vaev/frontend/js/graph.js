@@ -162,6 +162,7 @@ export class PBStore extends IGraphStore {
             })
             this.id_to_edge_handle.set(id_to_use, edge_handle);
             this.edge_handle_to_id.set(edge_handle, id_to_use);
+            this.edges_by_id.set(id_to_use, edge_data);
         } else {
             const current_edge_data = this.edges_by_id.get(id_to_use);
             this.edges_by_id.set(id_to_use, {
@@ -169,7 +170,7 @@ export class PBStore extends IGraphStore {
                 ...edge_data, 
                 handle: edge_handle
             })
-            this.edges_to_update.set(id_to_use, this.nodes_by_id.get(id_to_use))
+            this.edges_to_update.set(id_to_use, this.edges_by_id.get(id_to_use))
         }
         this.throttledPersist();
     }

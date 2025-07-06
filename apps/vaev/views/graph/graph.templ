@@ -4,20 +4,6 @@ import "github.com/pocketbase/pocketbase"
 import "fmt"
 
 templ Main(app *pocketbase.PocketBase, project_id string) {
-	<div
-		id="node-type-select"
-		class="node-type-select"
-		data-on-load={
-			fmt.Sprintf("@get('/sse/project/%s/node-select')", project_id)
-		}
-	></div>
-	<div
-		id="edge-type-select"
-		class="edge-type-select"
-		data-on-load={
-			fmt.Sprintf("@get('/sse/project/%s/edge-select')", project_id)
-		}
-	></div>
 	<div id="workspace" class="workspace" data-ref="workspace"
 		data-signals="{
 			loaded: false,
@@ -32,8 +18,6 @@ templ Main(app *pocketbase.PocketBase, project_id string) {
 			edges: [],
 			selectedTool: 0,
 			prevTool: 0,
-			showNodeTypeSelect: false,
-			showEdgeTypeSelect: false,
 			currentPos: {
 				x: 0,
 				y: 0
@@ -69,7 +53,7 @@ templ Main(app *pocketbase.PocketBase, project_id string) {
 		</div>
 		<div id="control-panel" class="control-panel">
 			@header()
-			@ControlPanelSection("Sorting") {
+			@ControlPanelSection("Sorting", "graph_7") {
 				<div class="control-panel__button-group">
 					<button data-on-click="window.driver.graph.sortNodes()" title="Fruchterman-Reingold esque sorting">
 						<span class="material-symbols">graph_3</span>
@@ -79,22 +63,47 @@ templ Main(app *pocketbase.PocketBase, project_id string) {
 					</button>
 				</div>
 			}
-			@ControlPanelSection("Position") {
-				<div class="control-panel__button-group">
-					<button data-on-click="window.driver.graph.evenHoriz(window.driver.selected_node_handles)">
-						<span class="material-symbols">align_justify_space_even</span>
-					</button>
-					<button data-on-click="window.driver.graph.evenVert(window.driver.selected_node_handles)">
-						<span class="material-symbols">align_space_even</span>
-					</button>
-					<button data-on-click="window.driver.graph.alignVert(window.driver.selected_node_handles)">
-						<span class="material-symbols">horizontal_distribute</span>
-					</button>
-					<button data-on-click="window.driver.graph.alignHoriz(window.driver.selected_node_handles)">
-						<span class="material-symbols">vertical_distribute</span>
-					</button>
-				</div>
-			}
+			<div data-show="$selectedTool == 0">
+				@ControlPanelSection("Position", "align_justify_stretch") {
+					<div class="control-panel__button-group">
+						<button data-on-click="window.driver.distributeNodes('horizontal')">
+							<span class="material-symbols">align_justify_space_even</span>
+						</button>
+						<button data-on-click="window.driver.distributeNodes('vertical')">
+							<span class="material-symbols">align_space_even</span>
+						</button>
+						<button data-on-click="window.driver.alignNodes('vertical')">
+							<span class="material-symbols">align_horizontal_center</span>
+						</button>
+						<button data-on-click="window.driver.alignNodes('horizontal')">
+							<span class="material-symbols">align_vertical_center</span>
+						</button>
+					</div>
+				}
+			</div>
+			<div data-show="$selectedTool == 1">
+				@ControlPanelSection("Connection settings", "mediation") {
+					<div
+						id="edge-type-select"
+						class="edge-type-select"
+						data-on-load={
+							fmt.Sprintf("@get('/sse/project/%s/edge-select')", project_id)
+						}
+					></div>
+				}
+			</div>
+			<div data-show="$selectedTool == 2">
+				@ControlPanelSection("Node settings", "control_point_duplicate") {
+					<div
+						id="node-type-select"
+						class="node-type-select"
+						data-on-load={
+							fmt.Sprintf("@get('/sse/project/%s/node-select')", project_id)
+						}
+					></div>
+				}
+			</div>
+
 			@Footer()
 		</div>
 		<dialog
@@ -114,8 +123,10 @@ templ Main(app *pocketbase.PocketBase, project_id string) {
 		<script type="module">
 			import {PBStore, driver, throttle} from "/dist/graph.js";
 			const store = new PBStore({{project_id}})
-			driver.run(store).then(graph => {
-				window.driver = driver
+			document.addEventListener("DOMContentLoaded", () => {
+				driver.run(store).then(graph => {
+					window.driver = driver
+				})
 			})
 		</script>
 	</div>
@@ -146,9 +157,12 @@ templ header() {
 	</div>
 }
 
-templ ControlPanelSection(title string) {
+templ ControlPanelSection(title string, icon string) {
 	<div class="control-panel__section">
-		<p>{title}</p>
+		<div class="control-panel__section-name">
+			<span class="material-symbols">{icon}</span>
+			{title}
+		</div>
 		{ children... }
 	</div>
 }
@@ -175,58 +189,31 @@ templ toolbar() {
 }
 
 templ NodeSelector(node_types []NodeType) {
-	<div id="node-type-select" class="type-select" data-show="$showNodeTypeSelect">
-		<label> Name:
-		<input type="text" data-bind-node-name />
-		</label>
+	<div id="node-type-select" class="type-select">
 		<label> Type: 
 			<select
 				data-signals-selected-node-type={fmt.Sprintf("'%s'", node_types[0].Id)}
-				data-bind-selected-node-type
+				data-on-input="window.driver.current_node_type = evt.target.value"
 			>
 				for _, t := range node_types {
 					<option value={t.Id}>{t.Name}</option>
 				}
 			</select>
 		</label>
-		<div class="btn-container" data-on-click="
-			window.driver.graph.createNode({
-				type: $selectedNodeType,
-				name: $nodeName,
-				metadata: '',
-				...$currentPos,
-			});
-			$showNodeTypeSelect = false;
-		">
-			<button class="btn" id="close">Create</button>
-		</div>
 	</div>
 }
 
 templ EdgeSelector(edge_types []EdgeType) {
-	<div id="edge-type-select" class="type-select" data-show="$showEdgeTypeSelect">
-		<label> Name:
-		<input type="text" data-bind-node-name />
-		</label>
+	<div id="edge-type-select" class="type-select">
 		<label> Type: 
 			<select
-				data-signals-selected-node-type={fmt.Sprintf("'%s'", edge_types[0].Id)}
-				data-bind-selected-node-type
+				data-signals-selected-edge-type={fmt.Sprintf("'%s'", edge_types[0].Id)}
+				data-on-input="window.driver.current_edge_type = evt.target.value"
 			>
 				for _, t := range edge_types {
 					<option value={t.Id}>{t.Name}</option>
 				}
 			</select>
 		</label>
-		<div class="btn-container" data-on-click="
-			window.driver.graph.createEdge({
-				type: $selectedEdgeType,
-				metadata: '',
-				...$currentPos,
-			});
-			$showEdgeTypeSelect = false;
-		">
-			<button class="btn" id="close">Create</button>
-		</div>
 	</div>
 }

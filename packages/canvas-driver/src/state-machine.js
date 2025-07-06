@@ -17,7 +17,8 @@ export const State = {
   CONNECTING: 1,
   PANNING: 2,
   SELECTING: 3,
-  DRAGGING: 4
+  DRAGGING: 4,
+  CREATE_NODE: 5
 }
 
 /**
@@ -76,16 +77,19 @@ export class StateMachine {
       State.IDLE, EventName.MOUSE_DOWN, State.DRAGGING,
       (ctx) => ctx.pos.node !== null && ctx.tool == Tool.CURSOR
     );
-
     this._addTransition(
       State.IDLE, EventName.MOUSE_DOWN, State.SELECTING,
       (ctx) => ctx.tool == Tool.CURSOR
     );
-
+    this._addTransition(
+      State.IDLE, EventName.MOUSE_DOWN, State.CREATE_NODE,
+      (ctx) => ctx.pos.node === null && ctx.tool == Tool.ADD_NODE
+    );
     this._addTransition(State.CONNECTING, EventName.MOUSE_UP, State.IDLE);
     this._addTransition(State.PANNING, EventName.MOUSE_UP, State.IDLE);
     this._addTransition(State.DRAGGING, EventName.MOUSE_UP, State.IDLE);
     this._addTransition(State.SELECTING, EventName.MOUSE_UP, State.IDLE);
+    this._addTransition(State.CREATE_NODE, EventName.MOUSE_UP, State.IDLE);
   }
   /**
    * @param {State} source 

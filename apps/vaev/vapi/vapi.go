@@ -16,11 +16,12 @@ import (
 )
 
 type GraphSignals struct {
-	Project   graph.Project    `json:"project"`
-	NodeTypes []graph.NodeType `json:"nodeTypes"`
-	EdgeTypes []graph.EdgeType `json:"edgeTypes"`
-	Nodes     []graph.Node     `json:"nodes"`
-	Edges     []graph.Edge     `json:"edges"`
+	Project         graph.Project    `json:"project"`
+	NodeTypes       []graph.NodeType `json:"nodeTypes"`
+	EdgeTypes       []graph.EdgeType `json:"edgeTypes"`
+	Nodes           []graph.Node     `json:"nodes"`
+	Edges           []graph.Edge     `json:"edges"`
+	CurrentEdgeType string           `json:"currentedgetype"`
 }
 
 func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
@@ -305,7 +306,7 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 				}
 				w.Write(bytes)
 			})
-			r.Post("/{id}/create-edge", func(w http.ResponseWriter, r *http.Request) {
+			r.Post("/{id}/create-edges", func(w http.ResponseWriter, r *http.Request) {
 				is_owner := dashboard.ValidateProjectOwner(app, w, r)
 				if !is_owner {
 					middleware.WriteJSONUnauthorized(w)
@@ -319,34 +320,39 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 					log.Fatal(err)
 				}
 
-				edge := graph.Edge{}
-				if err := json.Unmarshal(body, &edge); err != nil {
+				edges := []graph.Edge{}
+				if err := json.Unmarshal(body, &edges); err != nil {
 					log.Fatal(err)
 				}
 
 				query := `
 				INSERT INTO edges (start_id, end_id, type, project)
 				VALUES ({:start_id}, {:end_id}, {:type}, {:project})
-				RETURNING id 
+				RETURNING id, start_id, end_id, type 
 				`
 
-				var id string
-				if err := app.DB().
-					NewQuery(query).Bind(dbx.Params{
-					"start_id": edge.StartId,
-					"end_id":   edge.EndId,
-					"type":     edge.Type,
-					"project":  project.Id,
-				}).Row(&id); err != nil {
-					log.Fatal(err)
+				res_edges := []graph.Edge{}
+				for _, edge := range edges {
+					var id, start_id, end_id, type_name string
+					if err := app.DB().
+						NewQuery(query).Bind(dbx.Params{
+						"start_id": edge.StartId,
+						"end_id":   edge.EndId,
+						"type":     edge.Type,
+						"project":  project.Id,
+					}).Row(&id, &start_id, &end_id, &type_name); err != nil {
+						log.Fatal(err)
+					}
+					res_edges = append(res_edges, graph.Edge{
+						StartId: start_id,
+						EndId:   end_id,
+						Type:    type_name,
+						Id:      id,
+						TempId:  edge.Id,
+					})
 				}
 
-				edge.Id = id
-
-				fmt.Printf("\n%+v\n", edge)
-
-				bytes, err := json.Marshal(&edge)
-				fmt.Print(string(bytes))
+				bytes, err := json.Marshal(&res_edges)
 				if err != nil {
 					log.Fatal(err)
 				}

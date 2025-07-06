@@ -30,6 +30,7 @@ type NodeType struct {
 
 type Edge struct {
 	Id      string `db:"id" json:"id"`
+	TempId  string `json:"temp_id"`
 	StartId string `db:"start_id" json:"start_id"`
 	EndId   string `db:"end_id" json:"end_id"`
 	Type    string `db:"type" json:"type"`

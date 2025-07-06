@@ -301,6 +301,19 @@ select {
 	border-bottom: var(--small-border);
 }
 
+.control-panel__section-name {
+	display: flex;
+	gap: var(--gap-2);
+	align-items: center;
+	margin-bottom: var(--gap-4);
+	font-weight: bold;
+}
+
+.control-panel .material-symbols {
+	font-variation-settings: "GRAD" 70;
+	font-size: 1.2em;
+}
+
 .control-panel__section--footer {
 	border-top: var(--small-border);
 	margin-top: auto;
@@ -376,15 +389,13 @@ select {
 	cursor: grab;
 }
 
-.type-select {
-	position: fixed;
-	background-color: var(--background-secondary);
-	border: var(--small-border);
-	border-radius: var(--border-radius);
-	padding: var(--gap-4);
-	z-index: var(--layer-4);
-	top: 50%;
-	left: 50%;
+.type-select select {
+	display: block;
+	width: 100%;
+}
+
+.type-select label {
+	margin-bottom: var(--gap-2);
 }
 
 dialog:focus {
@@ -491,7 +502,7 @@ hr {
 	align-items: center;
 }
 
-.user-card__options .material-symbols-outlined {
+.user-card__options .material-symbols {
 	font-size: 1em;
 }
 

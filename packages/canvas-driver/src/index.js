@@ -1,4 +1,4 @@
-import { assert_is_not_null } from "@kpla/assert";
+import { assert_is_not_null, assert_msg } from "@kpla/assert";
 import { getEngine, GraphEditor, IGraphStore, NodeShape } from "@kpla/engine";
 import { DocumentParser } from "@kpla/signals";
 import { EventEmitter } from "./event-emitter.js";
@@ -41,6 +41,12 @@ const Colors = {
   accent_color_secondary: styles.getPropertyValue("--accent-color-secondary"),
   accent_color_tertiary: styles.getPropertyValue("--accent-color-tertiary"),
   accent_color_op: styles.getPropertyValue("--accent-color-op"),
+}
+
+/** @enum {string} */
+const Alignment = {
+  HORIZONTAL: "horizontal",
+  VERTICAL: "vertical"
 }
 
 /**
@@ -95,14 +101,18 @@ export class CanvasGUIDriver extends EventEmitter {
   /** @type {import("@kpla/engine").EdgeBase[]} */
   new_edges = [];
 
-  /** @type {Array<import("@kpla/engine").NodeHandle>} */
-  selected_node_handles = [];
+  /** @type {Array<import("@kpla/engine").Node>} */
+  selected_nodes = [];
 
   /** @type {StateMachine} state */
   state;
 
   /** @type {Tool} */
   current_tool = Tool.CURSOR;
+  /** @type {string} */
+  current_edge_type = ""
+  /** @type {string} */
+  current_node_type = ""
 
   /**
    * @param {CanvasDriverOptions} opts
@@ -149,6 +159,7 @@ export class CanvasGUIDriver extends EventEmitter {
     this.container.appendChild(canvas);
 
     const rect = this.container.getBoundingClientRect();
+    console.log(rect.width)
     canvas.width = rect.width * this.dpr;
     canvas.height = rect.height * this.dpr;
 
@@ -172,6 +183,40 @@ export class CanvasGUIDriver extends EventEmitter {
     return Math.round(value / this.config.grid_size) * this.config.grid_size;
   }
 
+  /** @param {Alignment} alignment  */
+  alignNodes(alignment) {
+    assert_is_not_null(this.graph);
+    const handles = this.selected_nodes.map(node => node.handle);
+    if (handles.length == 0) return;
+    switch(alignment) {
+      case Alignment.HORIZONTAL:
+        this.graph.alignHoriz(handles);
+        this.selected_nodes = []
+        break;
+      case Alignment.VERTICAL:
+        this.graph.alignVert(handles);
+        this.selected_nodes = []
+        break;
+    }
+  }
+
+  /** @param {Alignment} alignment  */
+  distributeNodes(alignment) {
+    assert_is_not_null(this.graph);
+    const handles = this.selected_nodes.map(node => node.handle);
+    if (handles.length == 0) return;
+    switch(alignment) {
+      case Alignment.HORIZONTAL:
+        this.graph.evenHoriz(handles);
+        this.selected_nodes = []
+        break;
+      case Alignment.VERTICAL:
+        this.graph.evenVert(handles);
+        this.selected_nodes = []
+        break;
+    }
+  }
+
   /**
  * @param {IGraphStore} store 
  * @returns {Promise<GraphEditor>}
@@ -179,7 +224,19 @@ export class CanvasGUIDriver extends EventEmitter {
   async run(store) {
     this.graph = await getEngine(this.config.wasm_url, this.config.grid_size, store);
     assert_is_not_null(this.graph);
+    await this.graph.store_loaded;
+
+    this.graph.on("world:update", this._updateSelection.bind(this))
+
     this.graph.coordinate_rounder = this._snapToGrid.bind(this);
+
+    const edge_types = this.graph.getEdgeTypes();
+    assert_msg(edge_types.length > 0, "No registered edge types");
+    this.current_edge_type = edge_types[0].id;
+
+    const node_types = this.graph.getNodeTypes();
+    assert_msg(node_types.length > 0, "No registered node types");
+    this.current_node_type = node_types[0].id;
 
     this._registerControls();
 
@@ -203,10 +260,18 @@ export class CanvasGUIDriver extends EventEmitter {
   /** @private */
   _registerControls() {
     assert_is_not_null(this.graph);
+    this.resizeObserver = new ResizeObserver(entries => {
+      for (let entry of entries) {
+        if (entry.target === this.container) {
+          this._onResize();
+        }
+      }
+    }); 
+
+    this.resizeObserver.observe(this.container);
 
     window.addEventListener("keydown", this._keydown.bind(this));
     window.addEventListener("resize", this._onResize.bind(this));
-    this.container.addEventListener("drop", this._drop.bind(this))
     this.container.addEventListener("mousedown", this._mouseDown.bind(this));
     this.container.addEventListener("mousemove", this._mouseMove.bind(this));
     this.container.addEventListener("wheel", this._wheel.bind(this));
@@ -218,6 +283,17 @@ export class CanvasGUIDriver extends EventEmitter {
       assert_is_not_null(e.dataTransfer);
       e.dataTransfer.dropEffect = "move";
     })
+  }
+
+  _updateSelection() {
+    assert_is_not_null(this.graph);
+    if (this.selected_nodes.length == 0) return;
+    for (const [i, node] of this.selected_nodes.entries()) {
+      const n = this.graph.getNode(node.handle)
+      if (n != null) {
+        this.selected_nodes[i] = n
+      }
+    }
   }
 
   /**
@@ -234,34 +310,11 @@ export class CanvasGUIDriver extends EventEmitter {
 
   /**
    * @private
-   * @param {DragEvent} e
-   */
-  _drop(e) {
-    assert_is_not_null(this.graph);
-    e.preventDefault();
-    const rect = this.container.getBoundingClientRect();
-    this.drop_x = this._snapToGrid(e.clientX - rect.left);
-    this.drop_y = this._snapToGrid(e.clientY - rect.top);
-
-    assert_is_not_null(e.dataTransfer);
-    let drop_data = e.dataTransfer.getData("graph/node");
-    this.node_data = JSON.parse(drop_data);
-
-    this.graph.createNode({
-      type: this.node_data.type,
-      name: this.node_data.data.name,
-      metadata: "",
-      x: this.drop_x,
-      y: this.drop_y
-    })
-  }
-
-  /**
-   * @private
    * @param {MouseEvent} e 
    */
   _mouseUp(e) {
     assert_is_not_null(this.graph);
+
     if (this.state.is(State.CONNECTING)) {
       const rect = this.container.getBoundingClientRect();
       const screen_x = e.clientX - rect.left;
@@ -272,32 +325,39 @@ export class CanvasGUIDriver extends EventEmitter {
       const mouse_y = world_coords.y;
 
       const nodes = this.graph.getNodes();
-      console.log(nodes)
 
-      for (let handle of this.selected_node_handles) {
+      /** @type {import("@kpla/engine").EdgeBase[]} */
+      const new_edges = []
+      for (let { id } of this.selected_nodes) {
+        if (id === undefined) continue;
         for (let node of nodes) {
-          const end_handle = node.handle;
-          if (end_handle == handle) continue;
+          const end_id = node.id;
+          if (end_id === undefined) continue;
+          if (end_id == id) continue;
 
           const dx = Math.abs(mouse_x - node.x);
           const dy = Math.abs(mouse_y - node.y);
 
           if (dx <= this.config.node_radius && dy <= this.config.node_radius) {
-            /** @type {import("@kpla/engine").EdgeBase} */
-            const edge = {
-              type: "",
-              start_id: "",
-              end_id: ""
-            }
-            this.new_edges.push()
+            /** @type {import("@kpla/engine").Edge} */
+            new_edges.push({
+              type: this.current_edge_type,
+              end_id: end_id,
+              start_id: id,
+            })
             break;
           }
         }
       }
 
+      for (const edge of new_edges) {
+        this.graph.createEdge(edge)
+      }
+
       const evt = new CustomEvent("kpla-new-edges", {
         detail: this.new_edges
       });
+
       this.container.dispatchEvent(evt);
       this.emit("create:edges", this.new_edges);
       this.new_edges = []
@@ -318,12 +378,11 @@ export class CanvasGUIDriver extends EventEmitter {
         const inside_x = (node.x >= min_x && node.x <= max_x);
         const inside_y = (node.y >= min_y && node.y <= max_y);
         if (inside_x && inside_y) {
-          this.selected_node_handles.push(node.handle);
+          this.selected_nodes.push(node);
         }
       }
     }
 
-    this.graph.emit("world:update");
     this.state.dispatch(EventName.MOUSE_UP, {
       pos: {
         node: null,
@@ -333,6 +392,7 @@ export class CanvasGUIDriver extends EventEmitter {
       event: e,
       tool: this.current_tool
     })
+    this.graph.emit("world:update");
   }
 
   /**
@@ -343,16 +403,16 @@ export class CanvasGUIDriver extends EventEmitter {
     assert_is_not_null(this.graph);
     if (
       (e.key == "Delete") &&
-        this.selected_node_handles.length > 0
+        this.selected_nodes.length > 0
     ) {
-      for (let handle of this.selected_node_handles) {
+      for (let { handle } of this.selected_nodes) {
         this.graph.deleteNode(handle);
       }
-      this.selected_node_handles = [];
+      this.selected_nodes = [];
     }
 
-    if (e.key == "Backspace" && this.selected_node_handles.length > 0) {
-      for (let handle of this.selected_node_handles) {
+    if (e.key == "Backspace" && this.selected_nodes.length > 0) {
+      for (let { handle } of this.selected_nodes) {
         this.graph.deleteOutgoing(handle)
       }
     }
@@ -389,9 +449,9 @@ export class CanvasGUIDriver extends EventEmitter {
   _onResize() {
     const rect = this.container.getBoundingClientRect();
     for (const [_, layer] of this.layers.entries()) {
-        layer.canvas.width = rect.width * this.dpr;
-        layer.canvas.height = rect.height * this.dpr;
-        layer.ctx.scale(this.dpr, this.dpr);
+      layer.canvas.width = rect.width * this.dpr;
+      layer.canvas.height = rect.height * this.dpr;
+      layer.ctx.scale(this.dpr, this.dpr);
     }
     this._drawStatic();
     this._drawObjects();
@@ -419,6 +479,16 @@ export class CanvasGUIDriver extends EventEmitter {
     this.container.dispatchEvent(evt);
     this.emit("click", this.state.ctx.pos);
 
+    if (this.state.is(State.CREATE_NODE)) {
+      this.graph.createNode({
+        type: this.current_node_type,
+        name: "New node",
+        metadata: "",
+        x: this.state.ctx.pos.screen.x,
+        y: this.state.ctx.pos.screen.y,
+      })
+    }
+
     if (this.state.is(State.PANNING)) {
       const {screen} = this.state.ctx.pos;
       this.pan_start_x = screen.x;
@@ -430,8 +500,8 @@ export class CanvasGUIDriver extends EventEmitter {
     if (this.state.is(State.CONNECTING)) {
       const {node} = this.state.ctx.pos;
       assert_is_not_null(node);
-      if (!this.selected_node_handles.includes(node.handle)) {
-        this.selected_node_handles = [node.handle]
+      if (!this._isSelected(node.handle)) {
+        this.selected_nodes = [node]
       }
       return;
     }
@@ -439,23 +509,22 @@ export class CanvasGUIDriver extends EventEmitter {
     if (this.state.is(State.DRAGGING)) {
       const {node, mouse} = this.state.ctx.pos;
       assert_is_not_null(node);
-      if (!this.selected_node_handles.includes(node.handle)) {
-        this.selected_node_handles = [node.handle]
+      if (!this._isSelected(node.handle)) {
+        this.selected_nodes = [node]
       }
       this.drag_offsets.clear();
-      for (let handle of this.selected_node_handles) {
-        const node = this.graph.getNode(handle);
+      for (let node of this.selected_nodes) {
         assert_is_not_null(node);
         const dx = mouse.x - node.x;
         const dy = mouse.y - node.y;
-        this.drag_offsets.set(handle, {dx, dy})
+        this.drag_offsets.set(node.handle, {dx, dy})
       }
       this.container.style.cursor = "grabbing";
 
       this.moving_nodes.clear();
       this.moving_edges.clear();
 
-      for (const handle of this.selected_node_handles) {
+      for (const { handle } of this.selected_nodes) {
         this.moving_nodes.add(handle);
         const node = this.graph.getNode(handle);
         if (node) {
@@ -468,9 +537,16 @@ export class CanvasGUIDriver extends EventEmitter {
     }
 
     const {mouse} = this.state.ctx.pos;
-    this.selected_node_handles = [];
+    this.selected_nodes = [];
     this.selection_start_x = mouse.x;
     this.selection_start_y = mouse.y;
+  }
+
+  /**
+   * @param {import("@kpla/engine").NodeHandle} node_handle 
+   */
+  _isSelected(node_handle) {
+    return this.selected_nodes.findIndex(n => n.handle === node_handle) >= 0;
   }
 
   /**
@@ -563,7 +639,7 @@ export class CanvasGUIDriver extends EventEmitter {
 
     if (this.state.is(State.CONNECTING)) {
       const {mouse} = this.state.ctx.pos;
-      for (let handle of this.selected_node_handles) {
+      for (let { handle } of this.selected_nodes) {
         const start_node = this.graph.getNode(handle)
         assert_is_not_null(start_node);
         const mouse_coords = {
@@ -681,7 +757,7 @@ export class CanvasGUIDriver extends EventEmitter {
       return !this.moving_edges.has(edge.handle) &&
         (
           visible_handles.has(edge.start_handle) ||
-          visible_handles.has(edge.end_handle)
+            visible_handles.has(edge.end_handle)
         )
     });
 
@@ -764,7 +840,7 @@ export class CanvasGUIDriver extends EventEmitter {
         endGate,
         offset,
         edge_type,
-        this.selected_node_handles.includes(edge.start_handle)
+        this._isSelected(edge.start_handle)
       );
     });
   }
@@ -800,7 +876,7 @@ export class CanvasGUIDriver extends EventEmitter {
     }
     layer.ctx.fillStyle = type.fill_color;
     layer.ctx.fill();
-    if (this.selected_node_handles.includes(node.handle)) {
+    if (this._isSelected(node.handle)) {
       layer.ctx.strokeStyle = Colors.accent_color_secondary;
       layer.ctx.lineWidth = 2;
     } else {

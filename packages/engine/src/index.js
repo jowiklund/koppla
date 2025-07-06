@@ -132,6 +132,9 @@ export class GraphEditor extends EventEmitter {
   /** @type {IGraphStore} */
   _store;
 
+  /** @type {Promise<void>} */
+  store_loaded;
+
   /**
    * @param {any} wasm_instance 
    * @param {number} grid_size 
@@ -145,7 +148,7 @@ export class GraphEditor extends EventEmitter {
     this.wasm.init(grid_size);
 
     this._store = store_instance
-    store_instance.init(this);
+    this.store_loaded = store_instance.init(this);
 
     this.edge_types.set("-1", {
       stroke_width: 2,
@@ -273,7 +276,7 @@ export class GraphEditor extends EventEmitter {
   }
 
   /**
-   * @param {Node} data 
+   * @param {NodeBase} data 
    * @returns {Promise<NodeHandle>}
    */
   async createNode(data) {
@@ -347,6 +350,12 @@ export class GraphEditor extends EventEmitter {
   getNodeType(id) {
     return this._store.getNodeType(id);
   }
+  /**
+   * @returns {NodeType[]}
+   */
+  getNodeTypes() {
+    return this._store.getNodeTypes();
+  }
 
   /**
    * @param {EdgeType} type
@@ -366,8 +375,14 @@ export class GraphEditor extends EventEmitter {
    */
   getEdgeType(id) {
     const type = this._store.getEdgeType(id);
-    if (!type) return this.edge_types.get("-1");
     return type;
+  }
+
+  /**
+   * @returns {EdgeType[]}
+   */
+  getEdgeTypes() {
+    return this._store.getEdgeTypes();
   }
 
   /**
@@ -589,13 +604,21 @@ export class GraphEditor extends EventEmitter {
   }
 
   /**
-   * @param {Edge} edge_data 
+   * @param {EdgeBase} edge_data 
    */
   async createEdge(edge_data) {
     const start_handle = this._store.getNodeHandleById(edge_data.start_id);
     const end_handle = this._store.getNodeHandleById(edge_data.end_id);
     const edge_handle = this.wasm.createEdge(start_handle, end_handle);
-    await this._store.setEdge(edge_handle, edge_data)
+    if (end_handle === undefined || start_handle === undefined) {
+      throw new Error("Node handles don't exist")
+    }
+    await this._store.setEdge(edge_handle, {
+      ...edge_data,
+      start_handle: start_handle,
+      end_handle: end_handle,
+      handle: edge_handle
+    })
     this.emit("edge:create", edge_data);
     this.emit("world:update");
   }

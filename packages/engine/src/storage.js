@@ -20,7 +20,7 @@ export class IGraphStore {
      * queue it for creation. Otherwise, it queues for update.
      * This method primarily updates the local cache and queues changes for batch persistence.
      * @param {import(".").NodeHandle} node_handle - The WASM handle of the node.
-     * @param {import(".").Node} node_data - The complete node data, including its ID (if known) and WASM properties.
+     * @param {import(".").NodeBase} node_data - The complete node data, including its ID (if known) and WASM properties.
      */
     async setNode(node_handle, node_data) {
         throw new Error("Method 'setNode' is not implemented");
@@ -120,12 +120,30 @@ export class IGraphStore {
 
     /**
      * Retrieves an edge type definition.
+     * @returns {import(".").NodeType[]}
+     */
+    getNodeTypes() {
+        // Corrected method name from original, assuming intended 'getEdgeType'
+        throw new Error("Method 'getNodeTypes' is not implemented");
+    }
+
+    /**
+     * Retrieves an edge type definition.
      * @param {import(".").EdgeTypeId} id
      * @returns {import(".").EdgeType | undefined}
      */
     getEdgeType(id) {
         // Corrected method name from original, assuming intended 'getEdgeType'
         throw new Error("Method 'getEdgeType' is not implemented");
+    }
+
+    /**
+     * Retrieves an edge type definition.
+     * @returns {import(".").EdgeType[]}
+     */
+    getEdgeTypes() {
+        // Corrected method name from original, assuming intended 'getEdgeType'
+        throw new Error("Method 'getEdgeTypes' is not implemented");
     }
 
     /**

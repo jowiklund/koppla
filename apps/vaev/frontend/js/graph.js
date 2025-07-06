@@ -84,7 +84,6 @@ export class PBStore extends IGraphStore {
     async _loadProject(graph) {
         try {
             const nodes = await fetch(this.base_url + "/nodes").then(res => res.json())
-            console.log(nodes)
             for (const n of nodes) {
                 const node_handle = graph.wasm.createNode(n.x, n.y);
                 const full_node_data = {
@@ -127,7 +126,6 @@ export class PBStore extends IGraphStore {
     setNode(node_handle, node_data) {
         const existing_id = this.node_handle_to_id.get(node_handle);
         let id_to_use = node_data.id || existing_id;
-        console.log(node_data)
 
         if (!id_to_use) {
             id_to_use = crypto.randomUUID()
@@ -148,7 +146,6 @@ export class PBStore extends IGraphStore {
             })
             this.nodes_to_update.set(id_to_use, this.nodes_by_id.get(id_to_use))
         }
-        console.log(this.nodes_to_update.values())
         this.throttledPersist();
     }
 
@@ -174,6 +171,7 @@ export class PBStore extends IGraphStore {
             })
             this.edges_to_update.set(id_to_use, this.nodes_by_id.get(id_to_use))
         }
+        this.throttledPersist();
     }
 
     async _persist() {
@@ -207,7 +205,6 @@ export class PBStore extends IGraphStore {
                             }
                         }
                     }
-
             }),
             update_nodes_payload.length && fetch(this.base_url + "/update-nodes", {
                 method: "PUT",
@@ -316,11 +313,32 @@ export class PBStore extends IGraphStore {
     }
 
     /**
+     * @param {import("@kpla/engine").NodeTypeId} id 
+     * @returns {import("@kpla/engine").NodeHandle | undefined}
+     */
+    getNodeHandleById(id) {
+        return this.id_to_node_handle.get(id)
+    }
+    /**
+     * @returns {import("@kpla/engine").NodeType[]}
+     */
+    getNodeTypes() {
+        return Array.from(this.node_types.values())
+    }
+
+    /**
      * @param {import("@kpla/engine").EdgeTypeId} id
      * @returns {import("@kpla/engine").EdgeType}
      */
     getEdgeType(id) {
         return this.edge_types.get(id)
+    }
+
+    /**
+     * @returns {import("@kpla/engine").EdgeType[]}
+     */
+    getEdgeTypes() {
+        return Array.from(this.edge_types.values())
     }
 }
 

@@ -4,8 +4,12 @@ import { material_symbols } from "./styles";
 class Element extends HTMLElement {
     /** @type {import("@kpla/signals").Signal} signal  */
     _current_tool = null;
+    /** @type {import("@kpla/signals").Signal} signal  */
     /** @type {Map<string, HTMLInputElement>} */
     _input_map = new Map();
+    _prev_tool = 0;
+
+    track_keystrokes = null;
 
     constructor() {
         super();
@@ -68,7 +72,7 @@ class Element extends HTMLElement {
                         <input checked="checked" type="radio" value="0" name="tool" />
                         <span class="material-symbols fill">arrow_selector_tool</span>
                     </label>
-                    <label title="(2) : connect nodes">
+                    <label title="(2 / shift) : connect nodes">
                         <input type="radio" value="1" name="tool"/>
                         <span class="material-symbols fill">mediation</span>
                     </label>
@@ -76,7 +80,7 @@ class Element extends HTMLElement {
                         <input type="radio" value="2" name="tool"/>
                         <span class="material-symbols fill">control_point_duplicate</span>
                     </label>
-                    <label title="(4) : pan">
+                    <label title="(4 / ctrl) : pan">
                         <input type="radio" value="3" name="tool"/>
                         <span class="material-symbols fill">drag_pan</span>
                     </label>
@@ -94,8 +98,16 @@ class Element extends HTMLElement {
         }
 
         window.addEventListener("keydown", (e) => {
+            const [active] = this.track_keystrokes;
+            if (!active()) return;
             const [_, setTool] = this._current_tool;
             switch(e.key) {
+                case 'Shift':
+                    setTool(1);
+                    break;
+                case 'Control':
+                    setTool(3);
+                    break;
                 case '1':
                     setTool(0);
                     break;
@@ -110,6 +122,20 @@ class Element extends HTMLElement {
                     break;
             }
         })
+        window.addEventListener("keyup", (e) => {
+            const [active] = this.track_keystrokes;
+            if (!active()) return;
+            const [_, setTool] = this._current_tool;
+            switch(e.key) {
+                case 'Shift':
+                    setTool(this._prev_tool);
+                    break;
+                case 'Control':
+                    setTool(this._prev_tool);
+                    break;
+            }
+        })
+
     }
 
     /** @param {import("@kpla/signals").Signal} signal  */

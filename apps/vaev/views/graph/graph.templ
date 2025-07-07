@@ -127,27 +127,6 @@ templ ControlPanelSection(title string, icon string, tool int) {
 	</div>
 }
 
-templ toolbar() {
-	<div class="toolbar">
-		<label data-class-active="$selectedtool == 0" title="(1) : cursor">
-			<input checked="checked" type="radio" data-bind-selected-tool value="0" />
-			<span class="material-symbols fill">arrow_selector_tool</span>
-		</label>
-		<label data-class-active="$selectedtool == 1" title="(2 / shift) : connect nodes">
-			<input type="radio" data-bind-selected-tool value="1" />
-			<span class="material-symbols fill">mediation</span>
-		</label>
-		<label data-class-active="$selectedtool == 2" title="(3) : create nodes">
-			<input type="radio" data-bind-selected-tool value="2" />
-			<span class="material-symbols fill">control_point_duplicate</span>
-		</label>
-		<label data-class-active="$selectedtool == 3" title="(4 / ctrl) : pan">
-			<input type="radio" data-bind-selected-tool value="3" />
-			<span class="material-symbols fill">drag_pan</span>
-		</label>
-	</div>
-}
-
 templ NodeSelector(node_types []NodeType) {
 	<div id="node-type-select" class="type-select">
 		<label> Type: 

@@ -33,8 +33,10 @@ export class ControlPanel {
         this.root.appendChild(this.node_creation_dialog);
 
         this.current_tool = createSignal(0);
+        this.track_keystrokes = createSignal(true);
         this.toolbar = document.createElement("graph-toolbar");
         this.toolbar.current_tool = this.current_tool;
+        this.toolbar.track_keystrokes = this.track_keystrokes;
 
         this.root.appendChild(this.toolbar);
 
@@ -75,6 +77,8 @@ export class ControlPanel {
 
         this.driver.on("node:create", (node) => {
             this.current_node = node;
+            const [_, enableToolbarKeystrokes] = this.track_keystrokes;
+            enableToolbarKeystrokes(false)
             this.node_creation_dialog.showModal();
         })
 
@@ -82,7 +86,8 @@ export class ControlPanel {
             this.current_node.name = e.detail.name;
             if (!this.current_node) return;
             this.driver.graph.createNode(this.current_node);
-            const [_, setName] = this.node_name;
+            const [_, enableToolbarKeystrokes] = this.track_keystrokes;
+            enableToolbarKeystrokes(true)
         })
     }
 

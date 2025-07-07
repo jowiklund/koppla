@@ -661,7 +661,8 @@ export class CanvasGUIDriver extends EventEmitter {
             stroke_color: Colors.text_primary,
             name: "",
             id: "0"
-          }
+          },
+          this.config.grid_size
         );
       }
     }
@@ -834,7 +835,8 @@ export class CanvasGUIDriver extends EventEmitter {
         endGate,
         offset,
         edge_type,
-        this._isSelected(edge.start_handle)
+        this.config.grid_size,
+        this._isSelected(edge.start_handle),
       );
     });
   }
@@ -1010,6 +1012,7 @@ function getGateCoordinates(node, gate, radius) {
  * @param {number} endGate - 
  * @param {number} offset - 
  * @param {import("@kpla/engine").EdgeType} edge_type 
+ * @param {number} grid_size 
  * @param {boolean} render_name 
  */
 function drawEdgeOrthogonal(
@@ -1020,10 +1023,11 @@ function drawEdgeOrthogonal(
   endGate,
   offset,
   edge_type,
-  render_name = false
+  grid_size,
+  render_name = false,
 ) {
-  const cornerRadius = 10;
-  const bundleGap = 10;
+  const cornerRadius = grid_size / 2;
+  const bundleGap = grid_size;
   const offsetAmount = offset * bundleGap;
   const sx = startCoords.x;
   const sy = startCoords.y;

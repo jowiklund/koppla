@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	mw "koppla/apps/vaev/middleware"
 	"koppla/apps/vaev/routing"
 	"koppla/apps/vaev/vapi"
@@ -15,6 +17,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/a-h/templ"
 	"github.com/go-chi/chi/v5"
@@ -69,9 +72,10 @@ func main() {
 				fmt.Printf("%+v", projects)
 
 				dasboard_styles := layout.NewStylesheet("/dist/dashboard.css")
+				dashboard_script := layout.NewScript("/dist/dashboard.js")
 				doc(func() templ.Component {
 					return dashboard.Projects(projects)
-				}, dasboard_styles).ServeHTTP(w, r)
+				}, dasboard_styles, dashboard_script).ServeHTTP(w, r)
 			})
 		})
 		r.Get("/project/{id}", func(w http.ResponseWriter, r *http.Request) {
@@ -105,124 +109,180 @@ func main() {
 				layout.NewScript("/dist/graph.js"),
 			).ServeHTTP(w, r)
 		})
-	})
+		r.Route("/sse", func(r chi.Router) {
+			r.Post("/project/create", func(w http.ResponseWriter, r *http.Request) {
+				body, err := io.ReadAll(r.Body)
+				if err != nil {
+					log.Fatal(err)
+				}
 
-	r.Route("/sse", func(r chi.Router) {
-		r.Get("/project/{id}/node-select", func(w http.ResponseWriter, r *http.Request) {
-			is_owner := dashboard.ValidateProjectOwner(app, w, r)
-			if !is_owner {
-				mw.WriteJSONUnauthorized(w)
-				return
-			}
+				user, err := auth.GetSignedInUser(app, r)
+				if err != nil {
+					log.Fatal("No user in signed in scope")
+				}
 
-			project_id := chi.URLParam(r, "id")
-			sse := datastar.NewSSE(w, r)
+				data := struct {
+					ProjectName string `json:"projectName"`
+				}{}
+				if err := json.Unmarshal(body, &data); err != nil {
+					log.Fatal(err)
+				}
 
-			node_types := []graph.NodeType{}
-			app.DB().
-				Select("*").
-				From("node_types").
-				Where(
-					dbx.NewExp(
-						"project = {:project_id}",
-						dbx.Params{"project_id": project_id}),
-				).
-				All(&node_types)
+				l := "2006-01-02 15:04:05.000Z"
 
-			sse.MergeFragmentTempl(
-				graph.NodeSelector(node_types),
-			)
-		})
-		r.Get("/project/{id}/edge-select", func(w http.ResponseWriter, r *http.Request) {
-			is_owner := dashboard.ValidateProjectOwner(app, w, r)
-			if !is_owner {
-				mw.WriteJSONUnauthorized(w)
-				return
-			}
+				query := `
+				INSERT INTO projects (name, owner, created, updated)
+				VALUES ({:name}, {:owner}, {:created}, {:updated})
+				RETURNING name, owner, id, created, updated
+				`
+				c_date := time.Now().Format(l)
+				fmt.Printf("\n%s\n", c_date)
+				var id, name, owner, created, updated string
+				e := app.DB().
+					NewQuery(query).
+					Bind(dbx.Params{
+						"name":    data.ProjectName,
+						"owner":   user.Id,
+						"created": c_date,
+						"updated": c_date,
+					}).Row(&name, &owner, &id, &created, &updated)
+				if e != nil {
+					log.Fatal(e)
+				}
 
-			project_id := chi.URLParam(r, "id")
-			sse := datastar.NewSSE(w, r)
+				new_project := graph.Project{
+					Owner:   owner,
+					Id:      id,
+					Name:    name,
+					Updated: updated,
+					Created: created,
+				}
 
-			edge_types := []graph.EdgeType{}
-			app.DB().
-				Select("*").
-				From("edge_types").
-				Where(
-					dbx.NewExp(
-						"project = {:project_id}",
-						dbx.Params{"project_id": project_id}),
-				).
-				All(&edge_types)
+				sse := datastar.NewSSE(w, r)
+				sse.MergeFragmentTempl(
+					dashboard.ProjectItem(new_project),
+					datastar.WithSelectorID("projects-list"),
+					datastar.WithMergeAppend(),
+				)
 
-			sse.MergeFragmentTempl(
-				graph.EdgeSelector(edge_types),
-			)
-		})
-		r.Get("/project/{id}", func(w http.ResponseWriter, r *http.Request) {
-			is_owner := dashboard.ValidateProjectOwner(app, w, r)
-			if !is_owner {
-				mw.WriteJSONUnauthorized(w)
-				return
-			}
+				fmt.Printf("%+v", new_project)
+			})
+			r.Get("/project/{id}/node-select", func(w http.ResponseWriter, r *http.Request) {
+				is_owner := dashboard.ValidateProjectOwner(app, w, r)
+				if !is_owner {
+					mw.WriteJSONUnauthorized(w)
+					return
+				}
 
-			project_id := chi.URLParam(r, "id")
-			project := dashboard.GetProject(app, r)
+				project_id := chi.URLParam(r, "id")
+				sse := datastar.NewSSE(w, r)
 
-			sse := datastar.NewSSE(w, r)
+				node_types := []graph.NodeType{}
+				app.DB().
+					Select("*").
+					From("node_types").
+					Where(
+						dbx.NewExp(
+							"project = {:project_id}",
+							dbx.Params{"project_id": project_id}),
+					).
+					All(&node_types)
 
-			node_types := []graph.NodeType{}
-			app.DB().
-				Select("*").
-				From("node_types").
-				Where(
-					dbx.NewExp(
-						"project = {:project_id}",
-						dbx.Params{"project_id": project_id}),
-				).
-				All(&node_types)
+				sse.MergeFragmentTempl(
+					graph.NodeSelector(node_types),
+				)
+			})
+			r.Get("/project/{id}/edge-select", func(w http.ResponseWriter, r *http.Request) {
+				is_owner := dashboard.ValidateProjectOwner(app, w, r)
+				if !is_owner {
+					mw.WriteJSONUnauthorized(w)
+					return
+				}
 
-			edge_types := []graph.EdgeType{}
-			app.DB().
-				Select("*").
-				From("edge_types").
-				Where(
-					dbx.NewExp(
-						"project = {:project_id}",
-						dbx.Params{"project_id": project_id}),
-				).
-				All(&edge_types)
+				project_id := chi.URLParam(r, "id")
+				sse := datastar.NewSSE(w, r)
 
-			nodes := []graph.Node{}
-			app.DB().
-				Select("*").
-				From("nodes").
-				Where(
-					dbx.NewExp(
-						"project = {:project_id}",
-						dbx.Params{"project_id": project_id}),
-				).
-				All(&nodes)
+				edge_types := []graph.EdgeType{}
+				app.DB().
+					Select("*").
+					From("edge_types").
+					Where(
+						dbx.NewExp(
+							"project = {:project_id}",
+							dbx.Params{"project_id": project_id}),
+					).
+					All(&edge_types)
 
-			edges := []graph.Edge{}
-			app.DB().
-				Select("*").
-				From("edges").
-				Where(
-					dbx.NewExp(
-						"project = {:project_id}",
-						dbx.Params{"project_id": project_id}),
-				).
-				All(&edges)
+				sse.MergeFragmentTempl(
+					graph.EdgeSelector(edge_types),
+				)
+			})
+			r.Get("/project/{id}", func(w http.ResponseWriter, r *http.Request) {
+				is_owner := dashboard.ValidateProjectOwner(app, w, r)
+				if !is_owner {
+					mw.WriteJSONUnauthorized(w)
+					return
+				}
 
-			signals := vapi.GraphSignals{
-				Project:   *project,
-				Nodes:     nodes,
-				NodeTypes: node_types,
-				EdgeTypes: edge_types,
-				Edges:     edges,
-			}
+				project_id := chi.URLParam(r, "id")
+				project := dashboard.GetProject(app, r)
 
-			sse.MarshalAndMergeSignals(signals)
+				sse := datastar.NewSSE(w, r)
+
+				node_types := []graph.NodeType{}
+				app.DB().
+					Select("*").
+					From("node_types").
+					Where(
+						dbx.NewExp(
+							"project = {:project_id}",
+							dbx.Params{"project_id": project_id}),
+					).
+					All(&node_types)
+
+				edge_types := []graph.EdgeType{}
+				app.DB().
+					Select("*").
+					From("edge_types").
+					Where(
+						dbx.NewExp(
+							"project = {:project_id}",
+							dbx.Params{"project_id": project_id}),
+					).
+					All(&edge_types)
+
+				nodes := []graph.Node{}
+				app.DB().
+					Select("*").
+					From("nodes").
+					Where(
+						dbx.NewExp(
+							"project = {:project_id}",
+							dbx.Params{"project_id": project_id}),
+					).
+					All(&nodes)
+
+				edges := []graph.Edge{}
+				app.DB().
+					Select("*").
+					From("edges").
+					Where(
+						dbx.NewExp(
+							"project = {:project_id}",
+							dbx.Params{"project_id": project_id}),
+					).
+					All(&edges)
+
+				signals := vapi.GraphSignals{
+					Project:   *project,
+					Nodes:     nodes,
+					NodeTypes: node_types,
+					EdgeTypes: edge_types,
+					Edges:     edges,
+				}
+
+				sse.MarshalAndMergeSignals(signals)
+			})
 		})
 	})
 
@@ -255,6 +315,8 @@ func main() {
 				r.URL.Path = "/frontend/js/index.js"
 			case "/dist/graph.js":
 				r.URL.Path = "/frontend/js/graph.js"
+			case "/dist/dashboard.js":
+				r.URL.Path = "/frontend/js/dashboard.js"
 			case "/dist/style.css":
 				r.URL.Path = "/frontend/css/style.css"
 			case "/dist/intro.css":

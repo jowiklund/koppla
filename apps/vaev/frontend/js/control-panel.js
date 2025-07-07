@@ -90,6 +90,7 @@ export class ControlPanel {
         this.node_creation_dialog.addEventListener("close", () => {
             const [_, enableToolbarKeystrokes] = this.track_keystrokes;
             enableToolbarKeystrokes(true)
+            this.current_node = null;
         })
     }
 

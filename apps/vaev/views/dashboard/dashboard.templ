@@ -5,29 +5,57 @@ import "time"
 import "fmt"
 
 templ Projects(projects []graph.Project) {
-	<div class="dashboard">
+	<div class="dashboard" id="dashboard" data-signals="{projectName: ''}">
+		@CreateProjectDialog()
 		<div class="dashboard-controls">
 			<div id="user-card" data-on-load="@get('/auth/user')"></div>
 		</div>
-		<div class="projects-list">
-			for _, p := range projects {
-				{{
-					layout := "2006-01-02 15:04:05.000Z"
-					datetime, _ := time.Parse(layout, p.Updated)
-					updated := datetime.Format("2006-01-02")
-				}}
-				<div class="project-item">
-					<div class="project-item__thumbnail"></div>
-					<div class="project-item__info">
-						<a
-							href={fmt.Sprintf("/project/%s", p.Id)}
-							class="project-item__info__title clickover"
-						> {p.Name} </a>
-						<p class="project-item__info__modified">{updated}</p>
-					</div>
-				</div>
-			}
+		<div class="dashboard-main">
+			<div class="dashboard-topnav">
+				<button class="dashboard-btn" data-on-click="$createProject.showModal()">
+					<span class="material-symbols">add</span>
+					Create project
+				</button>
+			</div>
+			<div class="projects-list" id="projects-list">
+				for _, p := range projects {
+					@ProjectItem(p)
+				}
+			</div>
 		</div>
 	</div>
+}
 
+templ CreateProjectDialog() {
+	<dialog
+		data-ref-create-project
+	>
+		<form method="dialog" data-on-submit="
+			@post('/sse/project/create');
+			$createProject.close();
+		">
+			<label>Name:
+				<input required type="text" data-bind-project-name />
+			</label>
+			<button>Create</button>
+		</form>
+	</dialog>
+}
+
+templ ProjectItem(p graph.Project) {
+	{{
+		layout := "2006-01-02 15:04:05.000Z"
+		datetime, _ := time.Parse(layout, p.Updated)
+		updated := datetime.Format("2006-01-02")
+	}}
+	<div class="project-item">
+		<div class="project-item__thumbnail"></div>
+		<div class="project-item__info">
+			<a
+				href={fmt.Sprintf("/project/%s", p.Id)}
+				class="project-item__info__title clickover"
+			> {p.Name} </a>
+			<p class="project-item__info__modified">{updated}</p>
+		</div>
+	</div>
 }

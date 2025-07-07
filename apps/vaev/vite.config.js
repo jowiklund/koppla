@@ -24,6 +24,7 @@ export default defineConfig(() => {
         input: {
             index: resolve(__dirname, 'frontend/js/index.js'),
             graph: resolve(__dirname, 'frontend/js/graph.js'),
+            dashboard: resolve(__dirname, 'frontend/js/dashboard.js'),
             style: resolve(__dirname, 'frontend/css/style.css'),
             intro: resolve(__dirname, 'frontend/css/intro.css'),
             projects: resolve(__dirname, 'frontend/css/dashboard.css'),

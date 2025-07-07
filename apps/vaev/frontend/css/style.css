@@ -499,6 +499,39 @@ a.clickover:before {
 	z-index: 1000;
 }
 
+.dashboard-main {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+}
+
+.dashboard-topnav {
+	width: 100%;
+	padding: var(--gap-2);
+	background-color: var(--background-secondary);
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	box-sizing: border-box;
+	border-bottom: var(--small-border);
+}
+
+.dashboard-btn {
+	display: flex;
+	align-items: center;
+	gap: var(--gap-2);
+	padding: var(--gap-2) var(--gap-4) var(--gap-2) var(--gap-2);
+	border-radius: 1000px;
+	border: var(--small-border);
+	color: var(--text-primary);
+	background-color: var(--background-primary);
+	transition: all .1s ease-in-out;
+}
+
+.dashboard-btn:hover {
+	background-color: var(--accent-color);
+}
+
 @keyframes slide-up {
 from {
 	opacity: 0;

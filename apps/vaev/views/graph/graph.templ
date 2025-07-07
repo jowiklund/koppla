@@ -23,74 +23,46 @@ templ Main(app *pocketbase.PocketBase, project_id string) {
 				y: 0
 			}
 		}"
-		data-on-signal-change-selected-tool="window.driver.current_tool = $selectedTool;"
-		data-on-keydown__window="
-			$prevTool = $selectedTool;
-			evt.key == 'Shift' ? $selectedTool = 1 : null;
-			evt.key == 'Control' ? $selectedTool = 3 : null;
-			evt.key == '1' ? $selectedTool = 0 : null;
-			evt.key == '2' ? $selectedTool = 1 : null;
-			evt.key == '3' ? $selectedTool = 2 : null;
-			evt.key == '4' ? $selectedTool = 3 : null;
-		"
-		data-on-keyup__window="
-			evt.key == 'Shift' ? $selectedTool = $prevTool : null;
-			evt.key == 'Control' ? $selectedTool = $prevTool : null;
-		"
 		>
-		@toolbar()
 		<div
 			id="canvas-container"
 			class="canvas-container"
-			data-on-kpla-click="
-				$selectedTool == 2 ? $showNodeTypeSelect = true : null;
-				$currentPos = evt.detail.pos.screen;
-			"
-			data-on-kpla-new-edges="
-				window.driver.graph.createEdges(evt.detail)
-			"
 		>
 		</div>
 		<div id="control-panel" class="control-panel">
 			@header()
-			@ControlPanelSection("Sorting", "graph_7") {
+			@ControlPanelSection("Sorting", "graph_7", -1) {
 				<div class="control-panel__button-group">
 					<graph-btn action="sort_force" icon="graph_3" title="Fruchterman-Reingold esque sorting"></graph-btn>
 					<graph-btn disabled action="sort_force" icon="graph_1" title="Hierarchy based sorting"></graph-btn>
 				</div>
 			}
-			<div data-show="$selectedTool == 0">
-				@ControlPanelSection("Position", "align_justify_stretch") {
-					<div class="control-panel__button-group">
-						<graph-btn action="distribute_vertical" icon="align_space_even"></graph-btn>
-						<graph-btn action="distribute_horizontal" icon="align_justify_space_even"></graph-btn>
-						<graph-btn action="align_vertical" icon="align_horizontal_center"></graph-btn>
-						<graph-btn action="align_horizontal" icon="align_vertical_center"></graph-btn>
+			@ControlPanelSection("Position", "align_justify_stretch", 0) {
+				<div class="control-panel__button-group" >
+					<graph-btn action="distribute_vertical" icon="align_space_even"></graph-btn>
+					<graph-btn action="distribute_horizontal" icon="align_justify_space_even"></graph-btn>
+					<graph-btn action="align_vertical" icon="align_horizontal_center"></graph-btn>
+					<graph-btn action="align_horizontal" icon="align_vertical_center"></graph-btn>
 					</div>
-				}
-			</div>
-			<div data-show="$selectedTool == 1">
-				@ControlPanelSection("Connection settings", "mediation") {
-					<div
-						id="edge-type-select"
-						class="edge-type-select"
-						data-on-load={
-							fmt.Sprintf("@get('/sse/project/%s/edge-select')", project_id)
-						}
-					></div>
-				}
-			</div>
-			<div data-show="$selectedTool == 2">
-				@ControlPanelSection("Node settings", "control_point_duplicate") {
-					<div
-						id="node-type-select"
-						class="node-type-select"
-						data-on-load={
-							fmt.Sprintf("@get('/sse/project/%s/node-select')", project_id)
-						}
-					></div>
-				}
-			</div>
+			}
+			@ControlPanelSection("Connection settings", "mediation", 1) {
+				<div
+					id="edge-type-select"
+					class="edge-type-select"
+					data-on-load={
+						fmt.Sprintf("@get('/sse/project/%s/edge-select')", project_id)
+					}
+				></div>
+			}
+			@ControlPanelSection("Node settings", "control_point_duplicate", 2) {
+				<div
+					id="node-type-select"
+					class="node-type-select"
+					data-on-load={
+						fmt.Sprintf("@get('/sse/project/%s/node-select')", project_id)
+					}
+				></div>
+			}
 
 			@Footer()
 		</div>
@@ -145,8 +117,8 @@ templ header() {
 	</div>
 }
 
-templ ControlPanelSection(title string, icon string) {
-	<div class="control-panel__section">
+templ ControlPanelSection(title string, icon string, tool int) {
+	<div class="control-panel__section" tool={tool}>
 		<div class="control-panel__section-name">
 			<span class="material-symbols">{icon}</span>
 			{title}
@@ -157,19 +129,19 @@ templ ControlPanelSection(title string, icon string) {
 
 templ toolbar() {
 	<div class="toolbar">
-		<label data-class-active="$selectedTool == 0" title="(1) : Cursor">
+		<label data-class-active="$selectedtool == 0" title="(1) : cursor">
 			<input checked="checked" type="radio" data-bind-selected-tool value="0" />
 			<span class="material-symbols fill">arrow_selector_tool</span>
 		</label>
-		<label data-class-active="$selectedTool == 1" title="(2 / shift) : Connect nodes">
+		<label data-class-active="$selectedtool == 1" title="(2 / shift) : connect nodes">
 			<input type="radio" data-bind-selected-tool value="1" />
 			<span class="material-symbols fill">mediation</span>
 		</label>
-		<label data-class-active="$selectedTool == 2" title="(3) : Create nodes">
+		<label data-class-active="$selectedtool == 2" title="(3) : create nodes">
 			<input type="radio" data-bind-selected-tool value="2" />
 			<span class="material-symbols fill">control_point_duplicate</span>
 		</label>
-		<label data-class-active="$selectedTool == 3" title="(4 / ctrl) : Pan">
+		<label data-class-active="$selectedtool == 3" title="(4 / ctrl) : pan">
 			<input type="radio" data-bind-selected-tool value="3" />
 			<span class="material-symbols fill">drag_pan</span>
 		</label>
@@ -179,14 +151,11 @@ templ toolbar() {
 templ NodeSelector(node_types []NodeType) {
 	<div id="node-type-select" class="type-select">
 		<label> Type: 
-			<select
-				data-signals-selected-node-type={fmt.Sprintf("'%s'", node_types[0].Id)}
-				data-on-input="window.driver.current_node_type = evt.target.value"
-			>
+			<graph-select name="node_type">
 				for _, t := range node_types {
 					<option value={t.Id}>{t.Name}</option>
 				}
-			</select>
+			</graph-select>
 		</label>
 	</div>
 }
@@ -194,14 +163,11 @@ templ NodeSelector(node_types []NodeType) {
 templ EdgeSelector(edge_types []EdgeType) {
 	<div id="edge-type-select" class="type-select">
 		<label> Type: 
-			<select
-				data-signals-selected-edge-type={fmt.Sprintf("'%s'", edge_types[0].Id)}
-				data-on-input="window.driver.current_edge_type = evt.target.value"
-			>
+			<graph-select name="edge_type">
 				for _, t := range edge_types {
 					<option value={t.Id}>{t.Name}</option>
 				}
-			</select>
+			</graph-select>
 		</label>
 	</div>
 }

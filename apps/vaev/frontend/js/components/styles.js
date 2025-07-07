@@ -21,6 +21,9 @@ material_symbols.replaceSync(`
         font-size: 1.5em;
         font-variation-settings: "GRAD" 100;
     }
+    .fill {
+        font-variation-settings: "FILL" 1;
+    }
 `)
 
 const inputs = new CSSStyleSheet();

@@ -32,12 +32,45 @@ export class ControlPanel {
 
         this.root.appendChild(this.node_creation_dialog);
 
+        this.current_tool = createSignal(0);
+        this.toolbar = document.createElement("graph-toolbar");
+        this.toolbar.current_tool = this.current_tool;
+
+        this.root.appendChild(this.toolbar);
+
         this._registerListeners()
+
+
+        createEffect(() => {
+            const [tool] = this.current_tool;
+            this.driver.current_tool = tool();
+
+            for (const section of this.root.querySelectorAll("[tool]")) {
+                const val = parseInt(section.getAttribute("tool"))
+                if (val < 0) continue;
+
+                if (tool() == val) {
+                    section.classList.remove("hide")
+                    continue;
+                }
+                section.classList.add("hide")
+                console.log(section)
+            }
+        })
     }
 
     _registerListeners() {
         document.addEventListener("graph-action", (e) => {
             this._handleGraphAction(e.detail.action)
+        })
+
+        document.addEventListener("graph-select", (e) => {
+            if ("edge_type" in e.detail) {
+                this.driver.current_edge_type = e.detail.edge_type;
+            }
+            if ("node_type" in e.detail) {
+                this.driver.current_node_type = e.detail.node_type;
+            }
         })
 
         this.driver.on("node:create", (node) => {

@@ -301,6 +301,10 @@ select {
 	border-bottom: var(--small-border);
 }
 
+.control-panel__section.hide {
+	display: none;
+}
+
 .control-panel__section-name {
 	display: flex;
 	gap: var(--gap-2);
@@ -327,55 +331,6 @@ select {
 .control-panel__button-group {
 	display: flex;
 	gap: .5rem;
-}
-
-.toolbar {
-	position: absolute;
-	top: 1rem;
-	left: 1rem;
-	display: flex;
-	flex-direction: column;
-	z-index: var(--layer-4);
-}
-
-.toolbar label:hover {
-	background-color: var(--background-primary);
-}
-
-.toolbar label:first-child {
-	border-top-left-radius: var(--border-radius-small);
-	border-top-right-radius: var(--border-radius-small);
-	border-bottom: none;
-}
-.toolbar label:last-child {
-	border-bottom-left-radius: var(--border-radius-small);
-	border-bottom-right-radius: var(--border-radius-small);
-	border-top: none;
-}
-
-.toolbar label.active {
-  background-color: var(--accent-color);
-}
-
-.toolbar input {
-	position: absolute;
-	opacity: 0;
-	cursor: pointer;
-}
-
-.toolbar label {
-	cursor: pointer;
-	position: relative;
-	box-sizing: border-box;
-	background-color:var(--background-secondary);
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	padding: var(--gap-3);
-	font-size: .8rem;
-	border: var(--small-border);
-	color: var(--text-primary);
-	transition: all .1s;
 }
 
 .node-draggable {
@@ -505,7 +460,6 @@ hr {
 .user-card__options .material-symbols {
 	font-size: 1em;
 }
-
 
 .user-card__options button:hover,
 .user-card__options a:hover {

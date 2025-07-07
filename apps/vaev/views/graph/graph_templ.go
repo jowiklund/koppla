@@ -32,7 +32,7 @@ func Main(app *pocketbase.PocketBase, project_id string) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"workspace\" class=\"workspace\" data-ref=\"workspace\" data-signals=\"{\n\t\t\tloaded: false,\n\t\t\tproject: {\n\t\t\t\tname: '',\n\t\t\t\tid: '',\n\t\t\t\tpermissions: 0\n\t\t\t},\n\t\t\tnodeTypes: [],\n\t\t\tedgeTypes: [],\n\t\t\tnodes: [],\n\t\t\tedges: [],\n\t\t\tselectedTool: 0,\n\t\t\tprevTool: 0,\n\t\t\tcurrentPos: {\n\t\t\t\tx: 0,\n\t\t\t\ty: 0\n\t\t\t}\n\t\t}\"><div id=\"canvas-container\" class=\"canvas-container\"></div><div id=\"control-panel\" class=\"control-panel\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"workspace\" class=\"workspace\" data-ref=\"workspace\"><div id=\"canvas-container\" class=\"canvas-container\"></div><div id=\"control-panel\" class=\"control-panel\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -103,7 +103,7 @@ func Main(app *pocketbase.PocketBase, project_id string) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("@get('/sse/project/%s/edge-select')", project_id))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 53, Col: 68}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 34, Col: 68}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -138,7 +138,7 @@ func Main(app *pocketbase.PocketBase, project_id string) templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("@get('/sse/project/%s/node-select')", project_id))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 62, Col: 68}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 43, Col: 68}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -164,7 +164,7 @@ func Main(app *pocketbase.PocketBase, project_id string) templ.Component {
 		}
 		templ_7745c5c3_Var8, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(project_id)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 85, Col: 41}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 66, Col: 41}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 		if templ_7745c5c3_Err != nil {
@@ -264,7 +264,7 @@ func ControlPanelSection(title string, icon string, tool int) templ.Component {
 		var templ_7745c5c3_Var12 string
 		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(tool)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 121, Col: 47}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 102, Col: 47}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 		if templ_7745c5c3_Err != nil {
@@ -277,7 +277,7 @@ func ControlPanelSection(title string, icon string, tool int) templ.Component {
 		var templ_7745c5c3_Var13 string
 		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(icon)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 123, Col: 39}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 104, Col: 39}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 		if templ_7745c5c3_Err != nil {
@@ -290,7 +290,7 @@ func ControlPanelSection(title string, icon string, tool int) templ.Component {
 		var templ_7745c5c3_Var14 string
 		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 124, Col: 9}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 105, Col: 9}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 		if templ_7745c5c3_Err != nil {
@@ -345,7 +345,7 @@ func NodeSelector(node_types []NodeType) templ.Component {
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(t.Id)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 135, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 116, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 			if templ_7745c5c3_Err != nil {
@@ -358,7 +358,7 @@ func NodeSelector(node_types []NodeType) templ.Component {
 			var templ_7745c5c3_Var17 string
 			templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(t.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 135, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 116, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 			if templ_7745c5c3_Err != nil {
@@ -410,7 +410,7 @@ func EdgeSelector(edge_types []EdgeType) templ.Component {
 			var templ_7745c5c3_Var19 string
 			templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(t.Id)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 147, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 128, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 			if templ_7745c5c3_Err != nil {
@@ -423,7 +423,7 @@ func EdgeSelector(edge_types []EdgeType) templ.Component {
 			var templ_7745c5c3_Var20 string
 			templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(t.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 147, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 128, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 			if templ_7745c5c3_Err != nil {

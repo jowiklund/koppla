@@ -4,26 +4,7 @@ import "github.com/pocketbase/pocketbase"
 import "fmt"
 
 templ Main(app *pocketbase.PocketBase, project_id string) {
-	<div id="workspace" class="workspace" data-ref="workspace"
-		data-signals="{
-			loaded: false,
-			project: {
-				name: '',
-				id: '',
-				permissions: 0
-			},
-			nodeTypes: [],
-			edgeTypes: [],
-			nodes: [],
-			edges: [],
-			selectedTool: 0,
-			prevTool: 0,
-			currentPos: {
-				x: 0,
-				y: 0
-			}
-		}"
-		>
+	<div id="workspace" class="workspace" data-ref="workspace" >
 		<div
 			id="canvas-container"
 			class="canvas-container"

@@ -56,7 +56,6 @@ export class ControlPanel {
                     continue;
                 }
                 section.classList.add("hide")
-                console.log(section)
             }
         })
     }
@@ -86,6 +85,9 @@ export class ControlPanel {
             this.current_node.name = e.detail.name;
             if (!this.current_node) return;
             this.driver.graph.createNode(this.current_node);
+        })
+
+        this.node_creation_dialog.addEventListener("close", () => {
             const [_, enableToolbarKeystrokes] = this.track_keystrokes;
             enableToolbarKeystrokes(true)
         })

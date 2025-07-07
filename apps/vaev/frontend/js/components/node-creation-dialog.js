@@ -38,6 +38,10 @@ class Element extends HTMLElement {
             setName(e.target.value)
         });
 
+        this.dialog.addEventListener("close", () => {
+            this.dispatchEvent(new Event("close"))
+        })
+
         this.form.addEventListener("submit", () => {
             const data = new FormData(this.form)
             const node_name = data.get("name")

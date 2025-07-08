@@ -40,6 +40,10 @@ export class ControlPanel {
 
         this.root.appendChild(this.toolbar);
 
+        this.coords = document.createElement("graph-coords");
+        this.coords.position = this.driver.current_position;
+        this.root.appendChild(this.coords);
+
         this._registerListeners()
 
 

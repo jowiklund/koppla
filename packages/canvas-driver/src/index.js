@@ -2,6 +2,7 @@ import { assert_is_not_null, assert_msg } from "@kpla/assert";
 import { getEngine, GraphEditor, IGraphStore, NodeShape } from "@kpla/engine";
 import { EventEmitter } from "./event-emitter.js";
 import { EventName, State, StateMachine } from "./state-machine.js";
+import { createSignal } from "@kpla/signals";
 
 /** 
  * @typedef {Object} NodeData
@@ -109,6 +110,9 @@ export class CanvasGUIDriver extends EventEmitter {
   current_edge_type = ""
   /** @type {string} */
   current_node_type = ""
+
+  /** @type {import("@kpla/signals").Signal} */
+  current_position = createSignal(null);
 
   /**
    * @param {CanvasDriverOptions} opts
@@ -593,6 +597,9 @@ export class CanvasGUIDriver extends EventEmitter {
 
     this.state.ctx.pos = this._getPositionData({x: e.clientX, y: e.clientY});
     this.state.ctx.event = e;
+    const [_, setPos] = this.current_position;
+
+    setPos(this.state.ctx.pos);
 
     if (this.state.is(State.DRAGGING)) {
       const {mouse} = this.state.ctx.pos;

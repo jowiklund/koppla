@@ -3,6 +3,7 @@ import wasm_url from '@kpla/engine/public/main.wasm?url';
 export { PBStore } from "./PBStore.js";
 
 import "./components/graph-btn.js"
+import "./components/graph-coords.js"
 import "./components/graph-select.js"
 import "./components/node-creation-dialog.js"
 import "./components/toolbar.js"

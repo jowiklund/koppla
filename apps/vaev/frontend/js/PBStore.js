@@ -69,6 +69,7 @@ export class PBStore extends IGraphStore {
             const edge_types = await fetch(this.base_url + "/edge-types").
                 then(res => res.json());
             for (const t of edge_types.map(e => {
+                if (e.line_dash == null) return e;
                 return {
                     ...e,
                     line_dash: JSON.parse(atob(e.line_dash))

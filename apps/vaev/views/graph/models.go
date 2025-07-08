@@ -23,7 +23,7 @@ type NodeType struct {
 	Project     string `db:"project" json:"project"`
 	FillColor   string `db:"fill_color" json:"fill_color"`
 	StrokeColor string `db:"stroke_color" json:"stroke_color"`
-	Metadata    string `db:"metadata" json:"metadata"`
+	Metadata    []byte `db:"metadata" json:"metadata"`
 	StrokeWidth uint8  `db:"stroke_width" json:"stroke_width"`
 	Shape       uint8  `db:"shape" json:"shape"`
 }

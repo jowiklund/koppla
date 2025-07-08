@@ -84,7 +84,7 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 
 				project_id := chi.URLParam(r, "id")
 				node_types := []graph.NodeType{}
-				app.DB().
+				if err := app.DB().
 					Select("*").
 					From("node_types").
 					Where(
@@ -92,7 +92,9 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 							"project = {:project_id}",
 							dbx.Params{"project_id": project_id}),
 					).
-					All(&node_types)
+					All(&node_types); err != nil {
+					log.Fatal(err)
+				}
 
 				data, err := json.Marshal(&node_types)
 				if err != nil {
@@ -109,7 +111,7 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 
 				project_id := chi.URLParam(r, "id")
 				edge_types := []graph.EdgeType{}
-				app.DB().
+				if err := app.DB().
 					Select("*").
 					From("edge_types").
 					Where(
@@ -117,7 +119,9 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 							"project = {:project_id}",
 							dbx.Params{"project_id": project_id}),
 					).
-					All(&edge_types)
+					All(&edge_types); err != nil {
+					log.Fatal(err)
+				}
 
 				data, err := json.Marshal(&edge_types)
 				if err != nil {

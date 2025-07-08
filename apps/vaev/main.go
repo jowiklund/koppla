@@ -128,13 +128,12 @@ func main() {
 					log.Fatal(err)
 				}
 
-				l := "2006-01-02 15:04:05.000Z"
-
 				query := `
 				INSERT INTO projects (name, owner, created, updated)
 				VALUES ({:name}, {:owner}, {:created}, {:updated})
 				RETURNING name, owner, id, created, updated
 				`
+				l := "2006-01-02 15:04:05.000Z"
 				c_date := time.Now().Format(l)
 				fmt.Printf("\n%s\n", c_date)
 				var id, name, owner, created, updated string
@@ -148,6 +147,63 @@ func main() {
 					}).Row(&name, &owner, &id, &created, &updated)
 				if e != nil {
 					log.Fatal(e)
+				}
+
+				default_node_types := []graph.NodeType{}
+
+				if err := app.DB().
+					Select("*").
+					From("default_node_types").
+					All(&default_node_types); err != nil {
+					log.Fatal(err)
+				}
+
+				for _, t := range default_node_types {
+					q := `
+					INSERT INTO node_types (name, fill_color, stroke_color, stroke_width, shape, project)
+					VALUES ({:name}, {:fill_color}, {:stroke_color}, {:stroke_width}, {:shape}, {:project})
+					`
+					if _, err := app.DB().
+						NewQuery(q).
+						Bind(dbx.Params{
+							"name":         fmt.Sprintf("%s - %s", name, t.Name),
+							"fill_color":   t.FillColor,
+							"stroke_color": t.StrokeColor,
+							"stroke_width": t.StrokeWidth,
+							"shape":        t.Shape,
+							"project":      id,
+						}).
+						Execute(); err != nil {
+						log.Fatal(err)
+					}
+				}
+
+				default_edge_types := []graph.EdgeType{}
+
+				if err := app.DB().
+					Select("*").
+					From("default_edge_types").
+					All(&default_edge_types); err != nil {
+					log.Fatal(err)
+				}
+
+				for _, t := range default_edge_types {
+					q := `
+					INSERT INTO edge_types (name, stroke_width, stroke_color, line_dash, project)
+					VALUES ({:name}, {:stroke_width}, {:stroke_color}, {:line_dash}, {:project})
+					`
+					if _, err := app.DB().
+						NewQuery(q).
+						Bind(dbx.Params{
+							"name":         fmt.Sprintf("%s - %s", name, t.Name),
+							"stroke_width": t.StrokeWidth,
+							"stroke_color": t.StrokeColor,
+							"line_dash":    []byte{},
+							"project":      id,
+						}).
+						Execute(); err != nil {
+						log.Fatal(err)
+					}
 				}
 
 				new_project := graph.Project{

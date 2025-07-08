@@ -98,8 +98,8 @@ export class CanvasGUIDriver extends EventEmitter {
   /** @type {import("@kpla/engine").EdgeBase[]} */
   new_edges = [];
 
-  /** @type {Array<import("@kpla/engine").Node>} */
-  selected_nodes = [];
+  /** @type {import("@kpla/signals").Signal<Array<import("@kpla/engine").Node>>} */
+  selected_nodes = createSignal(/** @type {import("@kpla/engine").Node[]} */([]));
 
   /** @type {StateMachine} state */
   state;
@@ -181,7 +181,8 @@ export class CanvasGUIDriver extends EventEmitter {
   /** @param {Alignment} alignment  */
   alignNodes(alignment) {
     assert_is_not_null(this.graph);
-    const handles = this.selected_nodes.map(node => node.handle);
+    const [selected_nodes] = this.selected_nodes;
+    const handles = selected_nodes().map(node => node.handle);
     if (handles.length == 0) return;
     switch(alignment) {
       case Alignment.HORIZONTAL:
@@ -196,7 +197,8 @@ export class CanvasGUIDriver extends EventEmitter {
   /** @param {Alignment} alignment  */
   distributeNodes(alignment) {
     assert_is_not_null(this.graph);
-    const handles = this.selected_nodes.map(node => node.handle);
+    const [selected_nodes] = this.selected_nodes;
+    const handles = selected_nodes().map(node => node.handle);
     if (handles.length == 0) return;
     switch(alignment) {
       case Alignment.HORIZONTAL:
@@ -275,13 +277,13 @@ export class CanvasGUIDriver extends EventEmitter {
 
   _updateSelection() {
     assert_is_not_null(this.graph);
-    if (this.selected_nodes.length == 0) return;
-    for (const [i, node] of this.selected_nodes.entries()) {
-      const n = this.graph.getNode(node.handle)
-      if (n != null) {
-        this.selected_nodes[i] = n
-      }
-    }
+    const [selected, setSelected] = this.selected_nodes;
+    if (selected().length == 0) return;
+    assert_is_not_null(this.graph);
+    const updated_nodes = selected()
+      .map(n => this.graph?.getNode(n.handle))
+      .filter(n => n != null)
+    setSelected(updated_nodes)
   }
 
   /**
@@ -316,7 +318,8 @@ export class CanvasGUIDriver extends EventEmitter {
 
       /** @type {import("@kpla/engine").EdgeBase[]} */
       const new_edges = []
-      for (let { id } of this.selected_nodes) {
+      const [selected] = this.selected_nodes;
+      for (let { id } of selected()) {
         if (id === undefined) continue;
         for (let node of nodes) {
           const end_id = node.id;
@@ -362,11 +365,14 @@ export class CanvasGUIDriver extends EventEmitter {
       const min_y = Math.min(this.selection_start_y, mouse.y);
       const max_y = Math.max(this.selection_start_y, mouse.y);
 
+      const [selected, setSelected] = this.selected_nodes;
+      const data = selected()
       for (let node of this.graph.getNodes()) {
         const inside_x = (node.x >= min_x && node.x <= max_x);
         const inside_y = (node.y >= min_y && node.y <= max_y);
         if (inside_x && inside_y) {
-          this.selected_nodes.push(node);
+          data.push(node);
+          setSelected(data);
         }
       }
     }
@@ -393,14 +399,16 @@ export class CanvasGUIDriver extends EventEmitter {
       (e.key == "Delete") &&
         this.selected_nodes.length > 0
     ) {
-      for (let { handle } of this.selected_nodes) {
+      const [selected, setSelected] = this.selected_nodes;
+      for (let { handle } of selected()) {
         this.graph.deleteNode(handle);
       }
-      this.selected_nodes = [];
+      setSelected([]);
     }
 
     if (e.key == "Backspace" && this.selected_nodes.length > 0) {
-      for (let { handle } of this.selected_nodes) {
+      const [selected] = this.selected_nodes;
+      for (let { handle } of selected()) {
         this.graph.deleteOutgoing(handle)
       }
     }
@@ -498,8 +506,9 @@ export class CanvasGUIDriver extends EventEmitter {
     if (this.state.is(State.CONNECTING)) {
       const {node} = this.state.ctx.pos;
       assert_is_not_null(node);
+      const [_, setSelected] = this.selected_nodes;
       if (!this._isSelected(node.handle)) {
-        this.selected_nodes = [node]
+        setSelected([node]);
       }
       return;
     }
@@ -507,11 +516,12 @@ export class CanvasGUIDriver extends EventEmitter {
     if (this.state.is(State.DRAGGING)) {
       const {node, mouse} = this.state.ctx.pos;
       assert_is_not_null(node);
+      const [selected, setSelected] = this.selected_nodes;
       if (!this._isSelected(node.handle)) {
-        this.selected_nodes = [node]
+        setSelected([node]);
       }
       this.drag_offsets.clear();
-      for (let node of this.selected_nodes) {
+      for (let node of selected()) {
         assert_is_not_null(node);
         const dx = mouse.x - node.x;
         const dy = mouse.y - node.y;
@@ -522,7 +532,7 @@ export class CanvasGUIDriver extends EventEmitter {
       this.moving_nodes.clear();
       this.moving_edges.clear();
 
-      for (const { handle } of this.selected_nodes) {
+      for (const { handle } of selected()) {
         this.moving_nodes.add(handle);
         const node = this.graph.getNode(handle);
         if (node) {
@@ -535,7 +545,8 @@ export class CanvasGUIDriver extends EventEmitter {
     }
 
     const {mouse} = this.state.ctx.pos;
-    this.selected_nodes = [];
+    const [_, setSelected] = this.selected_nodes;
+    setSelected([]);
     this.selection_start_x = mouse.x;
     this.selection_start_y = mouse.y;
   }
@@ -544,7 +555,8 @@ export class CanvasGUIDriver extends EventEmitter {
    * @param {import("@kpla/engine").NodeHandle} node_handle 
    */
   _isSelected(node_handle) {
-    return this.selected_nodes.findIndex(n => n.handle === node_handle) >= 0;
+    const [ selected ] = this.selected_nodes;
+    return selected().findIndex(n => n.handle === node_handle) >= 0;
   }
 
   /**
@@ -640,7 +652,8 @@ export class CanvasGUIDriver extends EventEmitter {
 
     if (this.state.is(State.CONNECTING)) {
       const {mouse} = this.state.ctx.pos;
-      for (let { handle } of this.selected_nodes) {
+      const [selected] = this.selected_nodes;
+      for (let { handle } of selected()) {
         const start_node = this.graph.getNode(handle)
         assert_is_not_null(start_node);
         const mouse_coords = {

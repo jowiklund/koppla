@@ -6,10 +6,20 @@
 import { assert_is_not_null } from "@kpla/assert";
 
 /**
- * @callback SignalGetter - Get the signal value
- * @callback SignalSetter - Sets the signal value and calls dependencies 
- * @param {*} value
- * @typedef {[SignalGetter, SignalSetter]} Signal
+ * @template T
+ * @callback SignalGetter
+ * @returns {T}
+ */
+
+/**
+ * @template T
+ * @callback SignalSetter
+ * @param {T} value
+ */
+
+/**
+ * @template T
+ * @typedef {[SignalGetter<T>, SignalSetter<T>]} Signal
  */
 
 /** @type {Function | null} */
@@ -32,8 +42,9 @@ class Dependency {
 }
 
 /**
- * @param {*} value 
- * @returns {Signal}
+ * @template T
+ * @param {T} value
+ * @returns {Signal<T>}
  */
 export function createSignal(value) {
   const dep = new Dependency();
@@ -60,18 +71,19 @@ export function createSignal(value) {
  * Creates a reactive new read-only signal that computes its values based on other signals.
  *
  * @template T
- * @param {() => T} getter_fn 
- * @returns {SignalGetter}
+ * @param {() => T} getter_fn
+ * @returns {SignalGetter<T>}
  */
 export function computed(getter_fn) {
-  const [computed_val, set_computed_val] = createSignal(undefined);
+  const initial_value = getter_fn();
+  const [computed_val, set_computed_val] = createSignal(initial_value);
 
   createEffect(() => {
     const new_val = getter_fn()
     set_computed_val(new_val);
   })
 
-  return computed_val;
+  return /** @type {SignalGetter<T>} */ (computed_val);
 }
 
 /**
@@ -291,10 +303,10 @@ export class DocumentParser {
             const new_value = this._resolveExpressions(original_attr_value, scope);
             if (
               ["true", "false"].includes(new_value) &&
-              ["selected", "disabled", "checked"].includes(attr.name)
+                ["selected", "disabled", "checked"].includes(attr.name)
             ) {
               if (new_value === "true") element.setAttribute(attr.name, "");
-              else element.removeAttribute(attr.name);
+                else element.removeAttribute(attr.name);
             } else {
               element.setAttribute(attr.name, new_value);
             }
@@ -412,7 +424,7 @@ export class DocumentParser {
         }
 
         if (typeof result === 'object') {
-           return "";
+          return "";
         }
 
         return String(result);
@@ -465,8 +477,9 @@ export function isTextNode(el) {
 }
 
 /**
+ * @template T
  * @param { unknown } val
- * @returns {val is Signal}
+ * @returns {val is Signal<T>}
  */
 function isSignal(val) {
   return Array.isArray(val) && typeof val[0] === "function" && typeof val[1] === "function";

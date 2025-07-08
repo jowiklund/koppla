@@ -1,10 +1,10 @@
 import { createEffect } from "@kpla/signals";
 import { material_symbols } from "./styles";
+import { Tool } from "@kpla/canvas-driver";
 
 class Element extends HTMLElement {
-    /** @type {import("@kpla/signals").Signal} signal  */
+    /** @type {import("@kpla/signals").Signal<Tool>} signal  */
     _current_tool = null;
-    /** @type {import("@kpla/signals").Signal} signal  */
     /** @type {Map<string, HTMLInputElement>} */
     _input_map = new Map();
     _prev_tool = 0;
@@ -138,7 +138,7 @@ class Element extends HTMLElement {
 
     }
 
-    /** @param {import("@kpla/signals").Signal} signal  */
+    /** @param {import("@kpla/signals").Signal<Tool>} signal  */
     set current_tool(signal) {
         this._current_tool = signal;
 

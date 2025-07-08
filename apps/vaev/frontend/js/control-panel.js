@@ -14,7 +14,7 @@ export class ControlPanel {
     root;
     /** @type {HTMLDialogElement} */
     node_creation_dialog
-    /** @type {Signal} */
+    /** @type {Signal<string>} */
     node_name
     /** @type {import("@kpla/engine").Node | null} */
     current_node = null;
@@ -26,7 +26,7 @@ export class ControlPanel {
         this.driver = props.driver;
         this.root = props.root;
 
-        this.node_name = createSignal("");
+        this.node_name = createSignal(null);
         this.node_creation_dialog = document.createElement("node-creation-dialog");
         this.node_creation_dialog.node_name = this.node_name;
 

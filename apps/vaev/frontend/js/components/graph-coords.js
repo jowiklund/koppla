@@ -1,7 +1,7 @@
 import { createEffect } from "@kpla/signals";
 
 class Element extends HTMLElement {
-    /** @type {import("@kpla/signals").Signal} signal  */
+    /** @type {import("@kpla/signals").Signal<import("@kpla/canvas-driver").PositionData>} signal  */
     _position = null
 
     constructor() {
@@ -25,7 +25,7 @@ class Element extends HTMLElement {
         this.div = this.shadowRoot.querySelector('div');
     }
 
-    /** @param {import("@kpla/signals").Signal} signal  */
+    /** @param {import("@kpla/signals").Signal<import("@kpla/canvas-driver").PositionData>} signal  */
     set position(signal) {
         this._position = signal;
         const [pos] = signal; 
@@ -33,8 +33,8 @@ class Element extends HTMLElement {
         createEffect(() => {
             const position = pos();
             if (position) {
-                const x = Math.floor(position.mouse.x)
-                const y = Math.floor(position.mouse.y)
+                const x = Math.floor(position.mouse.x);
+                const y = Math.floor(position.mouse.y);
                 const { node } = position;
                 if (node) {
                     this.div.innerHTML = `x: ${x}, y: ${y} - ${node.name} (${node.id})`

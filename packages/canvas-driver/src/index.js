@@ -111,8 +111,8 @@ export class CanvasGUIDriver extends EventEmitter {
   /** @type {string} */
   current_node_type = ""
 
-  /** @type {import("@kpla/signals").Signal} */
-  current_position = createSignal(null);
+  /** @type {import("@kpla/signals").Signal<PositionData | null>} */
+  current_position = createSignal(/** @type {PositionData | null} */(null));
 
   /**
    * @param {CanvasDriverOptions} opts

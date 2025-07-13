@@ -7,8 +7,10 @@
 import { assert, assert_is_not_null } from "@kpla/assert";
 import { EventEmitter } from "./event-emitter.js";
 import { IGraphStore } from "./storage.js";
+import { IWriter } from "./writer.js";
 
 export { IGraphStore } from "./storage.js";
+export { IWriter, CSVWriter } from "./writer.js"
 
 /** @typedef {number} NodeHandle */
 /** @typedef {number} EdgeHandle */
@@ -158,6 +160,15 @@ export class GraphEditor extends EventEmitter {
       metadata: "",
       line_dash: []
     })
+  }
+
+  /**
+   * @param {IWriter} writer 
+   * @param {import("./writer.js").RelationshipRuleset[]} rules 
+   */
+  import(writer, rules) {
+    writer.init(this, rules)
+    writer.write();
   }
 
   /**

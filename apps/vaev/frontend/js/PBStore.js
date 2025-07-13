@@ -38,12 +38,20 @@ export class PBStore extends IGraphStore {
     base_url
 
     throttledPersist = throttle(this._persist.bind(this), 1000)
+
+    #csrf_token
     constructor(project_id) {
         super();
         this.base_url = `/v-api/project/${project_id}`;
         window.addEventListener("beforeunload", async () => {
             await this.throttledPersist.flush()
         });
+        const csrf_meta = document.querySelector('meta[name="CSRF-Token"]');
+        if (csrf_meta) {
+            this.#csrf_token = csrf_meta.getAttribute('content');
+        } else {
+            console.warn("CSRF token meta tag not found.");
+        }
     }
 
     /**
@@ -180,6 +188,16 @@ export class PBStore extends IGraphStore {
     }
 
     async _persist() {
+        if (!this.#csrf_token) {
+            console.error("CSRF token is missing. Aborting persistence.");
+            return;
+        };
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': this.#csrf_token
+        };
+
         const create_nodes_payload = Array.from(this.nodes_to_create.values())
         const update_nodes_payload = Array.from(this.nodes_to_update.values())
         const delete_nodes_payload = Array.from(this.nodes_to_delete.values())
@@ -191,6 +209,7 @@ export class PBStore extends IGraphStore {
         await Promise.allSettled([
             create_nodes_payload.length > 0 && fetch(this.base_url + "/create-nodes", {
                 method: "POST",
+                headers,
                 body: JSON.stringify(create_nodes_payload)
             }).then(res => res.json())
                 .then(created_nodes => {
@@ -213,10 +232,12 @@ export class PBStore extends IGraphStore {
             }),
             update_nodes_payload.length && fetch(this.base_url + "/update-nodes", {
                 method: "PUT",
+                headers,
                 body: JSON.stringify(update_nodes_payload)
             }),
             delete_nodes_payload.length && fetch(this.base_url + "/delete-nodes", {
                 method: "DELETE",
+                headers,
                 body: JSON.stringify(delete_nodes_payload)
             })
         ]).catch(e => console.error("Persistance error:", e))
@@ -232,6 +253,7 @@ export class PBStore extends IGraphStore {
         await Promise.allSettled([
             create_edges_payload.length > 0 && fetch(this.base_url + "/create-edges", {
                 method: "POST",
+                headers,
                 body: JSON.stringify(create_edges_payload)
             }).then(res => res.json())
                 .then(created_edges => {
@@ -255,10 +277,12 @@ export class PBStore extends IGraphStore {
             }),
             update_edges_payload.length && fetch(this.base_url + "/update-edges", {
                 method: "PUT",
+                headers,
                 body: JSON.stringify(update_edges_payload)
             }),
             delete_edges_payload.length && fetch(this.base_url + "/delete-edges", {
                 method: "DELETE",
+                headers,
                 body: JSON.stringify(delete_edges_payload)
             })
         ]).catch(e => console.error("Persistance error:", e))

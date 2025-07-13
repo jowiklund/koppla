@@ -46,7 +46,6 @@ export class ControlPanel {
 
         this._registerListeners()
 
-
         createEffect(() => {
             const [tool] = this.current_tool;
             this.driver.current_tool = tool();

@@ -3,10 +3,11 @@ package dashboard
 import "koppla/apps/vaev/views/graph"
 import "time"
 import "fmt"
+import "koppla/apps/vaev/middleware"
 
-templ Projects(projects []graph.Project) {
+templ Projects(projects []graph.Project, csrf_token string) {
 	<div class="dashboard" id="dashboard" data-signals="{projectName: ''}">
-		@CreateProjectDialog()
+		@CreateProjectDialog(csrf_token)
 		<div class="dashboard-controls">
 			<div id="user-card" data-on-load="@get('/auth/user')"></div>
 		</div>
@@ -26,16 +27,17 @@ templ Projects(projects []graph.Project) {
 	</div>
 }
 
-templ CreateProjectDialog() {
+templ CreateProjectDialog(csrf_token string) {
 	<dialog
 		data-ref-create-project
 	>
 		<form method="dialog" data-on-submit="
-			@post('/sse/project/create');
+			@post('/sse/project/create', {contentType: 'form'});
 			$createProject.close();
 		">
 			<label>Name:
-				<input required type="text" data-bind-project-name />
+				<input type="hidden" name={middleware.CSRF_TOKEN_FIELD} value={csrf_token}>
+				<input required type="text" name="project-name" />
 			</label>
 			<button>Create</button>
 		</form>

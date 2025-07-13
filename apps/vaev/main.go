@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	mw "koppla/apps/vaev/middleware"
 	"koppla/apps/vaev/routing"
 	"koppla/apps/vaev/vapi"
@@ -54,9 +52,21 @@ func main() {
 
 	r.Group(func(r chi.Router) {
 		r.Use(mw.WithAuthRedirectGuard(auth.R_LOGIN))
+		r.Use(mw.WithCSRF)
 		r.Route("/dashboard", func(r chi.Router) {
 			r.Get("/projects", func(w http.ResponseWriter, r *http.Request) {
 				projects := []graph.Project{}
+
+				var csrf_token string
+				cookie, err := r.Cookie(mw.SESSION_COOKIE_NAME)
+				if err == nil {
+					sd, ok := mw.DecodeSignedCookie(cookie.Value)
+					if ok {
+						csrf_token = sd.CSRFToken
+					}
+				} else {
+					log.Println("Could not find session cookie for rendering form, CSRF token will be empty.")
+				}
 
 				user, err := auth.GetSignedInUser(app, r)
 				if err != nil {
@@ -69,18 +79,27 @@ func main() {
 					Where(dbx.NewExp("owner = {:owner}", dbx.Params{"owner": user.Id})).
 					All(&projects)
 
-				fmt.Printf("%+v", projects)
-
 				dasboard_styles := layout.NewStylesheet("/dist/dashboard.css")
 				dashboard_script := layout.NewScript("/dist/dashboard.js")
 				doc(func() templ.Component {
-					return dashboard.Projects(projects)
+					return dashboard.Projects(projects, csrf_token)
 				}, dasboard_styles, dashboard_script).ServeHTTP(w, r)
 			})
 		})
 		r.Get("/project/{id}", func(w http.ResponseWriter, r *http.Request) {
 			project_id := chi.URLParam(r, "id")
 			var project *graph.Project
+
+			var csrf_token string
+			cookie, err := r.Cookie(mw.SESSION_COOKIE_NAME)
+			if err == nil {
+				sd, ok := mw.DecodeSignedCookie(cookie.Value)
+				if ok {
+					csrf_token = sd.CSRFToken
+				}
+			} else {
+				log.Println("Could not find session cookie for rendering form, CSRF token will be empty.")
+			}
 
 			user, err := auth.GetSignedInUser(app, r)
 			if err != nil {
@@ -107,26 +126,17 @@ func main() {
 					return graph.Main(app, project_id)
 				},
 				layout.NewScript("/dist/graph.js"),
+				layout.NewMeta(mw.CSRF_TOKEN_FIELD, csrf_token),
 			).ServeHTTP(w, r)
 		})
 		r.Route("/sse", func(r chi.Router) {
 			r.Post("/project/create", func(w http.ResponseWriter, r *http.Request) {
-				body, err := io.ReadAll(r.Body)
-				if err != nil {
-					log.Fatal(err)
-				}
-
 				user, err := auth.GetSignedInUser(app, r)
 				if err != nil {
 					log.Fatal("No user in signed in scope")
 				}
 
-				data := struct {
-					ProjectName string `json:"projectName"`
-				}{}
-				if err := json.Unmarshal(body, &data); err != nil {
-					log.Fatal(err)
-				}
+				r.ParseMultipartForm(1024 * 1024)
 
 				query := `
 				INSERT INTO projects (name, owner, created, updated)
@@ -135,12 +145,11 @@ func main() {
 				`
 				l := "2006-01-02 15:04:05.000Z"
 				c_date := time.Now().Format(l)
-				fmt.Printf("\n%s\n", c_date)
 				var id, name, owner, created, updated string
 				e := app.DB().
 					NewQuery(query).
 					Bind(dbx.Params{
-						"name":    data.ProjectName,
+						"name":    r.FormValue("project-name"),
 						"owner":   user.Id,
 						"created": c_date,
 						"updated": c_date,
@@ -220,8 +229,6 @@ func main() {
 					datastar.WithSelectorID("projects-list"),
 					datastar.WithMergeAppend(),
 				)
-
-				fmt.Printf("%+v", new_project)
 			})
 			r.Get("/project/{id}/node-select", func(w http.ResponseWriter, r *http.Request) {
 				is_owner := dashboard.ValidateProjectOwner(app, w, r)

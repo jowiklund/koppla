@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"koppla/apps/vaev/constants"
 	"koppla/apps/vaev/routing"
-	"koppla/apps/vaev/views/auth"
 	"log"
 	"net/http"
 
@@ -72,21 +71,6 @@ func WithAuthRedirectGuard(to string) func(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		}
 
-		return http.HandlerFunc(fn)
-	}
-}
-
-func WithAuthJSONGuard(app *pocketbase.PocketBase) func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		fn := func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
-			_, err := auth.GetSignedInUser(app, r)
-			if err != nil {
-				WriteJSONUnauthorized(w)
-				return
-			}
-			next.ServeHTTP(w, r)
-		}
 		return http.HandlerFunc(fn)
 	}
 }

@@ -3,6 +3,7 @@ package auth
 import (
 	"fmt"
 	"koppla/apps/vaev/constants"
+	"koppla/apps/vaev/middleware"
 	"koppla/apps/vaev/routing"
 	"koppla/apps/vaev/views/layout"
 	"koppla/apps/vaev/views/toaster"
@@ -94,7 +95,9 @@ func AuthRoutes(app *pocketbase.PocketBase, r *chi.Mux) {
 		if valid_pass {
 			token, err := auth.NewAuthToken()
 			if err != nil {
-				log.Fatal(err)
+				sse := datastar.NewSSE(w, r)
+				toaster.SendErrorMessage(sse, "Invalid credentials")
+				sse.ExecuteScript(`document.getElementById("login-form").reset();`)
 			}
 
 			http.SetCookie(w, &http.Cookie{
@@ -123,6 +126,21 @@ func AuthRoutes(app *pocketbase.PocketBase, r *chi.Mux) {
 	})
 }
 
+func WithAuthJSONGuard(app *pocketbase.PocketBase) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_, err := GetSignedInUser(app, r)
+			if err != nil {
+				middleware.WriteJSONUnauthorized(w)
+				return
+			}
+			next.ServeHTTP(w, r)
+		}
+		return http.HandlerFunc(fn)
+	}
+}
+
 func GetSignedInUser(app *pocketbase.PocketBase, r *http.Request) (*User, error) {
 	auth := r.Context().Value(constants.CTX_AUTH)
 	switch auth := auth.(type) {
@@ -139,5 +157,4 @@ func GetSignedInUser(app *pocketbase.PocketBase, r *http.Request) (*User, error)
 	default:
 		return nil, fmt.Errorf("No signed in user")
 	}
-
 }

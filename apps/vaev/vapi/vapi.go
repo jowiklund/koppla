@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"koppla/apps/vaev/middleware"
+	"koppla/apps/vaev/views/auth"
 	"koppla/apps/vaev/views/dashboard"
 	"koppla/apps/vaev/views/graph"
 	"log"
@@ -26,7 +27,8 @@ type GraphSignals struct {
 
 func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.WithAuthJSONGuard(app))
+		r.Use(auth.WithAuthJSONGuard(app))
+		r.Use(middleware.WithCSRF)
 		r.Route("/v-api/project", func(r chi.Router) {
 			r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
 				is_owner := dashboard.ValidateProjectOwner(app, w, r)
@@ -58,8 +60,6 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 				if err != nil {
 					log.Fatal(err)
 				}
-
-				fmt.Printf("BYTES: %s", string(body))
 
 				signals := GraphSignals{}
 				json.Unmarshal(body, &signals)
@@ -137,7 +137,6 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 				}
 
 				project_id := chi.URLParam(r, "id")
-				fmt.Printf("\n%+v\n", project_id)
 				nodes := []graph.Node{}
 				err := app.DB().
 					Select("*").
@@ -152,7 +151,6 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 					log.Fatal(err)
 				}
 
-				fmt.Printf("\n%+v\n", nodes)
 				data, err := json.Marshal(&nodes)
 				if err != nil {
 					log.Fatal(err)
@@ -203,7 +201,6 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 				}
 
 				for _, node := range nodes {
-					fmt.Printf("\nBYTES: %s\n", string(body))
 					app.DB().
 						NewQuery("UPDATE nodes SET x = {:x}, y = {:y} WHERE id = {:id}").
 						Bind(dbx.Params{
@@ -215,7 +212,6 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 				}
 			})
 			r.Delete("/{id}/delete-nodes", func(w http.ResponseWriter, r *http.Request) {
-				fmt.Printf("")
 				is_owner := dashboard.ValidateProjectOwner(app, w, r)
 				if !is_owner {
 					middleware.WriteJSONUnauthorized(w)
@@ -249,7 +245,6 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 				w.Write(fmt.Appendf(nil, `{"message": "Deteted %d nodes"}`, count))
 			})
 			r.Delete("/{id}/delete-edges", func(w http.ResponseWriter, r *http.Request) {
-				fmt.Printf("")
 				is_owner := dashboard.ValidateProjectOwner(app, w, r)
 				if !is_owner {
 					middleware.WriteJSONUnauthorized(w)
@@ -301,8 +296,6 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 					log.Fatal(err)
 				}
 
-				fmt.Printf("%+v", nodes)
-
 				query := `
 				INSERT INTO nodes (x, y, name, project, type, metadata)
 				VALUES ({:x}, {:y}, {:name}, {:project}, {:type}, {:metadata})
@@ -338,7 +331,6 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 				}
 
 				bytes, err := json.Marshal(&res_nodes)
-				fmt.Print(string(bytes))
 				if err != nil {
 					log.Fatal(err)
 				}

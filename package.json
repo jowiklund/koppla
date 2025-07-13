@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm --filter demo-app... --parallel dev",
-    "vaev:dev:backend": "cd apps/vaev && cross-env APP_ENV=development go tool templ generate --watch --cmd=\"go run . serve --dir=./pb_data\"",
+    "vaev:dev:backend": "cd apps/vaev && cross-env APP_ENV=development SESSION_KEY=develop go tool templ generate --watch --cmd=\"go run . serve --dir=./pb_data\"",
     "watch:vaev-stack": "pnpm --filter \"{./apps/vaev}...\" --parallel dev",
     "vaev:dev": "concurrently \"pnpm run watch:vaev-stack\" \"pnpm run vaev:dev:backend\"",
     "vaev:build": "pnpm --filter vaev build && cd apps/vaev && go tool templ generate && go build -tags production -o ../../build/vaev-server .",

@@ -62,11 +62,18 @@ templ Main(app *pocketbase.PocketBase, project_id string) {
 			</form>
 		</dialog>
 		<script type="module">
-			import {PBStore, driver} from "/dist/graph.js";
+			import {PBStore, CSVWriter, driver} from "/dist/graph.js";
 			const store = new PBStore({{project_id}})
+			const csv_data = new CSVWriter(`from_account,to_account,sum
+123asd, 4324n23, 3000
+4324n23, fgh456, 3000
+9jsnid, 09jifsdn, 3000
+09jifsdn, fgh456, 3000
+90jsdfnos, fgh456, 3000`, ["from_account", "to_account"])
 			document.addEventListener("DOMContentLoaded", () => {
 				driver.run(store).then(graph => {
 					window.driver = driver
+					driver.graph.import(csv_data);
 				})
 			})
 		</script>

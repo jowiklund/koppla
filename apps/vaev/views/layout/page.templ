@@ -1,17 +1,5 @@
 package layout
 
-type ResourceType int
-
-const (
-	T_LINK ResourceType = iota
-	T_SCRIPT
-)
-
-type Resource struct {
-	Component func() templ.Component
-	Type ResourceType
-}
-
 templ Doc(
 	child func() templ.Component,
 	resources... Resource,
@@ -25,6 +13,9 @@ templ Doc(
 			<link rel="stylesheet" href="/dist/style.css" />
 			for _, r := range resources {
 				if r.Type == T_LINK {
+					@r.Component()
+				}
+				if r.Type == T_META {
 					@r.Component()
 				}
 			}
@@ -47,10 +38,12 @@ templ Doc(
 	</html>
 }
 
+templ Meta(name string, content string) {
+	<meta name={name} content={content} />
+}
 templ Script(type_name string, src string) {
 	<script type={type_name} src={src}></script>
 }
-
 templ Link(rel string, href string) {
 	<link rel={rel} href={href} />
 }

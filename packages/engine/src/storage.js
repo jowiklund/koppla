@@ -22,7 +22,7 @@ export class IGraphStore {
      * @param {import(".").NodeHandle} node_handle - The WASM handle of the node.
      * @param {import(".").NodeBase} node_data - The complete node data, including its ID (if known) and WASM properties.
      */
-    async setNode(node_handle, node_data) {
+    setNode(node_handle, node_data) {
         throw new Error("Method 'setNode' is not implemented");
     }
 
@@ -161,6 +161,14 @@ export class IGraphStore {
      * @returns {string} A unique temporary ID.
      */
     generateTempId() {
+        throw new Error("Method 'generateTempId' is not implemented");
+    }
+
+    /**
+     * @param {{name: string, metadata: string, type: import(".").NodeTypeId}[]} nodes 
+     * @param {import(".").EdgeBase[]} edges 
+     */
+    map(nodes, edges) {
         throw new Error("Method 'generateTempId' is not implemented");
     }
 }

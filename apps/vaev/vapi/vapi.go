@@ -155,6 +155,14 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 				if err != nil {
 					log.Fatal(err)
 				}
+
+				record, err := app.FindRecordById("projects", project_id)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				fmt.Printf("\nRECORD: %+v\n", record)
+
 				w.Write(data)
 			})
 			r.Get("/{id}/edges", func(w http.ResponseWriter, r *http.Request) {
@@ -387,6 +395,25 @@ func RegisterVAPI(app *pocketbase.PocketBase, r *chi.Mux) {
 					log.Fatal(err)
 				}
 				w.Write(bytes)
+			})
+			r.Post("/{id}/upload-snapshot", func(w http.ResponseWriter, r *http.Request) {
+				is_owner := dashboard.ValidateProjectOwner(app, w, r)
+				if !is_owner {
+					middleware.WriteJSONUnauthorized(w)
+					return
+				}
+				project_id := chi.URLParam(r, "id")
+				collection, err := app.FindCollectionByNameOrId("projects")
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				record, err := app.FindRecordById(collection, project_id)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				fmt.Printf("%v", record)
 			})
 		})
 	})

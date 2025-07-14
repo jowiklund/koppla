@@ -467,9 +467,9 @@ export fn sortNodes(
 
                 const dx = node1_ptr.x - node2_ptr.x;
                 const dy = node1_ptr.y - node2_ptr.y;
-                const dist_sq = dx * dx + dy * dy;
-
                 const min_dist_sq = 0.01;
+                const dist_sq = (dx * dx + dy * dy) + min_dist_sq;
+
                 const dist = std.math.sqrt(dist_sq + min_dist_sq);
 
                 const force_magnitude = k_repulsion / dist_sq;
@@ -511,8 +511,8 @@ export fn sortNodes(
 
             const dx = start_node_ptr.x - end_node_ptr.x;
             const dy = start_node_ptr.y - end_node_ptr.y;
-            const dist_sq = dx*dx + dy*dy;
             const min_dist_sq = 0.01;
+            const dist_sq = (dx*dx + dy*dy) + min_dist_sq;
             const dist = std.math.sqrt(dist_sq + min_dist_sq);
 
             const force_magnitude = k_attraction * (dist - optimal_dist);

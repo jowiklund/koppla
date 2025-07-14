@@ -1,6 +1,8 @@
 import { GraphEditor, IGraphStore } from "@kpla/engine";
 
 export class PBStore extends IGraphStore {
+    /** @type {GraphEditor | null} */
+    graph = null
     /** @type {Map<string, import("@kpla/engine").NodeType>} */
     node_types = new Map()
     /** @type {Map<string, import("@kpla/engine").EdgeType>} */
@@ -58,6 +60,7 @@ export class PBStore extends IGraphStore {
      * @param {GraphEditor} graph 
      */
     async init(graph) {
+        this.graph = graph;
         await this._loadTypes();
         await this._loadProject(graph); 
     }
@@ -207,29 +210,8 @@ export class PBStore extends IGraphStore {
         this.nodes_to_delete.clear()
 
         await Promise.allSettled([
-            create_nodes_payload.length > 0 && fetch(this.base_url + "/create-nodes", {
-                method: "POST",
-                headers,
-                body: JSON.stringify(create_nodes_payload)
-            }).then(res => res.json())
-                .then(created_nodes => {
-                    for (const temp_node of created_nodes) {
-                        const real_id = temp_node.id;
-                        const temp_id = temp_node.temp_id;
-                        const node_data = this.nodes_by_id.get(temp_id);
-                        if (node_data) {
-                            node_data.id = real_id;
-                            this.nodes_by_id.delete(temp_id);
-                            this.nodes_by_id.set(real_id, node_data);
-                            const handle = this.id_to_node_handle.get(temp_id);
-                            if (handle !== undefined) {
-                                this.id_to_node_handle.delete(temp_id);
-                                this.id_to_node_handle.set(real_id, handle);
-                                this.node_handle_to_id.set(handle, real_id);
-                            }
-                        }
-                    }
-            }),
+            create_nodes_payload.length > 0 && this._resolveNodes(create_nodes_payload)
+                .then(this._map_temp_ids.bind(this)),
             update_nodes_payload.length && fetch(this.base_url + "/update-nodes", {
                 method: "PUT",
                 headers,
@@ -288,6 +270,39 @@ export class PBStore extends IGraphStore {
         ]).catch(e => console.error("Persistance error:", e))
     }
 
+    _map_temp_ids(temp_nodes) {
+        console.log(temp_nodes)
+        for (const temp_node of temp_nodes) {
+            const real_id = temp_node.id;
+            const temp_id = temp_node.temp_id;
+            const node_data = this.nodes_by_id.get(temp_id);
+            if (node_data) {
+                node_data.id = real_id;
+                this.nodes_by_id.delete(temp_id);
+                this.nodes_by_id.set(real_id, node_data);
+                const handle = this.id_to_node_handle.get(temp_id);
+                if (handle !== undefined) {
+                    this.id_to_node_handle.delete(temp_id);
+                    this.id_to_node_handle.set(real_id, handle);
+                    this.node_handle_to_id.set(handle, real_id);
+                }
+            }
+        }
+    }
+
+    async _resolveNodes(payload) {
+        const headers = {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': this.#csrf_token
+        };
+        const res = fetch(this.base_url + "/create-nodes", {
+            method: "POST",
+            headers,
+            body: JSON.stringify(payload)
+        }).then(res => res.json())
+        return res
+    }
+
     /**
      * @param {import("@kpla/engine").NodeHandle} node_handle 
      * @returns {import("@kpla/engine").Node | undefined}
@@ -295,7 +310,11 @@ export class PBStore extends IGraphStore {
     getNodeByHandle(node_handle) {
         const id = this.node_handle_to_id.get(node_handle);
         if (!id) return undefined;
-        return this.nodes_by_id.get(id)
+        if (!this.nodes_by_id.has(id)) return undefined;
+        return {
+            ...this.nodes_by_id.get(id),
+            id
+        }
     }
 
     /**
@@ -385,6 +404,57 @@ export class PBStore extends IGraphStore {
      */
     getEdgeTypes() {
         return Array.from(this.edge_types.values())
+    }
+
+    /**
+     * @param {{name: string, id: string, metadata: string, type: import("@kpla/engine").NodeTypeId}[]} nodes 
+     * @param {import(".").EdgeBase[]} edges 
+     */
+    async map(nodes, edges) {
+        if (this.graph === null) {
+            console.error("Graph engine was not set when attempting to map");
+            return;
+        }
+        const node_payload = [];
+        for (const node of nodes) {
+            /** @type {import("@kpla/engine").NodeBase} */
+            const node_base = {
+                type: node.type,
+                metadata: node.metadata,
+                x: 100,
+                y: 100,
+                name: node.name,
+                id: node.id
+            }
+            const handle = this.graph.wasm.createNode({x: 100, y: 100})
+            /** @type {import("@kpla/engine").Node} */
+            const node_data = {
+                ...node_base,
+                edges_outgoing: [],
+                edges_incoming: [],
+                handle
+            }
+            this.id_to_node_handle.set(node_data.id, handle);
+            this.node_handle_to_id.set(handle, node_data.id);
+            this.nodes_by_id.set(node_data.id, node_data);
+            node_payload.push(node_data)
+        }
+        const res = await this._resolveNodes(node_payload)
+        const temp_id_id = new Map()
+        for (const node of res) {
+            temp_id_id.set(node.temp_id, node.id)
+        }
+        this._map_temp_ids(res)
+
+        for (const edge of edges) {
+            const start_id = temp_id_id.get(edge.start_id)
+            const end_id = temp_id_id.get(edge.end_id)
+            this.graph.createEdge({
+                ...edge,
+                start_id,
+                end_id
+            })
+        }
     }
 }
 

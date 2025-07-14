@@ -26,6 +26,8 @@ import { createSignal } from "@kpla/signals";
  * @property {import("@kpla/engine").Node | null} node
  */
 
+/** @typedef {{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}} Layer */
+
 const styles = getComputedStyle(document.body)
 
 /**
@@ -73,7 +75,7 @@ export class CanvasGUIDriver extends EventEmitter {
   /** @type {NodeData | null} */
   drop_data = null;
 
-  /** @type {Map<string, {canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}>} */
+  /** @type {Map<string, Layer>} */
   layers = new Map();
 
   config = {
@@ -788,6 +790,48 @@ export class CanvasGUIDriver extends EventEmitter {
   }
 
   /**
+   * @param {Layer} layer 
+   * @returns {Promise<Blob>}
+   */
+  getLayerSnapshot(layer) {
+    assert_is_not_null(this.graph);
+    const bounds = this.graph.getWorldBounds();
+    return new Promise((resolve, reject) => {
+      const quality = 0.9;
+      const width = bounds.bottom_right.x - bounds.top_left.x + 
+        (this.config.node_radius * 2);
+      const height = bounds.bottom_right.y - bounds.top_left.y + 
+        (this.config.node_radius * 2);
+
+      const img_data = document.createElement("canvas");
+      img_data.width = width;
+      img_data.height = height;
+      const img_data_ctx = img_data.getContext("2d");
+      assert_is_not_null(img_data_ctx);
+      img_data_ctx.drawImage(
+        layer.canvas,
+        bounds.top_left.x,
+        bounds.top_left.y,
+        width,
+        height,
+        0,
+        0,
+        width,
+        height
+      )
+      const img_data_url = img_data.toBlob((blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error("Failed to create snapshot"));
+        }
+      }, 'image/png', quality)
+
+      return img_data_url
+    })
+  }
+
+  /**
    * @param {import("@kpla/engine").Coords} coords 
    * @param {[import("@kpla/engine").Coords, import("@kpla/engine").Coords]} world_corners
    */
@@ -824,12 +868,11 @@ export class CanvasGUIDriver extends EventEmitter {
     const bundleSize = bundle.length;
     const initialOffset = -(bundleSize - 1) / 2.0;
 
-    bundle.forEach((edge, index) => {
+    for (const [index, edge] of bundle.entries()) {
       assert_is_not_null(this.graph);
       const start_node = this.graph.getNode(edge.start_handle);
       const end_node = this.graph.getNode(edge.end_handle);
-      assert_is_not_null(start_node);
-      assert_is_not_null(end_node);
+      if (!start_node || !end_node) continue;
 
       const edge_type = this.graph.getEdgeType(edge.type);
       assert_is_not_null(edge_type);
@@ -858,7 +901,7 @@ export class CanvasGUIDriver extends EventEmitter {
         this.config.grid_size,
         this._isSelected(edge.start_handle),
       );
-    });
+    }
   }
 
   /**

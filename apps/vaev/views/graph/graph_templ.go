@@ -170,7 +170,7 @@ func Main(app *pocketbase.PocketBase, project_id string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, ")\n\t\t\tconst csv_data = new CSVWriter(`from_account,to_account,sum\n123asd, 4324n23, 3000\n4324n23, fgh456, 3000\n9jsnid, 09jifsdn, 3000\n09jifsdn, fgh456, 3000\n90jsdfnos, fgh456, 3000`, [\"from_account\", \"to_account\"])\n\t\t\tdocument.addEventListener(\"DOMContentLoaded\", () => {\n\t\t\t\tdriver.run(store).then(graph => {\n\t\t\t\t\twindow.driver = driver\n\t\t\t\t\tdriver.graph.import(csv_data);\n\t\t\t\t})\n\t\t\t})\n\t\t</script></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, ")\n\t\t\tconst csv_data = new CSVWriter(`from_account,to_account,sum\n1001,2001,50.25\n1002,2002,120.00\n1003,2003,30.50\n1004,2004,200.75\n1005,2005,80.10\n1006,2006,15.99\n1007,2007,75.00\n1008,2008,180.30\n1009,2009,45.60\n1010,2010,99.99\n1011,2011,10.00\n1012,2012,250.00\n1013,2013,60.00\n1014,2014,130.50\n1015,2015,25.75\n1016,2016,190.00\n1017,2017,70.20\n1018,2018,110.40\n1019,2019,55.00\n1020,2020,85.80\n1021,2021,150.00\n1022,2022,35.50\n1023,2023,220.00\n1024,2024,40.10\n1025,2025,100.00\n1026,2026,65.25\n1027,2027,170.00\n1028,2028,20.99\n1029,2029,90.50\n1030,2030,140.75\n1031,2031,50.00\n1032,2032,125.00\n1033,2033,33.33\n1034,2034,210.00\n1035,2035,78.90\n1036,2036,18.00\n1037,2037,70.00\n1038,2038,160.00\n1039,2039,42.50\n1040,2040,88.88\n1041,2041,12.50\n1042,2042,230.00\n1043,2043,58.00\n1044,2044,145.00\n1045,2045,28.00\n1046,2046,200.00\n1047,2047,72.10\n1048,2048,115.00\n1049,2049,52.00\n1050,2050,92.00\n1051,2051,155.00\n1052,2052,38.00\n1053,2053,225.00\n1054,2054,43.00\n1055,2055,105.00\n1056,2056,68.00\n1057,2057,175.00\n1058,2058,23.00\n1059,2059,95.00\n1060,2060,145.00\n1061,2061,55.00\n1062,2062,130.00\n1063,2063,36.00\n1064,2064,215.00\n1065,2065,80.00\n1066,2066,19.00\n1067,2067,73.00\n1068,2068,165.00\n1069,2069,45.00\n1070,2070,90.00\n1071,2071,13.00\n1072,2072,235.00\n1073,2073,62.00\n1074,2074,150.00\n1075,2075,30.00\n1076,2076,205.00\n1077,2077,75.00\n1078,2078,120.00\n1079,2079,58.00\n1080,2080,98.00\n1081,2081,160.00\n1082,2082,40.00\n1083,2083,230.00\n1084,2084,45.00\n1085,2085,110.00\n1086,2086,70.00\n1087,2087,180.00\n1088,2088,25.00\n1089,2089,100.00\n1090,2090,150.00\n1091,2091,60.00\n1092,2092,135.00\n1093,2093,38.00\n1094,2094,220.00\n1095,2095,82.00\n1096,2096,20.00\n1097,2097,76.00\n1098,2098,170.00\n1099,2099,48.00\n1100,2100,92.00\n1101,2001,60.50\n1002,2003,130.00\n1003,2005,35.00\n1004,2007,210.25\n1005,2009,85.10\n1006,2011,18.99\n1007,2013,80.00\n1008,2015,190.30\n1009,2017,50.60\n1010,2019,105.99\n1011,2021,15.00\n1012,2023,260.00\n1013,2025,65.00\n1014,2027,135.50\n1015,2029,30.75\n1016,2031,195.00\n1017,2033,75.20\n1018,2035,115.40\n1019,2037,60.00\n1020,2039,90.80\n1021,2041,155.00\n1022,2043,40.50\n1023,2045,225.00\n1024,2047,45.10\n1025,2049,105.00\n1026,2051,70.25\n1027,2053,175.00\n1028,2055,25.99\n1029,2057,95.50\n1030,2059,145.75\n1031,2061,55.00\n1032,2063,130.00\n1033,2065,38.33\n1034,2067,215.00\n1035,2069,82.90\n1036,2071,20.00\n1037,2073,75.00\n1038,2075,165.00\n1039,2077,45.50\n1040,2079,92.88\n1041,2081,15.50\n1042,2083,235.00\n1043,2085,60.00\n1044,2087,150.00\n1045,2089,30.00\n1046,2091,205.00\n1047,2093,78.10\n1048,2095,120.00\n1049,2097,55.00\n1050,2099,95.00\n1051,2002,160.00\n1052,2004,42.00\n1053,2006,230.00\n1054,2008,48.00\n1055,2010,110.00\n1056,2012,72.00\n1057,2014,180.00\n1058,2016,28.00\n1059,2018,105.00\n1060,2020,155.00\n1061,2022,62.00\n1062,2024,140.00\n1063,2026,40.00\n1064,2028,220.00\n1065,2030,85.00\n1066,2032,22.00\n1067,2034,78.00\n1068,2036,170.00\n1069,2038,50.00\n1070,2040,95.00\n1071,2042,18.00\n1072,2044,240.00\n1073,2046,65.00\n1074,2048,155.00\n1075,2050,32.00\n1076,2052,210.00\n1077,2054,80.00\n1078,2056,125.00\n1079,2058,60.00\n1080,2060,100.00\n1081,2062,165.00\n1082,2064,45.00\n1083,2066,235.00\n1084,2068,50.00\n1085,2070,115.00\n1086,2072,75.00\n1087,2074,185.00\n1088,2076,30.00\n1089,2078,110.00\n1090,2080,160.00\n1091,2082,65.00\n1092,2084,145.00\n1093,2086,42.00\n1094,2088,225.00\n1095,2090,88.00\n1096,2092,25.00\n1097,2094,80.00\n1098,2096,175.00\n1099,2098,52.00\n1100,2100,98.00\n1001,2001,52.25\n1002,2002,122.00\n1003,2003,32.50\n1004,2004,202.75\n1005,2005,82.10\n1006,2006,17.99\n1007,2007,77.00\n1008,2008,182.30\n1009,2009,47.60\n1010,2010,101.99\n1011,2011,12.00\n1012,2012,252.00\n1013,2013,62.00\n1014,2014,132.50\n1015,2015,27.75\n1016,2016,192.00\n1017,2017,72.20\n1018,2018,112.40\n1019,2019,57.00\n1020,2020,87.80\n1021,2021,152.00\n1022,2022,37.50\n1023,2023,222.00\n1024,2024,42.10\n1025,2025,102.00\n1026,2026,67.25\n1027,2027,172.00\n1028,2028,22.99\n1029,2029,92.50\n1030,2030,142.75\n1031,2031,52.00\n1032,2032,127.00\n1033,2033,35.33\n1034,2034,212.00\n1035,2035,80.90\n1036,2036,20.00\n1037,2037,72.00\n1038,2038,162.00\n1039,2039,44.50\n1040,2040,90.88\n1041,2041,14.50\n1042,2042,232.00\n1043,2043,60.00\n1044,2044,147.00\n1045,2045,30.00\n1046,2046,202.00\n1047,2047,74.10\n1048,2048,117.00\n1049,2049,54.00\n1050,2050,94.00\n1051,2051,157.00\n1052,2052,40.00\n1053,2053,227.00\n1054,2054,45.00\n1055,2055,107.00\n1056,2056,70.00\n1057,2057,177.00\n1058,2058,25.00\n1059,2059,97.00\n1060,2060,147.00\n1061,2061,57.00\n1062,2062,132.00\n1063,2063,38.00\n1064,2064,217.00\n1065,2065,82.00\n1066,2066,21.00\n1067,2067,75.00\n1068,2068,167.00\n1069,2069,47.00\n1070,2070,92.00\n1071,2071,15.00\n1072,2072,237.00\n1073,2073,64.00\n1074,2074,152.00\n1075,2075,32.00\n1076,2076,207.00\n1077,2077,77.00\n1078,2078,122.00\n1079,2079,60.00\n1080,2080,100.00\n1081,2081,162.00\n1082,2082,42.00\n1083,2083,232.00\n1084,2084,47.00\n1085,2085,112.00\n1086,2086,72.00\n1087,2087,182.00\n1088,2088,27.00\n1089,2089,102.00\n1090,2090,152.00\n1091,2091,62.00\n1092,2092,137.00\n1093,2093,40.00\n1094,2094,222.00\n1095,2095,84.00\n1096,2096,22.00\n1097,2097,78.00\n1098,2098,172.00\n1099,2099,50.00\n1100,2100,100.00\n`, [\"from_account\", \"to_account\"])\n\t\t\tdocument.addEventListener(\"DOMContentLoaded\", () => {\n\t\t\t\tdriver.run(store).then(graph => {\n\t\t\t\t\twindow.driver = driver\n\t\t\t\t\t// driver.graph.import(\n\t\t\t\t\t// \tcsv_data,\n\t\t\t\t\t// \t[\n\t\t\t\t\t// \t\t{\n\t\t\t\t\t// \t\t\tsource_column: \"from_account\",\n\t\t\t\t\t// \t\t\ttarget_column: \"to_account\",\n\t\t\t\t\t// \t\t\tedge_type: \"6cvz5q2hdqo26bx\"\n\t\t\t\t\t// \t\t}\n\t\t\t\t\t// \t]\n\t\t\t\t\t// );\n\t\t\t\t})\n\t\t\t})\n\t\t</script></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -264,7 +264,7 @@ func ControlPanelSection(title string, icon string, tool int) templ.Component {
 		var templ_7745c5c3_Var12 string
 		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(tool)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 109, Col: 47}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 414, Col: 47}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 		if templ_7745c5c3_Err != nil {
@@ -277,7 +277,7 @@ func ControlPanelSection(title string, icon string, tool int) templ.Component {
 		var templ_7745c5c3_Var13 string
 		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(icon)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 111, Col: 39}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 416, Col: 39}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 		if templ_7745c5c3_Err != nil {
@@ -290,7 +290,7 @@ func ControlPanelSection(title string, icon string, tool int) templ.Component {
 		var templ_7745c5c3_Var14 string
 		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 112, Col: 9}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 417, Col: 9}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 		if templ_7745c5c3_Err != nil {
@@ -345,7 +345,7 @@ func NodeSelector(node_types []NodeType) templ.Component {
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(t.Id)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 123, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 428, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 			if templ_7745c5c3_Err != nil {
@@ -358,7 +358,7 @@ func NodeSelector(node_types []NodeType) templ.Component {
 			var templ_7745c5c3_Var17 string
 			templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(t.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 123, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 428, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 			if templ_7745c5c3_Err != nil {
@@ -410,7 +410,7 @@ func EdgeSelector(edge_types []EdgeType) templ.Component {
 			var templ_7745c5c3_Var19 string
 			templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(t.Id)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 135, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 440, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 			if templ_7745c5c3_Err != nil {
@@ -423,7 +423,7 @@ func EdgeSelector(edge_types []EdgeType) templ.Component {
 			var templ_7745c5c3_Var20 string
 			templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(t.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 135, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/graph/graph.templ`, Line: 440, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 			if templ_7745c5c3_Err != nil {

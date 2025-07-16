@@ -1,7 +1,7 @@
 import { CanvasGUIDriver } from "@kpla/canvas-driver"
 import wasm_url from '@kpla/engine/public/main.wasm?url';
 export { PBStore } from "./PBStore.js";
-export { CSVWriter } from "@kpla/engine";
+export { CSVWriter } from "./CSVWriter.js";
 
 import "./components/graph-btn.js"
 import "./components/graph-coords.js"

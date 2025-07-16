@@ -10,7 +10,7 @@ import { IGraphStore } from "./storage.js";
 import { IWriter } from "./writer.js";
 
 export { IGraphStore } from "./storage.js";
-export { IWriter, CSVWriter } from "./writer.js"
+export { IWriter } from "./writer.js"
 
 /** @typedef {number} NodeHandle */
 /** @typedef {number} EdgeHandle */
@@ -166,8 +166,9 @@ export class GraphEditor extends EventEmitter {
    * @param {IWriter} writer 
    * @param {import("./writer.js").RelationshipRuleset[]} rules 
    */
-  import(writer, rules) {
-    writer.write(this, rules)
+  async import(writer, rules) {
+    await writer.write(this, rules);
+    this.emit("world:update");
   }
 
   /**
@@ -206,7 +207,7 @@ export class GraphEditor extends EventEmitter {
   }
 
   sortNodes() {
-    this.wasm.sortNodes(500, 0.01, 1000.0, 200.0, 0.9);
+    this.wasm.sortNodes(500, 0.001, 1000.0, 200.0, 0.9);
     for (const node of this.getNodes()) {
       this.store.setNode(node.handle, node)
     }

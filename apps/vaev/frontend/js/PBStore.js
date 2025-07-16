@@ -1,5 +1,9 @@
 import { GraphEditor, IGraphStore } from "@kpla/engine";
 
+/**
+ * @typedef {{name: string, id: string, metadata: string, type: import("@kpla/engine").NodeTypeId}} SparseNode
+ */
+
 export class PBStore extends IGraphStore {
     /** @type {GraphEditor | null} */
     graph = null
@@ -271,7 +275,6 @@ export class PBStore extends IGraphStore {
     }
 
     _map_temp_ids(temp_nodes) {
-        console.log(temp_nodes)
         for (const temp_node of temp_nodes) {
             const real_id = temp_node.id;
             const temp_id = temp_node.temp_id;
@@ -407,7 +410,7 @@ export class PBStore extends IGraphStore {
     }
 
     /**
-     * @param {{name: string, id: string, metadata: string, type: import("@kpla/engine").NodeTypeId}[]} nodes 
+     * @param {SparseNode[]} nodes 
      * @param {import(".").EdgeBase[]} edges 
      */
     async map(nodes, edges) {
@@ -416,17 +419,24 @@ export class PBStore extends IGraphStore {
             return;
         }
         const node_payload = [];
-        for (const node of nodes) {
+        const row_width = 1500;
+        const node_spacing = 80;
+        const row_items = row_width / node_spacing;
+        const indexes = []
+        for (const [ index, node ] of nodes.entries()) {
+            const row_nr = Math.floor(index / row_items)
+            indexes.push(node.id)
+
             /** @type {import("@kpla/engine").NodeBase} */
             const node_base = {
                 type: node.type,
                 metadata: node.metadata,
-                x: 100,
-                y: 100,
+                x: node_spacing * index % row_width,
+                y: node_spacing * row_nr,
                 name: node.name,
                 id: node.id
             }
-            const handle = this.graph.wasm.createNode({x: 100, y: 100})
+            const handle = this.graph.wasm.createNode({x: node_base.x, y: node_base.y})
             /** @type {import("@kpla/engine").Node} */
             const node_data = {
                 ...node_base,
@@ -441,19 +451,19 @@ export class PBStore extends IGraphStore {
         }
         const res = await this._resolveNodes(node_payload)
         const temp_id_id = new Map()
-        for (const node of res) {
-            temp_id_id.set(node.temp_id, node.id)
+        for (const n of res) {
+            temp_id_id.set(n.temp_id, n.id)
         }
         this._map_temp_ids(res)
 
         for (const edge of edges) {
-            const start_id = temp_id_id.get(edge.start_id)
-            const end_id = temp_id_id.get(edge.end_id)
-            this.graph.createEdge({
+            const start_id = temp_id_id.get(edge.start_id);
+            const end_id = temp_id_id.get(edge.end_id);
+            await this.graph.createEdge({
                 ...edge,
                 start_id,
                 end_id
-            })
+            });
         }
     }
 }

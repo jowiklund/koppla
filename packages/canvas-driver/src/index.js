@@ -778,9 +778,9 @@ export class CanvasGUIDriver extends EventEmitter {
         )
     });
 
-    edge_bundles.forEach(bundle => {
-      this._drawEdgeBundle(bundle, layer);
-    });
+    for (const bundle of edge_bundles.values()) {
+      this._drawEdgeBundle(bundle, layer)
+    }
 
     for (let node of visible_nodes) {
       this._drawNode(node, layer);

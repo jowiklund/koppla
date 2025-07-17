@@ -1,8 +1,8 @@
 import { createSignal, createEffect, computed } from "@kpla/signals";
 
 class CounterButton extends HTMLElement {
-    #count; // Private signal for encapsulation
-    #doubledCount; // Computed signal
+    #count;
+    #doubledCount;
     icon;
 
     constructor() {
@@ -32,15 +32,12 @@ class CounterButton extends HTMLElement {
             <button><span class="material-symbols">${this.icon}</span></button>
         `;
 
-        // Get references to elements inside Shadow DOM
         this.button = this.shadowRoot.querySelector('button');
         this.countSpan = this.shadowRoot.querySelector('button span:first-of-type');
         this.doubledCountSpan = this.shadowRoot.querySelector('button span:last-of-type');
 
-        // Attach event listener
         this.button.addEventListener('click', this.increment.bind(this));
 
-        // Set up effects to update the UI when signals change
         createEffect(() => {
             this.countSpan.textContent = this.#count();
         });

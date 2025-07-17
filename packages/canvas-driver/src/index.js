@@ -62,6 +62,29 @@ export const Tool = {
   PAN: 3
 }
 
+/**
+ * @enum {number}
+ * @readonly
+ */
+export const LayerName = {
+  STATIC: 0,
+  OBJECTS: 1,
+  INTERACTIONS: 2
+}
+
+/**
+ * @enum {string}
+ * @readonly
+ */
+export const Evt = {
+  WORLD_UPDATE: "world:update",
+  DBL_CLICK: "dblclick",
+  NODE_CREATE: "node:create",
+  CREATE_EDGES: "create:edges",
+  RUN: "run",
+  CLICK: "click"
+}
+
 export class CanvasGUIDriver extends EventEmitter {
   /** @type {HTMLElement} */
   container;
@@ -75,7 +98,7 @@ export class CanvasGUIDriver extends EventEmitter {
   /** @type {NodeData | null} */
   drop_data = null;
 
-  /** @type {Map<string, Layer>} */
+  /** @type {Map<LayerName, Layer>} */
   layers = new Map();
 
   config = {
@@ -136,9 +159,9 @@ export class CanvasGUIDriver extends EventEmitter {
 
     this.dpr = window.devicePixelRatio || 1;
 
-    this._createLayer("static");
-    this._createLayer("objects");
-    this._createLayer("interactions");
+    this._createLayer(LayerName.STATIC);
+    this._createLayer(LayerName.OBJECTS);
+    this._createLayer(LayerName.INTERACTIONS);
 
     const control_panel = document.getElementById(opts.control_panel_id);
     assert_is_not_null(control_panel);
@@ -147,7 +170,7 @@ export class CanvasGUIDriver extends EventEmitter {
 
   /**
    * @private
-   * @param {string} name 
+   * @param {LayerName} name 
    */
   _createLayer(name) {
     const canvas = document.createElement("canvas");
@@ -244,7 +267,7 @@ export class CanvasGUIDriver extends EventEmitter {
     this.graph.on("world:pan", this._drawStatic.bind(this));
     this.graph.on("world:zoom", this._drawStatic.bind(this));
 
-    this.emit("run", this.graph);
+    this.emit(Evt.RUN, this.graph);
 
     return this.graph;
   }
@@ -268,7 +291,7 @@ export class CanvasGUIDriver extends EventEmitter {
     this.container.addEventListener("mousemove", this._mouseMove.bind(this));
     this.container.addEventListener("wheel", this._wheel.bind(this));
     this.container.addEventListener("mouseup", this._mouseUp.bind(this));
-    this.container.addEventListener("dblclick", this._emitDoubleClick.bind(this));
+    this.container.addEventListener("dblclick", this._doubleClick.bind(this));
 
     this.container.addEventListener("dragover", (e) => {
       e.preventDefault();
@@ -277,11 +300,14 @@ export class CanvasGUIDriver extends EventEmitter {
     })
   }
 
+  /** 
+   * Updates the selected nodes with new values from the graph engine
+   * @private 
+   */
   _updateSelection() {
     assert_is_not_null(this.graph);
     const [selected, setSelected] = this.selected_nodes;
     if (selected().length == 0) return;
-    assert_is_not_null(this.graph);
     const updated_nodes = selected()
       .map(n => this.graph?.getNode(n.handle))
       .filter(n => n != null)
@@ -291,13 +317,46 @@ export class CanvasGUIDriver extends EventEmitter {
   /**
    * @param {MouseEvent} e
    */
-  _emitDoubleClick(e) {
+  _doubleClick(e) {
+    assert_is_not_null(this.graph);
     const pos = this._getPositionData({x: e.clientX, y: e.clientY});
-    this.emit("dblclick", pos);
-    const evt = new CustomEvent("kpla-dblclick", {
-      detail: this.state.ctx,
-    });
-    this.container.dispatchEvent(evt);
+    this.emit(Evt.DBL_CLICK, pos);
+    if (pos.node !== null) {
+      const children = [pos.node.handle];
+      while (children.length > 0) {
+        const current_handle = children.shift();
+        if (!current_handle) {
+          console.warn("No handle")
+          continue;
+        }
+        const current_node = this.graph.getNode(current_handle);
+        console.log(current_handle, current_node)
+        if (!current_node) {
+          console.warn("No node")
+          continue;
+        }
+        if (current_node.edges_outgoing.length > 0) {
+          for (const edge_handle of current_node.edges_outgoing) {
+            const edge = this.graph.getEdge(edge_handle);
+            if (!edge) continue;
+            const node = this.graph.getNode(edge.end_handle)
+            if (!node) continue;
+            children.push(node.handle)
+          }
+        }
+        this._selectNode(current_node);
+      }
+      this._drawObjects();
+    }
+  }
+
+  /**
+   * @param {import("@kpla/engine").Node} node 
+   */
+  _selectNode(node) {
+    console.log(node)
+    const [selected, setSelected] = this.selected_nodes;
+    setSelected([...selected(), node])
   }
 
   /**
@@ -352,7 +411,7 @@ export class CanvasGUIDriver extends EventEmitter {
       });
 
       this.container.dispatchEvent(evt);
-      this.emit("create:edges", this.new_edges);
+      this.emit(Evt.CREATE_EDGES, this.new_edges);
       this.new_edges = []
     }
 
@@ -388,7 +447,7 @@ export class CanvasGUIDriver extends EventEmitter {
       event: e,
       tool: this.current_tool
     })
-    this.graph.emit("world:update");
+    this.graph.emit(Evt.WORLD_UPDATE);
   }
 
   /**
@@ -471,14 +530,10 @@ export class CanvasGUIDriver extends EventEmitter {
       tool: this.current_tool
     })
 
-    const evt = new CustomEvent("kpla-click", {
-      detail: this.state.ctx,
-    });
-    this.container.dispatchEvent(evt);
-    this.emit("click", this.state.ctx.pos);
+    this.emit(Evt.CLICK, this.state.ctx.pos);
 
     if (this.state.is(State.CREATE_NODE)) {
-      this.emit("node:create", {
+      this.emit(Evt.NODE_CREATE, {
         type: this.current_node_type,
         name: "",
         metadata: "",
@@ -642,7 +697,7 @@ export class CanvasGUIDriver extends EventEmitter {
   /** @private */
   _drawInteractions() {
     assert_is_not_null(this.graph);
-    const layer = this.layers.get("interactions")
+    const layer = this.layers.get(LayerName.INTERACTIONS)
     assert_is_not_null(layer)
     const logicalWidth = layer.canvas.width / this.dpr;
     const logicalHeight = layer.canvas.height / this.dpr;
@@ -725,7 +780,7 @@ export class CanvasGUIDriver extends EventEmitter {
   /** @private */
   _drawStatic() {
     assert_is_not_null(this.graph);
-    const layer = this.layers.get("static")
+    const layer = this.layers.get(LayerName.STATIC);
     assert_is_not_null(layer);
     const logicalWidth = layer.canvas.width / this.dpr;
     const logicalHeight = layer.canvas.height / this.dpr;
@@ -748,7 +803,7 @@ export class CanvasGUIDriver extends EventEmitter {
   /** @private */
   _drawObjects() {
     assert_is_not_null(this.graph);
-    const layer = this.layers.get("objects")
+    const layer = this.layers.get(LayerName.OBJECTS)
     assert_is_not_null(layer);
     const logical_width = layer.canvas.width / this.dpr;
     const logical_height = layer.canvas.height / this.dpr;
@@ -958,30 +1013,6 @@ export class CanvasGUIDriver extends EventEmitter {
 }
 
 /**
- * Creates a draggable node element
- * 
- * @param {string} text 
- * @param {NodeData} config
- */
-function createNodeDraggable(text, config) {
-  const node = document.createElement("div");
-  node.innerHTML = text;
-
-  node.classList.add("node-draggable")
-
-  node.setAttribute("draggable", "true")
-  node.style.borderColor = config.data.color;
-  node.style.borderLeftWidth = "8px";
-
-  node.addEventListener("dragstart", (e) => {
-    assert_is_not_null(e.dataTransfer);
-    e.dataTransfer.setData("graph/node", JSON.stringify(config))
-  })
-
-  return node;
-}
-
-/**
  * @param {CanvasRenderingContext2D} ctx The canvas context.
  * @param {number} canvasWidth The width of the canvas element.
  * @param {number} canvas_height The height of the canvas element.
@@ -990,18 +1021,18 @@ function createNodeDraggable(text, config) {
  */
 function drawWorldGrid(ctx, canvasWidth, canvas_height, grid_size, graph) {
   if (graph.scale < 0.5) return;
-  const worldViewTopLeft = graph.screenToWorld({x: 0, y: 0});
-  const worldViewBottomRight = graph.screenToWorld({x: canvasWidth, y: canvas_height});
+  const world_view_top_left = graph.screenToWorld({x: 0, y: 0});
+  const world_view_bottom_right = graph.screenToWorld({x: canvasWidth, y: canvas_height});
 
-  const startX = Math.floor(worldViewTopLeft.x / grid_size) * grid_size;
-  const startY = Math.floor(worldViewTopLeft.y / grid_size) * grid_size;
+  const start_x = Math.floor(world_view_top_left.x / grid_size) * grid_size;
+  const start_y = Math.floor(world_view_top_left.y / grid_size) * grid_size;
 
   const dotRadius = 1;
 
   ctx.fillStyle = Colors.background_secondary;
 
-  for (let x = startX; x < worldViewBottomRight.x; x += grid_size) {
-    for (let y = startY; y < worldViewBottomRight.y; y += grid_size) {
+  for (let x = start_x; x < world_view_bottom_right.x; x += grid_size) {
+    for (let y = start_y; y < world_view_bottom_right.y; y += grid_size) {
       ctx.beginPath();
       ctx.arc(x, y, dotRadius, 0, 2 * Math.PI);
       ctx.fill();
@@ -1052,50 +1083,50 @@ function getBestGates(startNode, endNode) {
 }
 
 /**
- * @param {import("@kpla/engine").Coords} node The node's center coordinates.
+ * @param {import("@kpla/engine").Coords} node_coords The node's center coordinates.
  * @param {number} gate The gate (from GATES enum).
  * @param {number} radius The node's radius.
  * @returns {import("@kpla/engine").Coords}
  */
-function getGateCoordinates(node, gate, radius) {
+function getGateCoordinates(node_coords, gate, radius) {
   switch (gate) {
-    case GATES.TOP:    return { x: node.x, y: node.y - radius };
-    case GATES.BOTTOM: return { x: node.x, y: node.y + radius };
-    case GATES.LEFT:   return { x: node.x - radius, y: node.y };
-    case GATES.RIGHT:  return { x: node.x + radius, y: node.y };
-    default:           return node;
+    case GATES.TOP:    return { x: node_coords.x, y: node_coords.y - radius };
+    case GATES.BOTTOM: return { x: node_coords.x, y: node_coords.y + radius };
+    case GATES.LEFT:   return { x: node_coords.x - radius, y: node_coords.y };
+    case GATES.RIGHT:  return { x: node_coords.x + radius, y: node_coords.y };
+    default:           return node_coords;
   }
 }
 
 /**
- * @param {CanvasRenderingContext2D} ctx - 
- * @param {import("@kpla/engine").Coords} startCoords - 
- * @param {number} startGate - 
- * @param {import("@kpla/engine").Coords} endCoords - 
- * @param {number} endGate - 
- * @param {number} offset - 
- * @param {import("@kpla/engine").EdgeType} edge_type 
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {import("@kpla/engine").Coords} start_coords
+ * @param {number} start_gate
+ * @param {import("@kpla/engine").Coords} end_coords
+ * @param {number} end_gate
+ * @param {number} offset
+ * @param {import("@kpla/engine").EdgeType} edge_type
  * @param {number} grid_size 
  * @param {boolean} render_name 
  */
 function drawEdgeOrthogonal(
   ctx,
-  startCoords,
-  startGate,
-  endCoords,
-  endGate,
+  start_coords,
+  start_gate,
+  end_coords,
+  end_gate,
   offset,
   edge_type,
   grid_size,
   render_name = false,
 ) {
-  const cornerRadius = grid_size / 2;
-  const bundleGap = grid_size;
-  const offsetAmount = offset * bundleGap;
-  const sx = startCoords.x;
-  const sy = startCoords.y;
-  const ex = endCoords.x;
-  const ey = endCoords.y;
+  const corner_radius = grid_size / 2;
+  const bundle_gap = grid_size;
+  const offset_amount = offset * bundle_gap;
+  const sx = start_coords.x;
+  const sy = start_coords.y;
+  const ex = end_coords.x;
+  const ey = end_coords.y;
 
   ctx.beginPath();
   ctx.moveTo(sx, sy);
@@ -1107,26 +1138,26 @@ function drawEdgeOrthogonal(
     ctx.setLineDash(edge_type.line_dash)
   }
 
-  const isHorizontalStart = startGate === GATES.LEFT || startGate === GATES.RIGHT;
-  const isHorizontalEnd = endGate === GATES.LEFT || endGate === GATES.RIGHT;
+  const is_horizontal_start = start_gate === GATES.LEFT || start_gate === GATES.RIGHT;
+  const is_horizontal_end = end_gate === GATES.LEFT || end_gate === GATES.RIGHT;
 
-  if (isHorizontalStart && isHorizontalEnd) {
-    const midX = sx + (ex - sx) / 2 + offsetAmount;
-    ctx.arcTo(midX, sy, midX, ey, cornerRadius);
-    ctx.arcTo(midX, ey, ex, ey, cornerRadius);
-  } else if (!isHorizontalStart && !isHorizontalEnd) {
-    const midY = sy + (ey - sy) / 2 + offsetAmount;
-    ctx.arcTo(sx, midY, ex, midY, cornerRadius);
-    ctx.arcTo(ex, midY, ex, ey, cornerRadius);
+  if (is_horizontal_start && is_horizontal_end) {
+    const mid_x = sx + (ex - sx) / 2 + offset_amount;
+    ctx.arcTo(mid_x, sy, mid_x, ey, corner_radius);
+    ctx.arcTo(mid_x, ey, ex, ey, corner_radius);
+  } else if (!is_horizontal_start && !is_horizontal_end) {
+    const mid_y = sy + (ey - sy) / 2 + offset_amount;
+    ctx.arcTo(sx, mid_y, ex, mid_y, corner_radius);
+    ctx.arcTo(ex, mid_y, ex, ey, corner_radius);
   } else {
-    if (isHorizontalStart) {
-      const elbowX = ex;
-      const elbowY = sy;
-      ctx.arcTo(elbowX, elbowY, ex, ey, cornerRadius);
+    if (is_horizontal_start) {
+      const elbow_x = ex;
+      const elbow_y = sy;
+      ctx.arcTo(elbow_x, elbow_y, ex, ey, corner_radius);
     } else {
       const elbowX = sx;
       const elbowY = ey;
-      ctx.arcTo(elbowX, elbowY, ex, ey, cornerRadius);
+      ctx.arcTo(elbowX, elbowY, ex, ey, corner_radius);
     }
   }
 
@@ -1134,8 +1165,8 @@ function drawEdgeOrthogonal(
   ctx.stroke();
 
   if (render_name) {
-    const midX = sx + (ex - sx) / 2 + offsetAmount;
-    const midY = sy + (ey - sy) / 2 + offsetAmount;
+    const midX = sx + (ex - sx) / 2 + offset_amount;
+    const midY = sy + (ey - sy) / 2 + offset_amount;
     ctx.beginPath();
     ctx.fillStyle = Colors.background_primary;
     ctx.rect(midX - (edge_type.name.length / 2) * 8, midY - 10, edge_type.name.length * 8, 20);
@@ -1149,26 +1180,26 @@ function drawEdgeOrthogonal(
   }
 
   ctx.beginPath();
-  ctx.setLineDash([])
-  if (startGate === GATES.LEFT) {
+  ctx.setLineDash([]);
+  if (start_gate === GATES.LEFT) {
     ctx.moveTo(sx - 15, sy - 5);
     ctx.lineTo(sx - 20, sy);
     ctx.lineTo(sx - 15, sy + 5);
   }
 
-  if (startGate === GATES.RIGHT) {
+  if (start_gate === GATES.RIGHT) {
     ctx.moveTo(sx + 15, sy - 5);
     ctx.lineTo(sx + 20, sy);
     ctx.lineTo(sx + 15, sy + 5);
   }
 
-  if (startGate === GATES.TOP) {
+  if (start_gate === GATES.TOP) {
     ctx.moveTo(sx - 5, sy - 15);
     ctx.lineTo(sx, sy - 20);
     ctx.lineTo(sx + 5, sy - 15);
   }
 
-  if (startGate === GATES.BOTTOM) {
+  if (start_gate === GATES.BOTTOM) {
     ctx.moveTo(sx - 5, sy + 35);
     ctx.lineTo(sx, sy + 40);
     ctx.lineTo(sx + 5, sy + 35);

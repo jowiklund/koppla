@@ -128,7 +128,7 @@ export fn deleteEdge(handle: EdgeHandle) void {
     }
     for (edge_end_node.edges_incoming.items, 0..) |outgoing_handle, i| {
         if (outgoing_handle == handle) {
-            _ = edge_start_node.edges_outgoing.swapRemove(i);
+            _ = edge_end_node.edges_incoming.swapRemove(i);
             break;
         }
     }

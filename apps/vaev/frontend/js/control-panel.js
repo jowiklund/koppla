@@ -29,7 +29,6 @@ export class ControlPanel {
         this.node_name = createSignal("");
         this.node_creation_dialog = document.createElement("node-creation-dialog");
         this.node_creation_dialog.node_name = this.node_name;
-
         this.root.appendChild(this.node_creation_dialog);
 
         this.current_tool = createSignal(0);
@@ -37,7 +36,6 @@ export class ControlPanel {
         this.toolbar = document.createElement("graph-toolbar");
         this.toolbar.current_tool = this.current_tool;
         this.toolbar.track_keystrokes = this.track_keystrokes;
-
         this.root.appendChild(this.toolbar);
 
         this.coords = document.createElement("graph-coords");
